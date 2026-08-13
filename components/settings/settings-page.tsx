@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
 import { PasswordInput } from "@/components/auth/password-input";
@@ -9,6 +10,7 @@ import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
 import { ConfirmSheet } from "@/components/settings/confirm-sheet";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/lib/auth/context";
+import { isAdmin } from "@/lib/auth/role";
 
 type WeekStart = "saturday" | "sunday" | "monday";
 
@@ -55,6 +57,7 @@ export function SettingsPage() {
   const reduce = useReducedMotion();
   const { pushToast } = useToast();
   const { user } = useAuth();
+  const admin = isAdmin(user);
 
   const defaultName = user?.name?.trim() || "Parvej";
   const defaultEmail = user?.email?.trim() || "parvej@example.com";
@@ -494,6 +497,27 @@ export function SettingsPage() {
                   </li>
                 ))}
               </ul>
+            </motion.section>
+
+            <motion.section
+              className="card"
+              aria-labelledby="billing-heading"
+              variants={reduce ? undefined : fadeUpSoft}
+            >
+              <div className="panel-head">
+                <h2 id="billing-heading" className="section-title">
+                  Subscription
+                </h2>
+              </div>
+              <p className="lede" style={{ maxWidth: "42ch" }}>
+                Plan, renewal date, and invoices — keep the year chain without
+                surprise charges.
+              </p>
+              <div className="settings-actions" style={{ marginTop: 16 }}>
+                <Link href="/subscription" className="btn btn-ghost">
+                  Manage subscription
+                </Link>
+              </div>
             </motion.section>
 
             <motion.section
