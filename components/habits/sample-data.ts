@@ -27,6 +27,9 @@ export type ArchivedHabit = {
   schedule: string;
   rate: number;
   bestLabel: string;
+  archivedAt: string;
+  heatSeed: number;
+  fillRate: number;
 };
 
 export const ACTIVE_HABITS: LibraryHabit[] = [
@@ -124,6 +127,9 @@ export const INITIAL_ARCHIVED: ArchivedHabit[] = [
     schedule: "Every day",
     rate: 62,
     bestLabel: "best 21",
+    archivedAt: "3 Feb 2026",
+    heatSeed: 701,
+    fillRate: 0.62,
   },
   {
     id: "spanish",
@@ -133,5 +139,8 @@ export const INITIAL_ARCHIVED: ArchivedHabit[] = [
     schedule: "Weekdays",
     rate: 55,
     bestLabel: "best 14",
+    archivedAt: "18 Dec 2025",
+    heatSeed: 802,
+    fillRate: 0.55,
   },
 ];

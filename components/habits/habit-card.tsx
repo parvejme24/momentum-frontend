@@ -96,12 +96,15 @@ export function ArchivedRow({
         {habit.emoji}
       </div>
       <div className="habit-body">
-        <div className="habit-title">{habit.title}</div>
+        <Link href={`/habits/${habit.id}`} className="habit-title">
+          {habit.title}
+        </Link>
         <div className="habit-meta mono">
           <span>{habit.schedule}</span>
           <span>
             {habit.rate}% · {habit.bestLabel}
           </span>
+          <span>Archived {habit.archivedAt}</span>
         </div>
       </div>
       <button

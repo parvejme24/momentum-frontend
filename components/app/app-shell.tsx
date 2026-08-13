@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { BrandLockup } from "@/components/home/brand-mark";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/lib/auth/context";
 
 const SIDE_NAV = [
@@ -33,7 +34,13 @@ function isActive(pathname: string, href: string, mode: "side" | "tab" = "side")
   if (href === "/dashboard") return pathname === "/dashboard";
   if (href === "/habits/new") return pathname.startsWith("/habits/new");
   if (href === "/habits") {
-    if (mode === "tab") return pathname === "/habits";
+    if (mode === "tab") {
+      return (
+        pathname === "/habits" ||
+        pathname.startsWith("/habits/archived") ||
+        (pathname.startsWith("/habits/") && !pathname.startsWith("/habits/new"))
+      );
+    }
     return pathname === "/habits" || pathname.startsWith("/habits/");
   }
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -94,11 +101,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div className="who-name">{name}</div>
               <div className="who-tz mono">{timezone}</div>
             </div>
+            <ThemeToggle className="side-theme" />
           </div>
         </div>
       </aside>
 
-      <div className="main">{children}</div>
+      <div className="main">
+        <div className="app-mobile-bar">
+          <ThemeToggle />
+        </div>
+        {children}
+      </div>
 
       <nav className="tabbar" aria-label="Mobile">
         <ul>

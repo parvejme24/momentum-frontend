@@ -123,7 +123,7 @@ export function RegisterForm() {
       });
       pushToast("Account created. Let’s mark the first square.");
       window.setTimeout(() => {
-        router.replace("/onboarding/habit");
+        router.replace("/habits/new");
       }, 450);
     } catch (err) {
       if (err instanceof ApiError) {

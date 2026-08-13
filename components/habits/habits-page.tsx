@@ -64,8 +64,8 @@ export function HabitsPage() {
         streakDays: 0,
         rate: item.rate,
         bestLabel: item.bestLabel,
-        heatSeed: id.length * 97 + 11,
-        fillRate: item.rate / 100,
+        heatSeed: item.heatSeed,
+        fillRate: item.fillRate,
       };
       return [...prev, restored];
     });
@@ -85,7 +85,10 @@ export function HabitsPage() {
         >
           <div>
             <p className="eyebrow">
-              {active.length} active · {archived.length} archived
+              {active.length} active ·{" "}
+              <Link href="/habits/archived" className="archived-count-link">
+                {archived.length} archived
+              </Link>
             </p>
             <h1>Habits</h1>
           </div>
@@ -148,13 +151,16 @@ export function HabitsPage() {
                 History is kept. Restore any time.
               </p>
             </div>
+            <Link href="/habits/archived" className="btn btn-ghost btn-sm">
+              View all
+            </Link>
           </div>
 
           {archived.length === 0 ? (
             <p className="hint">Nothing archived right now.</p>
           ) : (
             <div className="habit-list">
-              {archived.map((habit: ArchivedHabit) => (
+              {archived.slice(0, 2).map((habit: ArchivedHabit) => (
                 <ArchivedRow
                   key={habit.id}
                   habit={habit}

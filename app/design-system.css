@@ -849,6 +849,14 @@ h4 {
   align-items: center;
   gap: 10px;
 }
+.who .side-theme {
+  margin-left: auto;
+  width: 36px;
+  height: 36px;
+}
+.app-mobile-bar {
+  display: none;
+}
 .avatar {
   width: 38px;
   height: 38px;
@@ -1202,6 +1210,75 @@ h4 {
   transform: none;
   box-shadow: none;
 }
+.archived-count-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--ink-30);
+  text-underline-offset: 3px;
+}
+.archived-count-link:hover {
+  color: var(--blue);
+  text-decoration-color: var(--blue);
+}
+.archived-page {
+  min-width: 0;
+}
+.archived-head .back-link {
+  margin-bottom: 14px;
+}
+.archived-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.archived-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  opacity: 0.88;
+  box-shadow: var(--shadow-sm);
+}
+.archived-card:hover {
+  opacity: 1;
+}
+.archived-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.archived-card-copy {
+  flex: 1;
+  min-width: 0;
+}
+.archived-card-when {
+  margin: 6px 0 0;
+  font-size: 0.72rem;
+  color: var(--ink-50);
+}
+.archived-card-rate {
+  flex: none;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ink-70);
+}
+.archived-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 2px solid var(--ink-12);
+}
+.archived-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.archived-empty {
+  margin-top: 8px;
+}
 
 /* ---------- 10d. NEW HABIT ---------- */
 .sr-only {
@@ -1480,6 +1557,19 @@ h4 {
 }
 .chain .cell.l4 {
   background: var(--l4);
+}
+.chain .cell.skip {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--rule) 0 2px,
+    transparent 2px 4px
+  );
+}
+.chain .cell.today {
+  border: 2px solid var(--flame);
+}
+.chain .cell.off {
+  opacity: 0.25;
 }
 @keyframes pop {
   to {
@@ -1850,6 +1940,156 @@ h4 {
     place-items: center;
     align-content: center;
   }
+}
+
+/* ---------- 12d. HABIT DETAIL ---------- */
+.habit-detail-page {
+  min-width: 0;
+}
+.habit-detail-head {
+  margin-bottom: 22px;
+}
+.habit-detail-head .back-link {
+  margin-bottom: 14px;
+}
+.habit-detail-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.habit-detail-glyph {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: var(--stroke);
+  border-radius: var(--radius-lg);
+  font-size: 1.7rem;
+  box-shadow: var(--shadow-sm);
+}
+.habit-detail-title-copy {
+  flex: 1;
+  min-width: min(100%, 220px);
+}
+.habit-detail-title-copy h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(1.7rem, 4vw, 2.35rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+.habit-detail-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.habit-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: none;
+  margin-left: auto;
+}
+.habit-detail-section {
+  margin-bottom: 22px;
+}
+.habit-detail-mark .mark {
+  width: 52px;
+  height: 52px;
+}
+.habit-detail-stats {
+  margin-bottom: 22px;
+}
+.habit-chain-card {
+  margin-bottom: 22px;
+}
+.habit-chain-head {
+  align-items: flex-end;
+  gap: 14px;
+}
+.habit-year-scroll {
+  margin-top: 4px;
+}
+.habit-detail-charts,
+.habit-detail-bottom {
+  margin-top: 22px;
+}
+.habit-weekday-insight {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 2px solid var(--ink-12);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--ink-70);
+}
+.habit-reminder-list {
+  display: grid;
+  gap: 10px;
+}
+.habit-reminder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border: var(--stroke);
+  border-radius: var(--radius);
+  background: var(--paper-white);
+}
+.habit-reminder-row-quiet {
+  border-color: var(--ink-30);
+  opacity: 0.72;
+}
+.habit-reminder-time {
+  font-weight: 700;
+  font-size: 1.02rem;
+  letter-spacing: -0.03em;
+}
+.habit-reminder-meta {
+  margin-top: 3px;
+  font-size: 0.78rem;
+  color: var(--ink-50);
+}
+.habit-reminder-note {
+  margin: 12px 0 0;
+}
+.habit-log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.habit-log-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 2px solid var(--ink-12);
+}
+.habit-log-row:first-child {
+  padding-top: 0;
+}
+.habit-log-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.habit-log-date {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-70);
+}
+.habit-log-qty {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.habit-log-more {
+  margin-top: 16px;
 }
 
 /* ---------- 13. LANDING ---------- */
@@ -2640,6 +2880,9 @@ h4 {
   .habit-lib-grid {
     grid-template-columns: 1fr;
   }
+  .archived-grid {
+    grid-template-columns: 1fr;
+  }
   .new-habit-layout {
     grid-template-columns: 1fr;
   }
@@ -2648,6 +2891,9 @@ h4 {
   }
   .stats-compare-list {
     grid-template-columns: 1fr;
+  }
+  .habit-detail-actions {
+    margin-left: 0;
   }
 }
 
@@ -2663,6 +2909,11 @@ h4 {
   }
   .main {
     padding: 22px 18px 110px;
+  }
+  .app-mobile-bar {
+    display: flex;
+    justify-content: flex-end;
+    margin: -4px 0 14px;
   }
   .summary {
     flex-direction: column;
@@ -2710,6 +2961,32 @@ h4 {
   }
   .device-row {
     flex-wrap: wrap;
+  }
+  .habit-detail-title-row {
+    flex-direction: column;
+  }
+  .habit-detail-actions {
+    width: 100%;
+  }
+  .habit-detail-charts,
+  .habit-detail-bottom {
+    grid-template-columns: 1fr;
+  }
+  .habit-chain-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .habit-log-row {
+    grid-template-columns: 1fr auto;
+    gap: 8px 12px;
+  }
+  .habit-log-qty {
+    grid-column: 1;
+  }
+  .habit-log-row .chip {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
   }
   .grid-3 {
     grid-template-columns: 1fr;
