@@ -44,6 +44,10 @@ export type LogoutRequest = {
   refreshToken: string;
 };
 
+export type ForgotPasswordRequest = {
+  email: string;
+};
+
 export type ApiErrorDetail = {
   field?: string;
   message?: string;

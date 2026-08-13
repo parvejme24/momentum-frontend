@@ -6,8 +6,10 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 
-import { ApiError } from "@/lib/api/errors";
+import { ToastProvider } from "@/components/auth/toast";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ApiError } from "@/lib/api/errors";
+import { AuthProvider } from "@/lib/auth/context";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -30,7 +32,11 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <ThemeProvider>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </AuthProvider>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }

@@ -31,7 +31,7 @@ export function BrandLockup({
 }) {
   return (
     <span className={cn("brand", size === "lg" && "brand-lg", className)}>
-      <BrandMark size={size === "lg" ? "lg" : "md"} />
+      <BrandMark size={size === "lg" ? "lg" : size === "sm" ? "sm" : "md"} />
       Momentum
     </span>
   );
