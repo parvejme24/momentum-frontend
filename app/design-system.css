@@ -1226,6 +1226,17 @@ h4 {
 .archived-head .back-link {
   margin-bottom: 14px;
 }
+.archived-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.archived-delete-all {
+  flex: none;
+  margin-top: 28px;
+}
 .archived-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2092,6 +2103,225 @@ h4 {
   margin-top: 16px;
 }
 
+/* ---------- 12e. USERS (ADMIN) ---------- */
+.users-page,
+.subscription-page {
+  min-width: 0;
+}
+.users-summary {
+  margin-bottom: 22px;
+}
+.users-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.users-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: min(100%, 280px);
+  flex: 1;
+  max-width: 360px;
+}
+.users-search .input {
+  flex: 1;
+  min-width: 0;
+}
+.users-table-card {
+  padding-top: 18px;
+}
+.users-table-head,
+.users-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) 0.7fr 0.9fr 0.55fr 0.9fr auto;
+  align-items: center;
+  gap: 12px;
+}
+.users-table-head {
+  padding: 0 0 12px;
+  border-bottom: 2px solid var(--ink-12);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-50);
+}
+.users-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.users-row {
+  padding: 14px 0;
+  border-bottom: 2px solid var(--ink-12);
+}
+.users-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.users-person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.users-person-copy {
+  min-width: 0;
+}
+.users-name {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.users-email {
+  margin-top: 2px;
+  font-size: 0.72rem;
+  color: var(--ink-50);
+}
+.users-meta-mobile {
+  display: none;
+  margin-top: 4px;
+  font-size: 0.68rem;
+  color: var(--ink-50);
+}
+.users-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.users-delete {
+  width: 36px;
+  height: 36px;
+}
+
+/* ---------- 12f. SUBSCRIPTION ---------- */
+.subscription-current {
+  margin-bottom: 22px;
+}
+.subscription-current-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+.subscription-price {
+  margin-top: 6px;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+.subscription-period {
+  margin-left: 4px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-50);
+}
+.subscription-meta-value {
+  margin-top: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink-70);
+}
+.subscription-plans {
+  margin-bottom: 22px;
+}
+.subscription-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.subscription-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+}
+.subscription-plan.featured {
+  box-shadow: var(--shadow-lift);
+}
+.subscription-plan.selected {
+  border-color: var(--blue);
+  box-shadow: 4px 4px 0 var(--blue);
+}
+.subscription-plan-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.subscription-plan-price {
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+.subscription-features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  flex: 1;
+}
+.subscription-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: var(--ink-70);
+  line-height: 1.45;
+}
+.subscription-features svg {
+  flex: none;
+  margin-top: 2px;
+  stroke: var(--blue);
+}
+.invoice-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.invoice-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 2px solid var(--ink-12);
+}
+.invoice-row:first-child {
+  padding-top: 0;
+}
+.invoice-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.invoice-label {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.invoice-date {
+  margin-top: 3px;
+  font-size: 0.72rem;
+  color: var(--ink-50);
+}
+.invoice-amount {
+  font-weight: 700;
+}
+.invoice-download {
+  flex: none;
+  white-space: nowrap;
+}
+.invoice-download:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: var(--shadow-sm);
+}
+
 /* ---------- 13. LANDING ---------- */
 .topbar {
   position: sticky;
@@ -2387,6 +2617,173 @@ h4 {
   border-top: var(--stroke);
   padding-block: 40px;
   background: var(--paper-raised);
+}
+
+/* ---------- 13c. PUBLIC PRICING ---------- */
+.pricing-hero {
+  padding-bottom: clamp(32px, 6vw, 56px);
+}
+.pricing-lede {
+  margin-top: 16px;
+  max-width: 46ch;
+}
+.pricing-note {
+  margin-top: 14px;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.pricing-plans-section {
+  padding-top: 0;
+}
+.pricing-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.pricing-plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+  min-height: 100%;
+}
+.pricing-plan-card.featured {
+  border-color: var(--blue);
+  box-shadow: 6px 6px 0 var(--blue);
+}
+.pricing-plan-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.pricing-plan-price {
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+.pricing-footnote {
+  margin-top: 22px;
+  text-align: center;
+  font-size: 0.78rem;
+}
+.pricing-inline-link {
+  color: var(--blue-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.pricing-inline-link:hover {
+  color: var(--ink);
+}
+.pricing-table-card {
+  padding: 0;
+  overflow: hidden;
+}
+.pricing-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.pricing-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+.pricing-table th,
+.pricing-table td {
+  padding: 14px 18px;
+  text-align: left;
+  border-bottom: 2px solid var(--ink-12);
+  font-size: 0.88rem;
+}
+.pricing-table thead th {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-50);
+  background: color-mix(in srgb, var(--paper-white) 80%, var(--rule));
+}
+.pricing-table tbody th {
+  font-weight: 600;
+  color: var(--ink);
+}
+.pricing-table tbody tr:last-child th,
+.pricing-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.pricing-table td:nth-child(3),
+.pricing-table thead th:nth-child(3) {
+  background: var(--blue-soft);
+}
+.pricing-faq-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 28px;
+}
+.pricing-faq-item {
+  padding: 20px;
+}
+
+/* ---------- 13d. PUBLIC FAQ ---------- */
+.faq-hero {
+  padding-bottom: clamp(24px, 5vw, 40px);
+}
+.faq-lede {
+  margin-top: 16px;
+  max-width: 46ch;
+}
+.faq-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 22px;
+}
+.faq-jump .chip {
+  cursor: pointer;
+  text-decoration: none;
+}
+.faq-jump .chip:hover {
+  background: var(--blue-soft);
+  border-color: var(--blue);
+  color: var(--blue-deep);
+}
+.faq-group {
+  padding-top: clamp(28px, 5vw, 48px);
+  padding-bottom: clamp(28px, 5vw, 48px);
+}
+.faq-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 28px;
+}
+.faq-item {
+  padding: 20px;
+}
+.faq-more {
+  padding-top: 0;
+}
+.faq-more-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 22px 24px;
+}
+.faq-more-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.faq-footnote {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 0.78rem;
 }
 
 /* ---------- 13b. NOT FOUND ---------- */
@@ -2895,6 +3292,21 @@ h4 {
   .habit-detail-actions {
     margin-left: 0;
   }
+  .subscription-current-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .subscription-plan-grid {
+    grid-template-columns: 1fr;
+  }
+  .pricing-plan-grid {
+    grid-template-columns: 1fr;
+  }
+  .pricing-faq-list {
+    grid-template-columns: 1fr;
+  }
+  .faq-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 900px) {
@@ -2987,6 +3399,42 @@ h4 {
     grid-column: 2;
     grid-row: 1 / span 2;
     align-self: center;
+  }
+  .users-table-head {
+    display: none;
+  }
+  .users-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 16px 0;
+  }
+  .users-meta-mobile {
+    display: block;
+  }
+  .users-plan,
+  .users-habits,
+  .users-active {
+    display: none;
+  }
+  .users-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .subscription-current-grid {
+    grid-template-columns: 1fr;
+  }
+  .invoice-row {
+    grid-template-columns: 1fr auto;
+    gap: 8px 12px;
+  }
+  .invoice-row .chip {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+  .invoice-download {
+    grid-column: 1 / -1;
+    width: 100%;
   }
   .grid-3 {
     grid-template-columns: 1fr;

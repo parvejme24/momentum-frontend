@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Trash2 } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 
 import { MiniHeatmap } from "@/components/habits/mini-heatmap";
@@ -11,9 +11,11 @@ import { easeOut, fadeUpSoft } from "@/components/home/motion";
 export function ArchivedCard({
   habit,
   onRestore,
+  onDelete,
 }: {
   habit: ArchivedHabit;
   onRestore: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const reduce = useReducedMotion();
 
@@ -70,6 +72,16 @@ export function ArchivedCard({
           >
             <RotateCcw size={14} strokeWidth={2.4} aria-hidden />
             Restore
+          </button>
+          <button
+            type="button"
+            className="btn btn-danger btn-sm"
+            aria-label={`Delete ${habit.title}`}
+            title="Delete forever"
+            onClick={() => onDelete(habit.id)}
+          >
+            <Trash2 size={14} strokeWidth={2.4} aria-hidden />
+            Delete
           </button>
         </div>
       </div>

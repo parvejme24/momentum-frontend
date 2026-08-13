@@ -3,43 +3,55 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Archive,
   BarChart3,
   CalendarDays,
+  CreditCard,
   ListChecks,
   Plus,
   Settings,
+  Users,
   UserRound,
 } from "lucide-react";
 
 import { BrandLockup } from "@/components/home/brand-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/lib/auth/context";
+import { isAdmin } from "@/lib/auth/role";
 
-const SIDE_NAV = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof CalendarDays;
+};
+
+const BASE_SIDE_NAV: NavItem[] = [
   { href: "/dashboard", label: "Today", icon: CalendarDays },
   { href: "/habits", label: "Habits", icon: ListChecks },
+  { href: "/habits/archived", label: "Archive", icon: Archive },
   { href: "/stats", label: "Stats", icon: BarChart3 },
-  { href: "/settings", label: "Settings", icon: Settings },
-] as const;
+];
 
-const TAB_NAV = [
+const TAB_NAV: NavItem[] = [
   { href: "/dashboard", label: "Today", icon: CalendarDays },
   { href: "/habits", label: "Habits", icon: ListChecks },
   { href: "/habits/new", label: "New", icon: Plus },
   { href: "/stats", label: "Stats", icon: BarChart3 },
   { href: "/settings", label: "You", icon: UserRound },
-] as const;
+];
 
 function isActive(pathname: string, href: string, mode: "side" | "tab" = "side") {
   if (href === "/dashboard") return pathname === "/dashboard";
   if (href === "/habits/new") return pathname.startsWith("/habits/new");
+  if (href === "/habits/archived") {
+    return pathname === "/habits/archived" || pathname.startsWith("/habits/archived/");
+  }
   if (href === "/habits") {
+    if (pathname.startsWith("/habits/archived") || pathname.startsWith("/habits/new")) {
+      return false;
+    }
     if (mode === "tab") {
-      return (
-        pathname === "/habits" ||
-        pathname.startsWith("/habits/archived") ||
-        (pathname.startsWith("/habits/") && !pathname.startsWith("/habits/new"))
-      );
+      return pathname === "/habits" || pathname.startsWith("/habits/");
     }
     return pathname === "/habits" || pathname.startsWith("/habits/");
   }
@@ -54,11 +66,20 @@ function initialFromName(name: string) {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const admin = isAdmin(user);
   const name = user?.name?.trim() || "You";
   const timezone =
     user?.timezone ||
     Intl.DateTimeFormat().resolvedOptions().timeZone ||
     "UTC";
+
+  const sideNav: NavItem[] = [
+    ...BASE_SIDE_NAV,
+    admin
+      ? { href: "/users", label: "Users", icon: Users }
+      : { href: "/subscription", label: "Subscription", icon: CreditCard },
+    { href: "/settings", label: "Settings", icon: Settings },
+  ];
 
   return (
     <div className="app">
@@ -68,7 +89,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </Link>
 
         <nav className="nav" aria-label="Primary">
-          {SIDE_NAV.map((item) => {
+          {sideNav.map((item) => {
             const Icon = item.icon;
             const active = isActive(pathname, item.href, "side");
             return (

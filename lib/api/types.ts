@@ -1,3 +1,5 @@
+export type UserRole = "admin" | "customer";
+
 export type User = {
   id: string;
   name: string;
@@ -5,6 +7,7 @@ export type User = {
   timezone: string;
   weekStartsOn: number;
   avatarUrl: string | null;
+  role?: UserRole;
 };
 
 export type AuthTokens = {
