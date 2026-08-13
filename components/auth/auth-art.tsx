@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
-import { BrandLockup } from "@/components/home/brand-mark";
+import { BrandLink } from "@/components/home/brand-mark";
 import { easeOut } from "@/components/home/motion";
 
 const WEEKS = 28;
@@ -116,7 +116,7 @@ export function AuthArtPanel({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: easeOut }}
       >
-        <BrandLockup size="md" className="auth-brand" />
+        <BrandLink size="md" className="auth-brand" />
         <h1 className="auth-art-title">{headline}</h1>
         <p className="auth-art-body">{body}</p>
       </motion.div>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
 import { AuthFormItem, AuthShell } from "@/components/auth/auth-shell";
-import { BrandLockup } from "@/components/home/brand-mark";
+import { BrandLink } from "@/components/home/brand-mark";
 import { api } from "@/lib/api/client";
 import { ApiError } from "@/lib/api/errors";
 
@@ -77,7 +77,7 @@ export function ForgotPasswordForm() {
       }}
     >
       <AuthFormItem className="auth-form-brand-desktop">
-        <BrandLockup size="md" />
+        <BrandLink size="md" />
       </AuthFormItem>
 
       {sentTo ? (

@@ -12,7 +12,7 @@ import {
   scorePassword,
 } from "@/components/auth/password-strength";
 import { useToast } from "@/components/auth/toast";
-import { BrandLockup } from "@/components/home/brand-mark";
+import { BrandLink } from "@/components/home/brand-mark";
 import { ApiError } from "@/lib/api/errors";
 import { useAuth } from "@/lib/auth/context";
 
@@ -155,7 +155,7 @@ export function RegisterForm() {
       }}
     >
       <AuthFormItem className="auth-form-brand-desktop">
-        <BrandLockup size="md" />
+        <BrandLink size="md" />
       </AuthFormItem>
 
       <AuthFormItem className="auth-heading">

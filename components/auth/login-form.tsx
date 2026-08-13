@@ -8,7 +8,7 @@ import { Loader2 } from "lucide-react";
 import { AuthFormItem, AuthShell } from "@/components/auth/auth-shell";
 import { PasswordInput } from "@/components/auth/password-input";
 import { useToast } from "@/components/auth/toast";
-import { BrandLockup } from "@/components/home/brand-mark";
+import { BrandLink } from "@/components/home/brand-mark";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ApiError } from "@/lib/api/errors";
@@ -110,7 +110,7 @@ export function LoginForm() {
       }}
     >
       <AuthFormItem className="auth-form-brand-desktop">
-        <BrandLockup size="md" />
+        <BrandLink size="md" />
       </AuthFormItem>
 
       <AuthFormItem className="auth-heading">
