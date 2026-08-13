@@ -10,10 +10,9 @@ import { easeOut } from "@/components/home/motion";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV = [
-  { href: "#how", label: "How it works", index: "01" },
-  { href: "#features", label: "Features", index: "02" },
-  { href: "#rules", label: "Streak rules", index: "03" },
-  { href: "#demo", label: "Live demo", index: "04" },
+  { href: "/#how", label: "How it works", index: "01" },
+  { href: "/pricing", label: "Pricing", index: "02" },
+  { href: "/faq", label: "FAQ", index: "03" },
 ] as const;
 
 export function SiteHeader() {

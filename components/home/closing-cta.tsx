@@ -84,10 +84,11 @@ export function SiteFooter() {
         >
           {(
             [
-              ["#demo", "Dashboard"],
-              ["#features", "Habits"],
-              ["#rules", "Stats"],
-              ["#how", "Settings"],
+              ["/#demo", "Dashboard"],
+              ["/#features", "Habits"],
+              ["/pricing", "Pricing"],
+              ["/faq", "FAQ"],
+              ["/#how", "Settings"],
             ] as const
           ).map(([href, label]) => (
             <motion.a
