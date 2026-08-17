@@ -100,27 +100,15 @@ export function ArchivedPage() {
           <Link href="/habits" className="back-link mono">
             ← All habits
           </Link>
-          <div className="archived-title-row">
-            <div className="page-head" style={{ marginBottom: 0 }}>
-              <p className="eyebrow">
-                {archived.length} archived · {active.length} active
-              </p>
-              <h1>Archived</h1>
-              <p className="lede" style={{ marginTop: 10, maxWidth: "48ch" }}>
-                Habits leave the daily list when archived. Every mark and chain
-                stays on file — restore any time, or delete forever.
-              </p>
-            </div>
-            {archived.length > 0 ? (
-              <button
-                type="button"
-                className="btn btn-danger btn-sm archived-delete-all"
-                onClick={() => setDeleteTarget({ kind: "all" })}
-              >
-                <Trash2 size={15} strokeWidth={2.4} aria-hidden />
-                Delete all
-              </button>
-            ) : null}
+          <div className="page-head">
+            <p className="eyebrow">
+              {archived.length} archived · {active.length} active
+            </p>
+            <h1>Archived</h1>
+            <p className="lede">
+              Habits you archive leave Today, but their marks and chains stay
+              here. Restore one when you want it back.
+            </p>
           </div>
         </motion.header>
 
@@ -147,26 +135,50 @@ export function ArchivedPage() {
             </Link>
           </motion.div>
         ) : (
-          <motion.section
-            className="archived-grid"
-            aria-label="Archived habits"
-            variants={reduce ? undefined : fadeUpSoft}
-          >
-            <AnimatePresence mode="popLayout">
-              {archived.map((habit) => (
-                <ArchivedCard
-                  key={habit.id}
-                  habit={habit}
-                  onRestore={restoreHabit}
-                  onDelete={(id) => {
-                    const item = archived.find((h) => h.id === id);
-                    if (!item) return;
-                    setDeleteTarget({ kind: "one", habit: item });
-                  }}
-                />
-              ))}
-            </AnimatePresence>
-          </motion.section>
+          <>
+            <motion.section
+              className="archived-grid"
+              aria-label="Archived habits"
+              variants={reduce ? undefined : fadeUpSoft}
+            >
+              <AnimatePresence mode="popLayout">
+                {archived.map((habit) => (
+                  <ArchivedCard
+                    key={habit.id}
+                    habit={habit}
+                    onRestore={restoreHabit}
+                    onDelete={(id) => {
+                      const item = archived.find((h) => h.id === id);
+                      if (!item) return;
+                      setDeleteTarget({ kind: "one", habit: item });
+                    }}
+                  />
+                ))}
+              </AnimatePresence>
+            </motion.section>
+
+            <motion.aside
+              className="archived-clear"
+              variants={reduce ? undefined : fadeUpSoft}
+            >
+              <div className="archived-clear-copy">
+                <p className="eyebrow">Clear archive</p>
+                <p className="archived-clear-lede">
+                  Done with this list? Delete all removes {archived.length}{" "}
+                  {archived.length === 1 ? "habit" : "habits"} and their
+                  history. Active habits are not touched.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm archived-delete-all"
+                onClick={() => setDeleteTarget({ kind: "all" })}
+              >
+                <Trash2 size={15} strokeWidth={2.4} aria-hidden />
+                Delete all archived
+              </button>
+            </motion.aside>
+          </>
         )}
 
         <ConfirmSheet
@@ -193,7 +205,7 @@ export function ArchivedPage() {
               className="btn btn-ghost"
               onClick={() => setDeleteTarget(null)}
             >
-              {deleteTarget?.kind === "all" ? "Keep them" : "Keep it"}
+              {deleteTarget?.kind === "all" ? "Keep archive" : "Keep it"}
             </button>
             <button
               type="button"

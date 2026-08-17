@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 
@@ -10,13 +12,19 @@ import { easeOut } from "@/components/home/motion";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV = [
-  { href: "/#how", label: "How it works", index: "01" },
+  { href: "/", label: "Home", index: "01" },
   { href: "/pricing", label: "Pricing", index: "02" },
   { href: "/faq", label: "FAQ", index: "03" },
 ] as const;
 
+function isHeaderActive(pathname: string, href: string) {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   const reduce = useReducedMotion();
 
   useEffect(() => {
@@ -42,11 +50,19 @@ export function SiteHeader() {
         <BrandLink size="lg" />
 
         <nav className="topnav" aria-label="Primary">
-          {NAV.map((item) => (
-            <a key={item.href} href={item.href}>
-              {item.label}
-            </a>
-          ))}
+          {NAV.map((item) => {
+            const active = isHeaderActive(pathname, item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={active ? "is-current" : undefined}
+                aria-current={active ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="topbar-actions">
@@ -102,24 +118,28 @@ export function SiteHeader() {
               transition={{ duration: 0.22, ease: easeOut }}
             >
               <nav className="mobile-nav-list" aria-label="Mobile">
-                {NAV.map((item, i) => (
-                  <motion.a
-                    key={item.href}
-                    href={item.href}
-                    className="mobile-nav-link"
-                    onClick={() => setOpen(false)}
-                    initial={reduce ? false : { opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      duration: 0.24,
-                      ease: easeOut,
-                      delay: reduce ? 0 : 0.04 + i * 0.04,
-                    }}
-                  >
-                    <span className="mobile-nav-index mono">{item.index}</span>
-                    <span className="mobile-nav-label">{item.label}</span>
-                  </motion.a>
-                ))}
+                {NAV.map((item, i) => {
+                  const active = isHeaderActive(pathname, item.href);
+                  return (
+                    <motion.a
+                      key={item.href}
+                      href={item.href}
+                      className={active ? "mobile-nav-link is-current" : "mobile-nav-link"}
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => setOpen(false)}
+                      initial={reduce ? false : { opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        duration: 0.24,
+                        ease: easeOut,
+                        delay: reduce ? 0 : 0.04 + i * 0.04,
+                      }}
+                    >
+                      <span className="mobile-nav-index mono">{item.index}</span>
+                      <span className="mobile-nav-label">{item.label}</span>
+                    </motion.a>
+                  );
+                })}
               </nav>
 
               <div className="mobile-nav-actions">

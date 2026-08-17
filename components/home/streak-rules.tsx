@@ -50,10 +50,10 @@ export function StreakRules() {
           <p className="eyebrow" style={{ color: "var(--overprint)" }}>
             Streak rules
           </p>
-          <h2 style={{ marginTop: 12 }}>Clear rules. No soft counting.</h2>
+          <h2>Clear rules. No soft counting.</h2>
         </MotionItem>
 
-        <div style={{ marginTop: 40, display: "grid", gap: 12 }}>
+        <div className="section-stack" style={{ display: "grid", gap: 12 }}>
           {RULES.map((rule) => (
             <MotionItem
               key={rule.title}

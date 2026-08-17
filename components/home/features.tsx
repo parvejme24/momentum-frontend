@@ -45,10 +45,10 @@ export function Features() {
       <div className="wrap">
         <MotionItem>
           <p className="eyebrow">Features</p>
-          <h2 style={{ marginTop: 12 }}>Built like a logbook, not a dashboard.</h2>
+          <h2>Built like a logbook, not a dashboard.</h2>
         </MotionItem>
 
-        <div className="grid-3" style={{ marginTop: 40 }}>
+        <div className="grid-3 section-stack">
           {FEATURES.map((feature) => (
             <MotionItem
               key={feature.title}

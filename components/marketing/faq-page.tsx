@@ -38,7 +38,7 @@ export function FaqPage() {
             <motion.h1
               id="faq-title"
               className="h-display"
-              style={{ marginTop: 12, maxWidth: "16ch" }}
+              style={{ maxWidth: "16ch" }}
               variants={reduce ? undefined : fadeUpSoft}
             >
               Questions, answered calmly.
@@ -75,7 +75,7 @@ export function FaqPage() {
             <div className="wrap">
               <MotionItem>
                 <p className="eyebrow">{group.title}</p>
-                <h2 id={`${group.id}-heading`} style={{ marginTop: 12 }}>
+                <h2 id={`${group.id}-heading`}>
                   {group.blurb}
                 </h2>
               </MotionItem>

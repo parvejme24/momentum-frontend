@@ -23,6 +23,9 @@ export function AuthShell({
   return (
     <MotionConfig reducedMotion="user">
       <div className="auth">
+        <div className="auth-theme">
+          <ThemeToggle />
+        </div>
         <AuthArtPanel
           headline={art.headline}
           body={art.body}
@@ -32,7 +35,6 @@ export function AuthShell({
         <div className="auth-form">
           <div className="auth-form-top">
             <BrandLink size="sm" className="auth-form-brand-mobile" />
-            <ThemeToggle />
           </div>
 
           <motion.div

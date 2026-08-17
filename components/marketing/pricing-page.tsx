@@ -37,7 +37,7 @@ export function PricingPage() {
             <motion.h1
               id="pricing-title"
               className="h-display"
-              style={{ marginTop: 12, maxWidth: "14ch" }}
+              style={{ maxWidth: "14ch" }}
               variants={reduce ? undefined : fadeUpSoft}
             >
               One chain. Three plans.
@@ -137,12 +137,12 @@ export function PricingPage() {
           <div className="wrap">
             <MotionItem>
               <p className="eyebrow">Compare</p>
-              <h2 id="compare-heading" style={{ marginTop: 12 }}>
+              <h2 id="compare-heading">
                 What each plan unlocks
               </h2>
             </MotionItem>
 
-            <MotionItem className="card pricing-table-card" style={{ marginTop: 28 }}>
+            <MotionItem className="card pricing-table-card">
               <div className="pricing-table-scroll">
                 <table className="pricing-table">
                   <thead>
@@ -187,7 +187,7 @@ export function PricingPage() {
               <div className="row-between" style={{ alignItems: "flex-end" }}>
                 <div>
                   <p className="eyebrow">FAQ</p>
-                  <h2 id="faq-heading" style={{ marginTop: 12 }}>
+                  <h2 id="faq-heading">
                     Common questions
                   </h2>
                 </div>

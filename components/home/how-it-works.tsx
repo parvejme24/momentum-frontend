@@ -26,10 +26,10 @@ export function HowItWorks() {
       <div className="wrap">
         <MotionItem>
           <p className="eyebrow flame">How it works</p>
-          <h2 style={{ marginTop: 12 }}>Three moves. Then the page fills itself.</h2>
+          <h2>Three moves. Then the page fills itself.</h2>
         </MotionItem>
 
-        <div className="grid-3" style={{ marginTop: 40 }}>
+        <div className="grid-3 section-stack">
           {STEPS.map((step, index) => (
             <MotionItem
               key={step.code}
