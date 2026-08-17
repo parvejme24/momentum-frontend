@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
@@ -10,9 +10,21 @@ import { useToast } from "@/components/auth/toast";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
 import { ConfirmSheet } from "@/components/settings/confirm-sheet";
 import { Switch } from "@/components/ui/switch";
+import { ApiError } from "@/lib/api/errors";
+import { getVapidPublicKey } from "@/lib/api/devices";
 import { useAuth } from "@/lib/auth/context";
 import { isAdmin } from "@/lib/auth/role";
-import { ApiError } from "@/lib/api/errors";
+import { formatDateTime } from "@/lib/dates";
+import { useDeleteDevice, useDevices, useRegisterDevice } from "@/lib/devices/hooks";
+import {
+  getPushSubscription,
+  getStoredDeviceId,
+  pushSupported,
+  setStoredDeviceId,
+  subscribeToPush,
+  subscriptionToPayload,
+  unsubscribeFromPush,
+} from "@/lib/devices/push";
 
 type WeekStart = "saturday" | "sunday" | "monday";
 
@@ -28,13 +40,6 @@ function weekStartFromNumber(value: number | undefined): WeekStart {
   return "sunday";
 }
 
-type Device = {
-  id: string;
-  name: string;
-  meta: string;
-  current?: boolean;
-};
-
 const TIMEZONES = [
   "Asia/Dhaka",
   "Asia/Kolkata",
@@ -42,8 +47,6 @@ const TIMEZONES = [
   "Europe/London",
   "America/New_York",
 ];
-
-const INITIAL_DEVICES: Device[] = customer.devices as Device[];
 
 function initialFromName(name: string) {
   const trimmed = name.trim();
@@ -85,18 +88,30 @@ export function SettingsPage() {
     {},
   );
 
-  const [pushPhone, setPushPhone] = useState(customer.notifications.pushPhone);
-  const [pushBrowser, setPushBrowser] = useState(customer.notifications.pushBrowser);
+  const [pushBrowser, setPushBrowser] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [currentDeviceId, setCurrentDeviceId] = useState<string | null>(null);
   const [weeklyEmail, setWeeklyEmail] = useState(customer.notifications.weeklyEmail);
   const [quietFrom, setQuietFrom] = useState(customer.notifications.quietFrom);
   const [quietTo, setQuietTo] = useState(customer.notifications.quietTo);
 
-  const [devices, setDevices] = useState(INITIAL_DEVICES);
+  const devicesQuery = useDevices();
+  const registerDevice = useRegisterDevice();
+  const removeDevice = useDeleteDevice();
+  const devices = devicesQuery.data ?? [];
+
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
 
   const avatarInitial = useMemo(() => initialFromName(name), [name]);
   const canDelete = deleteConfirm.trim().toUpperCase() === "DELETE";
+
+  useEffect(() => {
+    setCurrentDeviceId(getStoredDeviceId());
+    void getPushSubscription().then((subscription) => {
+      if (subscription) setPushBrowser(true);
+    });
+  }, []);
 
   async function saveProfile(event: React.FormEvent) {
     event.preventDefault();
@@ -200,9 +215,60 @@ export function SettingsPage() {
     }
   }
 
-  function signOutDevice(id: string, deviceName: string) {
-    setDevices((prev) => prev.filter((d) => d.id !== id));
-    pushToast(`Signed out ${deviceName}`);
+  async function onPushBrowser(next: boolean) {
+    if (!pushSupported()) {
+      pushToast("This browser does not support push reminders");
+      return;
+    }
+    setPushBusy(true);
+    try {
+      if (next) {
+        const publicKey = await getVapidPublicKey();
+        const subscription = await subscribeToPush(publicKey);
+        const device = await registerDevice.mutateAsync(
+          subscriptionToPayload(subscription),
+        );
+        setStoredDeviceId(device.id);
+        setCurrentDeviceId(device.id);
+        setPushBrowser(true);
+        pushToast("Browser reminders on");
+        return;
+      }
+      await unsubscribeFromPush();
+      const id = getStoredDeviceId();
+      if (id) await removeDevice.mutateAsync(id);
+      setStoredDeviceId(null);
+      setCurrentDeviceId(null);
+      setPushBrowser(false);
+      pushToast("Browser reminders off");
+    } catch (err) {
+      pushToast(
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Couldn’t update browser reminders",
+      );
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  async function removePushDevice(id: string, deviceName: string) {
+    try {
+      if (id === currentDeviceId) {
+        await unsubscribeFromPush();
+        setStoredDeviceId(null);
+        setCurrentDeviceId(null);
+        setPushBrowser(false);
+      }
+      await removeDevice.mutateAsync(id);
+      pushToast(`Removed ${deviceName}`);
+    } catch (err) {
+      pushToast(
+        err instanceof ApiError ? err.message : "Couldn’t remove this browser",
+      );
+    }
   }
 
   function exportData(format: "JSON" | "CSV") {
@@ -483,29 +549,16 @@ export function SettingsPage() {
               <div className="settings-stack">
                 <div className="switch-row">
                   <div>
-                    <div className="switch-row-title">Push on this phone</div>
-                    <p className="hint" style={{ marginTop: 2 }}>
-                      Habit reminders at the time you set
-                    </p>
-                  </div>
-                  <Switch
-                    id="push-phone"
-                    checked={pushPhone}
-                    onCheckedChange={setPushPhone}
-                  />
-                </div>
-
-                <div className="switch-row">
-                  <div>
                     <div className="switch-row-title">Push in the browser</div>
                     <p className="hint" style={{ marginTop: 2 }}>
-                      Only while a tab is open
+                      Habit reminders on this device
                     </p>
                   </div>
                   <Switch
                     id="push-browser"
                     checked={pushBrowser}
-                    onCheckedChange={setPushBrowser}
+                    disabled={pushBusy || !pushSupported()}
+                    onCheckedChange={(checked) => void onPushBrowser(checked)}
                   />
                 </div>
 
@@ -560,32 +613,56 @@ export function SettingsPage() {
               variants={reduce ? undefined : fadeUpSoft}
             >
               <div className="panel-head">
-                <h2 id="devices-heading" className="section-title">
-                  Signed-in devices
-                </h2>
+                <div>
+                  <h2 id="devices-heading" className="section-title">
+                    Push devices
+                  </h2>
+                  <p className="hint" style={{ marginTop: 4 }}>
+                    Browsers registered for reminders
+                  </p>
+                </div>
               </div>
 
-              <ul className="device-list">
-                {devices.map((device) => (
-                  <li key={device.id} className="device-row">
-                    <div className="device-copy">
-                      <div className="device-name">{device.name}</div>
-                      <div className="device-meta mono">{device.meta}</div>
-                    </div>
-                    {device.current ? (
-                      <span className="chip chip-blue">Current</span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => signOutDevice(device.id, device.name)}
-                      >
-                        Sign out
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              {devicesQuery.error ? (
+                <p className="hint hint-err">
+                  {devicesQuery.error instanceof ApiError
+                    ? devicesQuery.error.message
+                    : "Could not load devices"}
+                </p>
+              ) : null}
+
+              {devices.length === 0 ? (
+                <p className="hint">No browsers registered yet.</p>
+              ) : (
+                <ul className="device-list">
+                  {devices.map((device) => {
+                    const label = device.deviceName || "Web browser";
+                    const current = device.id === currentDeviceId;
+                    return (
+                      <li key={device.id} className="device-row">
+                        <div className="device-copy">
+                          <div className="device-name">{label}</div>
+                          <div className="device-meta mono">
+                            Last seen {formatDateTime(device.lastSeenAt)}
+                          </div>
+                        </div>
+                        {current ? (
+                          <span className="chip chip-blue">This browser</span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            disabled={removeDevice.isPending}
+                            onClick={() => void removePushDevice(device.id, label)}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
               <button
                 type="button"
                 className="btn btn-ghost btn-block"
