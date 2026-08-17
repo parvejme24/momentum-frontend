@@ -3,21 +3,27 @@
 import { useMemo, useState } from "react";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
-import customer from "@/data/customer.json";
 import { MiniHeatmap } from "@/components/habits/mini-heatmap";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
 import { RateBars } from "@/components/stats/rate-bars";
 import {
-  COMPARE_HABITS,
-  consistencyRates,
-  INSIGHTS,
-  MILESTONES,
   RANGE_TABS,
-  summaryForRange,
   WEEKDAY_LABELS,
-  weekdayRates,
   type RangeKey,
 } from "@/components/stats/sample-data";
+import { PageSpinner } from "@/components/ui/page-spinner";
+import { ApiError } from "@/lib/api/errors";
+import type { StatsRange } from "@/lib/api/types";
+import { formatPrettyIso } from "@/lib/dates";
+import { useOverviewStats } from "@/lib/stats/hooks";
+import {
+  lastWeekRates,
+  overviewCompare,
+  overviewInsights,
+  overviewMilestones,
+  overviewSummary,
+  weekdayRatesInOrder,
+} from "@/lib/stats/map";
 
 function consistencyLabels(count: number) {
   return Array.from({ length: count }, (_, i) => {
@@ -27,24 +33,67 @@ function consistencyLabels(count: number) {
   });
 }
 
+function asStatsRange(range: RangeKey): StatsRange {
+  return range;
+}
+
 export function StatsPage() {
   const reduce = useReducedMotion();
   const [range, setRange] = useState<RangeKey>("90d");
+  const statsQuery = useOverviewStats(asStatsRange(range));
+  const data = statsQuery.data;
 
-  const summary = useMemo(() => summaryForRange(range), [range]);
-  const weeks = useMemo(() => consistencyRates(range), [range]);
-  const weekdays = useMemo(() => weekdayRates(range), [range]);
+  const summary = useMemo(
+    () => (data ? overviewSummary(data) : []),
+    [data],
+  );
+  const weeks = useMemo(
+    () => lastWeekRates(data?.byWeek ?? []),
+    [data?.byWeek],
+  );
+  const weekdays = useMemo(
+    () => weekdayRatesInOrder(data?.byWeekday ?? []),
+    [data?.byWeekday],
+  );
+  const compare = useMemo(
+    () => (data ? overviewCompare(data) : []),
+    [data],
+  );
+  const milestones = useMemo(
+    () => (data ? overviewMilestones(data) : []),
+    [data],
+  );
+  const insights = useMemo(
+    () => (data ? overviewInsights(data) : []),
+    [data],
+  );
 
-  const strongestIndex = weekdays.indexOf(Math.max(...weekdays));
-  const weakestIndex = weekdays.indexOf(Math.min(...weekdays));
-  const strongestDay =
-    ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][
-      strongestIndex
-    ];
-  const weakestDay =
-    ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][
-      weakestIndex
-    ];
+  const strongestIndex = weekdays.length
+    ? weekdays.indexOf(Math.max(...weekdays))
+    : -1;
+  const weakestIndex = weekdays.length
+    ? weekdays.indexOf(Math.min(...weekdays))
+    : -1;
+  const dayNames = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const strongestDay = strongestIndex >= 0 ? dayNames[strongestIndex] : null;
+  const weakestDay = weakestIndex >= 0 ? dayNames[weakestIndex] : null;
+
+  const last = weeks.at(-1);
+  const prev = weeks.at(-2);
+  const delta =
+    last != null && prev != null ? Math.round((last - prev) * 100) : 0;
+
+  if (statsQuery.isLoading) {
+    return <PageSpinner label="Loading stats" />;
+  }
 
   return (
     <MotionConfig reducedMotion="user">
@@ -57,7 +106,11 @@ export function StatsPage() {
           className="page-head stats-head"
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <p className="eyebrow">Since {customer.profile.memberSince}</p>
+          <p className="eyebrow">
+            {data
+              ? `Since ${formatPrettyIso(data.range.from)}`
+              : "Stats"}
+          </p>
           <div className="stats-title-row">
             <h1>Stats</h1>
             <div className="tab-bar" role="tablist" aria-label="Date range">
@@ -76,6 +129,14 @@ export function StatsPage() {
             </div>
           </div>
         </motion.header>
+
+        {statsQuery.error ? (
+          <p className="hint hint-err">
+            {statsQuery.error instanceof ApiError
+              ? statsQuery.error.message
+              : "Could not load stats"}
+          </p>
+        ) : null}
 
         <motion.section
           className="grid-4 stats-summary"
@@ -105,14 +166,22 @@ export function StatsPage() {
                   All habits, last 12 weeks
                 </p>
               </div>
-              <span className="chip chip-blue">↗ up 9 points</span>
+              {delta !== 0 ? (
+                <span className="chip chip-blue">
+                  {delta > 0 ? `↗ up ${delta}` : `↘ down ${Math.abs(delta)}`} points
+                </span>
+              ) : null}
             </div>
-            <RateBars
-              rates={weeks}
-              labels={consistencyLabels(weeks.length)}
-              ariaLabel="Consistency over the last 12 weeks"
-              animateKey={range}
-            />
+            {weeks.length > 0 ? (
+              <RateBars
+                rates={weeks}
+                labels={consistencyLabels(weeks.length)}
+                ariaLabel="Consistency over the last 12 weeks"
+                animateKey={range}
+              />
+            ) : (
+              <p className="hint">Weekly completion appears after you log days.</p>
+            )}
           </article>
 
           <article className="card">
@@ -124,17 +193,27 @@ export function StatsPage() {
                 </p>
               </div>
             </div>
-            <RateBars
-              rates={weekdays}
-              labels={WEEKDAY_LABELS}
-              ariaLabel="Completion rate by weekday"
-              hotThreshold={0.8}
-              animateKey={range}
-            />
-            <div className="stats-week-foot">
-              <span className="chip chip-blue">Strongest — {strongestDay}</span>
-              <span className="chip chip-flame">Weakest — {weakestDay}</span>
-            </div>
+            {weekdays.some((rate) => rate > 0) ? (
+              <>
+                <RateBars
+                  rates={weekdays}
+                  labels={WEEKDAY_LABELS}
+                  ariaLabel="Completion rate by weekday"
+                  hotThreshold={0.8}
+                  animateKey={range}
+                />
+                <div className="stats-week-foot">
+                  {strongestDay ? (
+                    <span className="chip chip-blue">Strongest — {strongestDay}</span>
+                  ) : null}
+                  {weakestDay ? (
+                    <span className="chip chip-flame">Weakest — {weakestDay}</span>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <p className="hint">Weekday rates fill in as you log days.</p>
+            )}
           </article>
         </motion.section>
 
@@ -149,7 +228,7 @@ export function StatsPage() {
                 Every habit, side by side
               </h2>
               <p className="hint" style={{ marginTop: 4 }}>
-                Last 26 weeks · same scale for all
+                Same range · same scale for all
               </p>
             </div>
             <div className="heat-legend" aria-hidden>
@@ -163,30 +242,34 @@ export function StatsPage() {
             </div>
           </div>
 
-          <div className="stats-compare-list">
-            {COMPARE_HABITS.map((habit) => (
-              <div key={habit.id} className="stats-compare-row">
-                <div className="stats-compare-meta">
-                  <div
-                    className="habit-glyph"
-                    style={{ background: habit.tint }}
-                    aria-hidden
-                  >
-                    {habit.emoji}
+          {compare.length === 0 ? (
+            <p className="hint">Create a habit to compare chains.</p>
+          ) : (
+            <div className="stats-compare-list">
+              {compare.map((habit) => (
+                <div key={habit.id} className="stats-compare-row">
+                  <div className="stats-compare-meta">
+                    <div
+                      className="habit-glyph"
+                      style={{ background: habit.tint }}
+                      aria-hidden
+                    >
+                      {habit.emoji}
+                    </div>
+                    <div className="habit-title">{habit.title}</div>
+                    <span className="mono stats-compare-rate">{habit.rate}%</span>
                   </div>
-                  <div className="habit-title">{habit.title}</div>
-                  <span className="mono stats-compare-rate">{habit.rate}%</span>
+                  <MiniHeatmap
+                    seed={habit.heatSeed}
+                    fillRate={habit.fillRate}
+                    activeWeekdays={habit.activeWeekdays}
+                    label={habit.title}
+                    weeks={26}
+                  />
                 </div>
-                <MiniHeatmap
-                  seed={habit.heatSeed}
-                  fillRate={habit.fillRate}
-                  activeWeekdays={habit.activeWeekdays}
-                  label={habit.title}
-                  weeks={26}
-                />
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </motion.section>
 
         <motion.section
@@ -197,43 +280,51 @@ export function StatsPage() {
             <div className="panel-head">
               <h2 className="section-title">Milestones</h2>
             </div>
-            <ul className="milestone-list">
-              {MILESTONES.map((item) => (
-                <li key={item.id} className="milestone-row">
-                  <div
-                    className="habit-glyph"
-                    style={{ background: item.tint }}
-                    aria-hidden
-                  >
-                    {item.emoji}
-                  </div>
-                  <div className="milestone-copy">
-                    <div className="habit-title">{item.title}</div>
-                    <p className="hint" style={{ marginTop: 2 }}>
-                      {item.detail}
-                    </p>
-                  </div>
-                  <span className="mono milestone-when">{item.when}</span>
-                </li>
-              ))}
-            </ul>
+            {milestones.length === 0 ? (
+              <p className="hint">Streaks will land here as chains grow.</p>
+            ) : (
+              <ul className="milestone-list">
+                {milestones.map((item) => (
+                  <li key={item.id} className="milestone-row">
+                    <div
+                      className="habit-glyph"
+                      style={{ background: item.tint }}
+                      aria-hidden
+                    >
+                      {item.emoji}
+                    </div>
+                    <div className="milestone-copy">
+                      <div className="habit-title">{item.title}</div>
+                      <p className="hint" style={{ marginTop: 2 }}>
+                        {item.detail}
+                      </p>
+                    </div>
+                    <span className="mono milestone-when">{item.when}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </article>
 
           <article className="card">
             <div className="panel-head">
               <h2 className="section-title">What the numbers say</h2>
             </div>
-            <div className="insight-list">
-              {INSIGHTS.map((insight) => (
-                <div
-                  key={insight.id}
-                  className={`insight insight-${insight.accent}`}
-                >
-                  <h3 className="insight-title">{insight.title}</h3>
-                  <p className="insight-body">{insight.body}</p>
-                </div>
-              ))}
-            </div>
+            {insights.length === 0 ? (
+              <p className="hint">Log a few days to get a read.</p>
+            ) : (
+              <div className="insight-list">
+                {insights.map((insight) => (
+                  <div
+                    key={insight.id}
+                    className={`insight insight-${insight.accent}`}
+                  >
+                    <h3 className="insight-title">{insight.title}</h3>
+                    <p className="insight-body">{insight.body}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </article>
         </motion.section>
       </motion.div>

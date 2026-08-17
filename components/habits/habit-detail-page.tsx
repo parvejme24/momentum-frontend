@@ -8,7 +8,6 @@ import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
 import { useToast } from "@/components/auth/toast";
 import {
-  getHabitDetail,
   statusLabel,
   WEEKDAY_LABELS,
   type HabitDetail,
@@ -20,14 +19,32 @@ import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
 import { ConfirmSheet } from "@/components/settings/confirm-sheet";
 import { RateBars } from "@/components/stats/rate-bars";
 import { Switch } from "@/components/ui/switch";
-
-function formatPrettyDate(date: Date) {
-  return new Intl.DateTimeFormat("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(date);
-}
+import { PageSpinner } from "@/components/ui/page-spinner";
+import { ApiError } from "@/lib/api/errors";
+import { useAuth } from "@/lib/auth/context";
+import { addDaysIso, asPercent, formatPrettyIso, isoDateInTimeZone } from "@/lib/dates";
+import {
+  useArchiveHabit,
+  useHabit,
+  useRestoreHabit,
+} from "@/lib/habits/hooks";
+import { toHabitDetail } from "@/lib/habits/map";
+import { useHabitLogs } from "@/lib/logs/hooks";
+import {
+  useCreateReminder,
+  useHabitReminders,
+  useUpdateReminder,
+} from "@/lib/reminders/hooks";
+import { useHabitStats } from "@/lib/stats/hooks";
+import {
+  habitStatsWeekdayRates,
+  isLogMarked,
+  lastWeekRates,
+  toRecentDays,
+  toUiReminder,
+  weekdayInsight,
+} from "@/lib/stats/map";
+import { useDeleteLog, useUpsertLog } from "@/lib/today/hooks";
 
 function formatTotal(n: number) {
   return n.toLocaleString("en-US");
@@ -173,18 +190,69 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
   const reduce = useReducedMotion();
   const router = useRouter();
   const { pushToast } = useToast();
+  const { user } = useAuth();
+  const todayIso = isoDateInTimeZone(user?.timezone);
+  const habitQuery = useHabit(habitId);
+  const statsQuery = useHabitStats(habitId, "365d");
+  const remindersQuery = useHabitReminders(habitId);
+  const logsQuery = useHabitLogs(habitId, {
+    from: addDaysIso(todayIso, -29),
+    to: todayIso,
+  });
+  const archive = useArchiveHabit();
+  const restore = useRestoreHabit();
+  const upsertLog = useUpsertLog();
+  const removeLog = useDeleteLog();
+  const createReminder = useCreateReminder(habitId);
+  const patchReminder = useUpdateReminder();
 
-  const base = useMemo(() => getHabitDetail(habitId), [habitId]);
-  const [marked, setMarked] = useState(base?.markedToday ?? false);
-  const [reminders, setReminders] = useState(base?.reminders ?? []);
+  const base = useMemo(
+    () => (habitQuery.data ? toHabitDetail(habitQuery.data) : null),
+    [habitQuery.data],
+  );
+  const stats = statsQuery.data;
+  const reminders = useMemo(
+    () =>
+      (remindersQuery.data ?? []).map((reminder) =>
+        toUiReminder(reminder, user?.timezone),
+      ),
+    [remindersQuery.data, user?.timezone],
+  );
+  const recentDays = useMemo(
+    () => toRecentDays(logsQuery.data ?? [], todayIso),
+    [logsQuery.data, todayIso],
+  );
+  const todayLog = (logsQuery.data ?? []).find((log) => log.localDate === todayIso);
+  const marked = isLogMarked(todayLog?.status);
   const [archiveOpen, setArchiveOpen] = useState(false);
-  const todayLabel = useMemo(() => formatPrettyDate(new Date()), []);
+  const [archiving, setArchiving] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addTime, setAddTime] = useState("20:00");
+  const [savingLog, setSavingLog] = useState(false);
+  const todayLabel = useMemo(
+    () =>
+      formatPrettyIso(todayIso, {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      }),
+    [todayIso],
+  );
 
-  useEffect(() => {
-    if (!base) return;
-    setMarked(base.markedToday);
-    setReminders(base.reminders);
-  }, [base]);
+  const weekRates = lastWeekRates(stats?.byWeek ?? []);
+  const weekdayRates = stats ? habitStatsWeekdayRates(stats) : [];
+  const insight = stats ? weekdayInsight(stats.byWeekday) : base?.weekdayInsight;
+
+  if (habitQuery.isLoading) {
+    return (
+      <div className="page-head">
+        <Link href="/habits" className="back-link mono">
+          ← All habits
+        </Link>
+        <PageSpinner label="Loading habit" />
+      </div>
+    );
+  }
 
   if (!base) {
     return (
@@ -194,7 +262,9 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
         </Link>
         <h1>Habit not found</h1>
         <p className="lede" style={{ marginTop: 12 }}>
-          This habit isn’t in the sample library.
+          {habitQuery.error instanceof ApiError
+            ? habitQuery.error.message
+            : "This habit isn’t in your library."}
         </p>
         <p style={{ marginTop: 24 }}>
           <Link href="/habits" className="btn btn-primary">
@@ -205,29 +275,85 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
     );
   }
 
-  function toggleMark() {
-    const next = !marked;
-    setMarked(next);
-    pushToast(
-      next ? `Marked ${base!.title} for today` : `Cleared ${base!.title}`,
-    );
+  async function toggleMark() {
+    setSavingLog(true);
+    try {
+      if (marked) {
+        await removeLog.mutateAsync({ habitId, localDate: todayIso });
+        pushToast(`Cleared ${base!.title}`);
+      } else {
+        await upsertLog.mutateAsync({
+          habitId,
+          localDate: todayIso,
+          body: {
+            status: "DONE",
+            ...(habitQuery.data?.targetValue != null
+              ? { value: habitQuery.data.targetValue }
+              : {}),
+          },
+        });
+        pushToast(`Marked ${base!.title} for today`);
+      }
+    } catch (error) {
+      pushToast(error instanceof ApiError ? error.message : "Could not update log");
+    } finally {
+      setSavingLog(false);
+    }
   }
 
-  function toggleReminder(id: string, enabled: boolean) {
-    setReminders((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? { ...item, enabled, paused: enabled ? false : true }
-          : item,
-      ),
-    );
-    pushToast(enabled ? "Reminder on" : "Reminder paused");
+  async function toggleReminder(id: string, enabled: boolean) {
+    try {
+      const result = await patchReminder.mutateAsync({
+        reminderId: id,
+        body: { enabled },
+      });
+      pushToast(enabled ? "Reminder on" : "Reminder paused");
+      if (result.warnings[0]) pushToast(result.warnings[0]);
+    } catch (error) {
+      pushToast(
+        error instanceof ApiError ? error.message : "Could not update reminder",
+      );
+    }
   }
 
-  function confirmArchive() {
-    setArchiveOpen(false);
-    pushToast(`Archived ${base!.title}`);
-    router.push("/habits/archived");
+  async function confirmAddReminder() {
+    try {
+      const result = await createReminder.mutateAsync({
+        timeLocal: addTime,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        enabled: true,
+      });
+      setAddOpen(false);
+      pushToast("Reminder added");
+      if (result.warnings[0]) pushToast(result.warnings[0]);
+    } catch (error) {
+      pushToast(
+        error instanceof ApiError ? error.message : "Could not add reminder",
+      );
+    }
+  }
+
+  async function confirmArchive() {
+    setArchiving(true);
+    try {
+      if (base!.archived) {
+        await restore.mutateAsync(habitId);
+        setArchiveOpen(false);
+        pushToast(`Restored ${base!.title}`);
+        router.push("/habits");
+        return;
+      }
+      await archive.mutateAsync(habitId);
+      setArchiveOpen(false);
+      pushToast(`Archived ${base!.title}`);
+      router.push("/habits/archived");
+    } catch (error) {
+      pushToast(
+        error instanceof ApiError ? error.message : "Could not update habit",
+      );
+    } finally {
+      setArchiving(false);
+    }
   }
 
   return (
@@ -262,8 +388,8 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
                 {base.quantityLabel ? (
                   <span className="chip chip-quiet">{base.quantityLabel}</span>
                 ) : null}
-                {base.reminderLabel ? (
-                  <span className="chip chip-quiet">{base.reminderLabel}</span>
+                {reminders[0] ? (
+                  <span className="chip chip-quiet">{reminders[0].time}</span>
                 ) : null}
               </div>
             </div>
@@ -280,8 +406,8 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
               <button
                 type="button"
                 className="btn-icon"
-                aria-label="Archive habit"
-                title="Archive"
+                aria-label={base.archived ? "Restore habit" : "Archive habit"}
+                title={base.archived ? "Restore" : "Archive"}
                 onClick={() => setArchiveOpen(true)}
               >
                 <Archive size={18} strokeWidth={2.2} aria-hidden />
@@ -296,9 +422,23 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
           variants={reduce ? undefined : fadeUpSoft}
         >
           <TodayMarkRow
-            detail={base}
+            detail={{
+              ...base,
+              todayQuantity:
+                habitQuery.data?.targetValue != null
+                  ? {
+                      current:
+                        todayLog?.value ??
+                        (marked ? habitQuery.data.targetValue : 0),
+                      target: habitQuery.data.targetValue,
+                    }
+                  : undefined,
+            }}
             done={marked}
-            onToggle={toggleMark}
+            onToggle={() => {
+              if (savingLog) return;
+              void toggleMark();
+            }}
             todayLabel={todayLabel}
           />
         </motion.section>
@@ -310,24 +450,36 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
         >
           <article className="stat card-hover">
             <div className="stat-k">Current streak</div>
-            <div className="stat-v flame">{base.currentStreak}</div>
+            <div className="stat-v flame">
+              {stats?.streak.current ?? base.currentStreak}
+            </div>
             <div className="stat-n">days without a break</div>
           </article>
           <article className="stat card-hover">
             <div className="stat-k">Longest streak</div>
-            <div className="stat-v">{base.longestStreak}</div>
-            <div className="stat-n">{base.longestRange}</div>
+            <div className="stat-v">{stats?.streak.longest ?? base.longestStreak}</div>
+            <div className="stat-n">
+              {stats
+                ? `${formatPrettyIso(stats.range.from, { day: "numeric", month: "short" })} → ${formatPrettyIso(stats.range.to, { day: "numeric", month: "short" })}`
+                : base.longestRange}
+            </div>
           </article>
           <article className="stat card-hover">
             <div className="stat-k">Completion</div>
-            <div className="stat-v">{base.completionRate}%</div>
+            <div className="stat-v">
+              {stats ? asPercent(stats.completion.rate) : base.completionRate}%
+            </div>
             <div className="stat-n">
-              {base.completedDays} of {base.trackedDays} days
+              {stats && stats.completion.due > 0
+                ? `${stats.completion.done} of ${stats.completion.due} days`
+                : "As you log days"}
             </div>
           </article>
           <article className="stat card-hover">
             <div className="stat-k">Total logged</div>
-            <div className="stat-v">{formatTotal(base.totalLogged)}</div>
+            <div className="stat-v">
+              {formatTotal(stats?.totalValue ?? stats?.completion.done ?? 0)}
+            </div>
             <div className="stat-n">{base.totalLoggedUnit}</div>
           </article>
         </motion.section>
@@ -358,8 +510,7 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
           </div>
 
           <YearChain
-            seed={base.heatSeed}
-            fillRate={base.fillRate}
+            heatmap={stats?.heatmap ?? []}
             activeWeekdays={base.activeWeekdays}
             label={base.title}
           />
@@ -378,11 +529,15 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
                 </p>
               </div>
             </div>
-            <RateBars
-              rates={base.weekRates}
-              labels={weekLabels(base.weekRates.length)}
-              ariaLabel="Last 12 weeks completion"
-            />
+            {weekRates.length > 0 ? (
+              <RateBars
+                rates={weekRates}
+                labels={weekLabels(weekRates.length)}
+                ariaLabel="Last 12 weeks completion"
+              />
+            ) : (
+              <p className="hint">Weekly completion appears after you log days.</p>
+            )}
           </article>
 
           <article className="card">
@@ -394,13 +549,19 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
                 </p>
               </div>
             </div>
-            <RateBars
-              rates={base.weekdayRates}
-              labels={WEEKDAY_LABELS}
-              ariaLabel="Completion by weekday"
-              hotThreshold={0.82}
-            />
-            <p className="habit-weekday-insight">{base.weekdayInsight}</p>
+            {weekdayRates.some((rate) => rate > 0) ? (
+              <>
+                <RateBars
+                  rates={weekdayRates}
+                  labels={WEEKDAY_LABELS}
+                  ariaLabel="Completion by weekday"
+                  hotThreshold={0.82}
+                />
+                <p className="habit-weekday-insight">{insight}</p>
+              </>
+            ) : (
+              <p className="hint">{insight}</p>
+            )}
           </article>
         </motion.section>
 
@@ -411,7 +572,11 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
           <article className="card">
             <div className="panel-head">
               <h2 className="section-title">Reminders</h2>
-              <button type="button" className="btn btn-sm btn-ghost">
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                onClick={() => setAddOpen(true)}
+              >
                 + Add
               </button>
             </div>
@@ -424,7 +589,7 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
                     key={reminder.id}
                     reminder={reminder}
                     quiet={marked}
-                    onToggle={toggleReminder}
+                    onToggle={(id, enabled) => void toggleReminder(id, enabled)}
                   />
                 ))
               )}
@@ -440,40 +605,85 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
             <div className="panel-head">
               <h2 className="section-title">Recent days</h2>
             </div>
-            <ul className="habit-log-list">
-              {base.recentDays.map((day) => (
-                <RecentDayRow key={day.id} day={day} />
-              ))}
-            </ul>
-            <button type="button" className="btn btn-ghost btn-block habit-log-more">
-              Load earlier days
-            </button>
+            {recentDays.length === 0 ? (
+              <p className="hint">No logs yet for this habit.</p>
+            ) : (
+              <ul className="habit-log-list">
+                {recentDays.map((day) => (
+                  <RecentDayRow key={day.id} day={day} />
+                ))}
+              </ul>
+            )}
           </article>
         </motion.section>
 
         <ConfirmSheet
           open={archiveOpen}
           onClose={() => setArchiveOpen(false)}
-          title="Archive this habit?"
+          title={base.archived ? "Restore this habit?" : "Archive this habit?"}
         >
           <p className="hint" style={{ marginTop: 10, lineHeight: 1.55 }}>
-            It leaves the daily list right away. History stays on file — restore
-            from Habits anytime.
+            {base.archived
+              ? "It comes back to Today and Habits. History stays on file."
+              : "It leaves the daily list right away. History stays on file — restore from Habits anytime."}
           </p>
           <div className="settings-actions" style={{ marginTop: 22 }}>
             <button
               type="button"
               className="btn btn-ghost"
               onClick={() => setArchiveOpen(false)}
+              disabled={archiving}
             >
-              Keep it active
+              {base.archived ? "Keep archived" : "Keep it active"}
             </button>
             <button
               type="button"
               className="btn btn-danger"
-              onClick={confirmArchive}
+              onClick={() => void confirmArchive()}
+              disabled={archiving}
             >
-              Archive habit
+              {archiving
+                ? base.archived
+                  ? "Restoring…"
+                  : "Archiving…"
+                : base.archived
+                  ? "Restore habit"
+                  : "Archive habit"}
+            </button>
+          </div>
+        </ConfirmSheet>
+
+        <ConfirmSheet
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          title="Add a reminder"
+        >
+          <label className="field" style={{ marginTop: 14 }}>
+            <span className="label">Time</span>
+            <input
+              className="input"
+              type="time"
+              value={addTime}
+              onChange={(e) => setAddTime(e.target.value)}
+            />
+            <span className="hint">Sent in {user?.timezone || "your timezone"}.</span>
+          </label>
+          <div className="settings-actions" style={{ marginTop: 22 }}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setAddOpen(false)}
+              disabled={createReminder.isPending}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => void confirmAddReminder()}
+              disabled={createReminder.isPending}
+            >
+              {createReminder.isPending ? "Adding…" : "Add reminder"}
             </button>
           </div>
         </ConfirmSheet>

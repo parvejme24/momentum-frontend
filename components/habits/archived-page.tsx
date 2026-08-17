@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import {
@@ -12,14 +12,17 @@ import {
 
 import { useToast } from "@/components/auth/toast";
 import { ArchivedCard } from "@/components/habits/archived-card";
-import {
-  ACTIVE_HABITS,
-  INITIAL_ARCHIVED,
-  type ArchivedHabit,
-  type LibraryHabit,
-} from "@/components/habits/sample-data";
+import type { ArchivedHabit } from "@/components/habits/sample-data";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
 import { ConfirmSheet } from "@/components/settings/confirm-sheet";
+import { PageSpinner } from "@/components/ui/page-spinner";
+import { ApiError } from "@/lib/api/errors";
+import {
+  useDeleteHabit,
+  useHabits,
+  useRestoreHabit,
+} from "@/lib/habits/hooks";
+import { toArchivedHabit } from "@/lib/habits/map";
 
 type DeleteTarget =
   | { kind: "one"; habit: ArchivedHabit }
@@ -29,54 +32,58 @@ type DeleteTarget =
 export function ArchivedPage() {
   const reduce = useReducedMotion();
   const { pushToast } = useToast();
-  const [archived, setArchived] = useState(INITIAL_ARCHIVED);
-  const [active, setActive] = useState(ACTIVE_HABITS);
+  const archivedQuery = useHabits(true);
+  const activeQuery = useHabits(false);
+  const restore = useRestoreHabit();
+  const remove = useDeleteHabit();
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  function restoreHabit(id: string) {
+  const archived = useMemo(
+    () => (archivedQuery.data ?? []).map(toArchivedHabit),
+    [archivedQuery.data],
+  );
+  const activeCount = activeQuery.data?.length ?? 0;
+  const loading = archivedQuery.isLoading || activeQuery.isLoading;
+
+  async function onRestore(id: string) {
     const item = archived.find((h) => h.id === id);
-    if (!item) return;
-
-    setArchived((prev) => prev.filter((h) => h.id !== id));
-    setActive((prev) => {
-      if (prev.some((h) => h.id === id)) return prev;
-      const restored: LibraryHabit = {
-        id: item.id,
-        title: item.title,
-        emoji: item.emoji,
-        tint: item.tint,
-        categories: ["building"],
-        schedule: item.schedule,
-        streakDays: 0,
-        rate: item.rate,
-        bestLabel: item.bestLabel,
-        heatSeed: item.heatSeed,
-        fillRate: item.fillRate,
-      };
-      return [...prev, restored];
-    });
-    pushToast(`Restored ${item.title}`);
+    try {
+      await restore.mutateAsync(id);
+      pushToast(item ? `Restored ${item.title}` : "Habit restored");
+    } catch (error) {
+      pushToast(error instanceof ApiError ? error.message : "Could not restore habit");
+    }
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deleteTarget) return;
+    setDeleting(true);
 
-    if (deleteTarget.kind === "one") {
-      const { habit } = deleteTarget;
-      setArchived((prev) => prev.filter((h) => h.id !== habit.id));
+    try {
+      if (deleteTarget.kind === "one") {
+        const { habit } = deleteTarget;
+        await remove.mutateAsync(habit.id);
+        setDeleteTarget(null);
+        pushToast(`Deleted ${habit.title}`);
+        return;
+      }
+
+      const count = archived.length;
+      for (const habit of archived) {
+        await remove.mutateAsync(habit.id);
+      }
       setDeleteTarget(null);
-      pushToast(`Deleted ${habit.title}`);
-      return;
+      pushToast(
+        count === 1
+          ? "Deleted 1 archived habit"
+          : `Deleted all ${count} archived habits`,
+      );
+    } catch (error) {
+      pushToast(error instanceof ApiError ? error.message : "Could not delete habit");
+    } finally {
+      setDeleting(false);
     }
-
-    const count = archived.length;
-    setArchived([]);
-    setDeleteTarget(null);
-    pushToast(
-      count === 1
-        ? "Deleted 1 archived habit"
-        : `Deleted all ${count} archived habits`,
-    );
   }
 
   const sheetOpen = deleteTarget !== null;
@@ -102,7 +109,7 @@ export function ArchivedPage() {
           </Link>
           <div className="page-head">
             <p className="eyebrow">
-              {archived.length} archived · {active.length} active
+              {archived.length} archived · {activeCount} active
             </p>
             <h1>Archived</h1>
             <p className="lede">
@@ -112,7 +119,17 @@ export function ArchivedPage() {
           </div>
         </motion.header>
 
-        {archived.length === 0 ? (
+        {archivedQuery.error ? (
+          <p className="hint hint-err">
+            {archivedQuery.error instanceof ApiError
+              ? archivedQuery.error.message
+              : "Could not load archived habits"}
+          </p>
+        ) : null}
+
+        {loading ? (
+          <PageSpinner label="Loading archive" />
+        ) : archived.length === 0 ? (
           <motion.div
             className="empty archived-empty"
             variants={reduce ? undefined : fadeUpSoft}
@@ -146,7 +163,7 @@ export function ArchivedPage() {
                   <ArchivedCard
                     key={habit.id}
                     habit={habit}
-                    onRestore={restoreHabit}
+                    onRestore={onRestore}
                     onDelete={(id) => {
                       const item = archived.find((h) => h.id === id);
                       if (!item) return;
@@ -183,7 +200,10 @@ export function ArchivedPage() {
 
         <ConfirmSheet
           open={sheetOpen}
-          onClose={() => setDeleteTarget(null)}
+          onClose={() => {
+            if (deleting) return;
+            setDeleteTarget(null);
+          }}
           title={sheetTitle}
         >
           <p className="hint" style={{ marginTop: 10, lineHeight: 1.55 }}>
@@ -204,15 +224,21 @@ export function ArchivedPage() {
               type="button"
               className="btn btn-ghost"
               onClick={() => setDeleteTarget(null)}
+              disabled={deleting}
             >
               {deleteTarget?.kind === "all" ? "Keep archive" : "Keep it"}
             </button>
             <button
               type="button"
               className="btn btn-danger"
-              onClick={confirmDelete}
+              onClick={() => void confirmDelete()}
+              disabled={deleting}
             >
-              {deleteTarget?.kind === "all" ? "Delete all" : "Delete forever"}
+              {deleting
+                ? "Deleting…"
+                : deleteTarget?.kind === "all"
+                  ? "Delete all"
+                  : "Delete forever"}
             </button>
           </div>
         </ConfirmSheet>

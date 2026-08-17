@@ -21,13 +21,18 @@ import {
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { ApiError } from "@/lib/api/errors";
+import { createHabitReminder } from "@/lib/api/reminders";
 import { useAuth } from "@/lib/auth/context";
+import { useCreateHabit } from "@/lib/habits/hooks";
+import { toCreateHabitRequest } from "@/lib/habits/map";
 
 export function NewHabitForm() {
   const reduce = useReducedMotion();
   const router = useRouter();
   const { pushToast } = useToast();
   const { user } = useAuth();
+  const create = useCreateHabit();
 
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
@@ -77,15 +82,54 @@ export function NewHabitForm() {
       setNameError("Give the habit a name");
       return;
     }
+    if (scheduleMode === "weekdays" && weekdays.length === 0) {
+      pushToast("Pick at least one weekday");
+      return;
+    }
     setNameError(null);
     setPending(true);
     try {
-      void note;
-      void reminderEnabled;
-      void reminderTime;
-      await new Promise((r) => window.setTimeout(r, 400));
+      const habit = await create.mutateAsync(
+        toCreateHabitRequest({
+          title: trimmed,
+          note,
+          icon,
+          colorId,
+          habitType,
+          schedule,
+          measureTarget,
+          measureUnit,
+        }),
+      );
+      if (reminderEnabled) {
+        const daysOfWeek =
+          scheduleMode === "weekdays" && weekdays.length > 0
+            ? weekdays
+            : [0, 1, 2, 3, 4, 5, 6];
+        const timeLocal = reminderTime.slice(0, 5);
+        try {
+          const result = await createHabitReminder(habit.id, {
+            timeLocal,
+            daysOfWeek,
+            enabled: true,
+          });
+          if (result.warnings[0]) pushToast(result.warnings[0]);
+        } catch (error) {
+          pushToast(
+            error instanceof ApiError
+              ? error.message
+              : "Habit created, but the reminder could not be saved",
+          );
+        }
+      }
       pushToast("Habit created 🎉");
-      window.setTimeout(() => router.push("/habits"), 450);
+      router.push("/habits");
+    } catch (error) {
+      const message =
+        error instanceof ApiError ? error.message : "Could not create habit";
+      const fields = error instanceof ApiError ? error.fieldErrors() : {};
+      setNameError(fields.title ?? fields.startDate ?? message);
+      pushToast(message);
     } finally {
       setPending(false);
     }
@@ -176,7 +220,10 @@ export function NewHabitForm() {
                 <legend className="label">Icon</legend>
                 <div className="swatches icon-swatches">
                   {ICON_OPTIONS.map((emoji) => (
-                    <label key={emoji}>
+                    <label
+                      key={emoji}
+                      className={icon === emoji ? "is-selected" : undefined}
+                    >
                       <input
                         type="radio"
                         name="icon"
@@ -197,7 +244,7 @@ export function NewHabitForm() {
                   {COLOR_OPTIONS.map((color) => (
                     <label
                       key={color.id}
-                      className={`color-swatch color-${color.id}`}
+                      className={`color-swatch color-${color.id}${colorId === color.id ? " is-selected" : ""}`}
                       title={color.label}
                     >
                       <input

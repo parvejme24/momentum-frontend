@@ -3,10 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 
-import { WEEK_RATES } from "@/components/today/sample-data";
 import { easeOut } from "@/components/home/motion";
 
-export function WeekBars() {
+export function WeekBars({ rates }: { rates: number[] }) {
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.35 });
@@ -20,12 +19,16 @@ export function WeekBars() {
     if (inView) setGrown(true);
   }, [inView, reduce]);
 
+  if (rates.length === 0) {
+    return <p className="hint">Weekly completion appears after you log days.</p>;
+  }
+
   return (
     <div ref={ref} className="bars" aria-label="Last 12 weeks completion">
-      {WEEK_RATES.map((rate, i) => {
+      {rates.map((rate, i) => {
         const hot = rate >= 0.75;
         const label =
-          i === 0 ? "12w" : i === WEEK_RATES.length - 1 ? "Now" : "";
+          i === 0 ? "12w" : i === rates.length - 1 ? "Now" : "";
         return (
           <div key={i} className="bar-col">
             <div className="bar-track">

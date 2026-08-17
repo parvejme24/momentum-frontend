@@ -50,6 +50,7 @@ export type HabitDetail = {
   heatSeed: number;
   fillRate: number;
   activeWeekdays?: number[];
+  archived?: boolean;
 };
 
 function detailFromLibrary(habit: LibraryHabit): HabitDetail {

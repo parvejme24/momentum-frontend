@@ -34,6 +34,60 @@ function startOfDay(date: Date) {
   return next;
 }
 
+function isoLocal(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export type ChainHeatmapEntry = {
+  date: string;
+  level: number;
+  status?: string;
+};
+
+function buildYearChainFromHeatmap(
+  heatmap: ChainHeatmapEntry[],
+  activeWeekdays?: number[],
+): ChainCell[] {
+  const byDate = new Map(heatmap.map((entry) => [entry.date, entry]));
+  const today = startOfDay(new Date());
+  const first = new Date(today);
+  first.setDate(first.getDate() - (TOTAL - 1));
+
+  return Array.from({ length: TOTAL }, (_, i) => {
+    const date = new Date(first);
+    date.setDate(first.getDate() + i);
+    const weekday = date.getDay();
+    const off = Boolean(activeWeekdays && !activeWeekdays.includes(weekday));
+    const iso = isoLocal(date);
+    const entry = byDate.get(iso);
+    const skip = entry?.status === "SKIPPED";
+    const rawLevel = skip ? 0 : Math.max(0, Math.min(4, entry?.level ?? 0));
+    const level = rawLevel as CellLevel;
+    const isToday = i === TOTAL - 1;
+    const status = off
+      ? "not scheduled"
+      : skip
+        ? "skipped"
+        : level === 0
+          ? "empty"
+          : level >= 3
+            ? "strong"
+            : "logged";
+
+    return {
+      level,
+      skip,
+      off,
+      today: isToday,
+      date,
+      title: `${formatCellDate(date)} · ${isToday ? "today" : status}`,
+    };
+  });
+}
+
 function formatCellDate(date: Date) {
   return new Intl.DateTimeFormat("en-GB", {
     weekday: "short",
@@ -154,16 +208,21 @@ export function YearChain({
   fillRate,
   activeWeekdays,
   label,
+  heatmap,
 }: {
-  seed: number;
-  fillRate: number;
+  seed?: number;
+  fillRate?: number;
   activeWeekdays?: number[];
   label: string;
+  heatmap?: ChainHeatmapEntry[];
 }) {
   const reduce = useReducedMotion();
   const cells = useMemo(
-    () => buildYearChain(seed, fillRate, activeWeekdays),
-    [seed, fillRate, activeWeekdays],
+    () =>
+      heatmap
+        ? buildYearChainFromHeatmap(heatmap, activeWeekdays)
+        : buildYearChain(seed ?? 1, fillRate ?? 0, activeWeekdays),
+    [heatmap, seed, fillRate, activeWeekdays],
   );
 
   const columns = useMemo(() => {

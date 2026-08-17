@@ -10,16 +10,13 @@ import {
   useReducedMotion,
 } from "framer-motion";
 
-import { useToast } from "@/components/auth/toast";
-import { ArchivedRow, HabitCard } from "@/components/habits/habit-card";
-import {
-  ACTIVE_HABITS,
-  INITIAL_ARCHIVED,
-  type ArchivedHabit,
-  type HabitCategory,
-  type LibraryHabit,
-} from "@/components/habits/sample-data";
+import { HabitCard } from "@/components/habits/habit-card";
+import type { HabitCategory, LibraryHabit } from "@/components/habits/sample-data";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
+import { PageSpinner } from "@/components/ui/page-spinner";
+import { ApiError } from "@/lib/api/errors";
+import { useHabits } from "@/lib/habits/hooks";
+import { toLibraryHabit } from "@/lib/habits/map";
 
 type FilterTab = "all" | HabitCategory;
 
@@ -35,42 +32,24 @@ function matchesFilter(habit: LibraryHabit, filter: FilterTab) {
   return habit.categories.includes(filter);
 }
 
+function errorMessage(error: unknown) {
+  return error instanceof ApiError ? error.message : "Could not load habits";
+}
+
 export function HabitsPage() {
   const reduce = useReducedMotion();
-  const { pushToast } = useToast();
   const [filter, setFilter] = useState<FilterTab>("all");
-  const [active, setActive] = useState(ACTIVE_HABITS);
-  const [archived, setArchived] = useState(INITIAL_ARCHIVED);
+  const activeQuery = useHabits(false);
+
+  const active = useMemo(
+    () => (activeQuery.data ?? []).map(toLibraryHabit),
+    [activeQuery.data],
+  );
 
   const filtered = useMemo(
     () => active.filter((habit) => matchesFilter(habit, filter)),
     [active, filter],
   );
-
-  function restoreHabit(id: string) {
-    const item = archived.find((h) => h.id === id);
-    if (!item) return;
-
-    setArchived((prev) => prev.filter((h) => h.id !== id));
-    setActive((prev) => {
-      if (prev.some((h) => h.id === id)) return prev;
-      const restored: LibraryHabit = {
-        id: item.id,
-        title: item.title,
-        emoji: item.emoji,
-        tint: item.tint,
-        categories: ["building"],
-        schedule: item.schedule,
-        streakDays: 0,
-        rate: item.rate,
-        bestLabel: item.bestLabel,
-        heatSeed: item.heatSeed,
-        fillRate: item.fillRate,
-      };
-      return [...prev, restored];
-    });
-    pushToast(`Restored ${item.title}`);
-  }
 
   return (
     <MotionConfig reducedMotion="user">
@@ -84,12 +63,7 @@ export function HabitsPage() {
           variants={reduce ? undefined : fadeUpSoft}
         >
           <div>
-            <p className="eyebrow">
-              {active.length} active ·{" "}
-              <Link href="/habits/archived" className="archived-count-link">
-                {archived.length} archived
-              </Link>
-            </p>
+            <p className="eyebrow">{active.length} active</p>
             <h1>Habits</h1>
           </div>
           <Link href="/habits/new" className="btn btn-primary btn-sm">
@@ -97,6 +71,10 @@ export function HabitsPage() {
             New habit
           </Link>
         </motion.header>
+
+        {activeQuery.error ? (
+          <p className="hint hint-err">{errorMessage(activeQuery.error)}</p>
+        ) : null}
 
         <motion.div
           className="habits-filter row-between"
@@ -119,57 +97,39 @@ export function HabitsPage() {
           <span className="mono habits-filter-hint">Last 90 days shown</span>
         </motion.div>
 
-        <motion.section
-          className="habit-lib-grid"
-          aria-label="Active habits"
-          variants={reduce ? undefined : fadeUpSoft}
-        >
-          <AnimatePresence mode="popLayout">
-            {filtered.map((habit) => (
-              <HabitCard key={habit.id} habit={habit} />
-            ))}
-          </AnimatePresence>
-        </motion.section>
+        {activeQuery.isLoading ? (
+          <PageSpinner label="Loading habits" />
+        ) : active.length === 0 ? (
+          <motion.div
+            className="empty"
+            variants={reduce ? undefined : fadeUpSoft}
+          >
+            <h2 className="section-title">No habits yet</h2>
+            <p className="hint" style={{ marginTop: 8 }}>
+              Create one to start a chain.
+            </p>
+          </motion.div>
+        ) : (
+          <>
+            <motion.section
+              className="habit-lib-grid"
+              aria-label="Active habits"
+              variants={reduce ? undefined : fadeUpSoft}
+            >
+              <AnimatePresence mode="popLayout">
+                {filtered.map((habit) => (
+                  <HabitCard key={habit.id} habit={habit} />
+                ))}
+              </AnimatePresence>
+            </motion.section>
 
-        {filtered.length === 0 ? (
-          <p className="hint" style={{ marginTop: 8 }}>
-            No habits in this filter.
-          </p>
-        ) : null}
-
-        <motion.section
-          className="today-section"
-          aria-labelledby="archived-heading"
-          variants={reduce ? undefined : fadeUpSoft}
-        >
-          <div className="panel-head">
-            <div>
-              <h2 id="archived-heading" className="section-title">
-                Archived
-              </h2>
-              <p className="hint" style={{ marginTop: 4 }}>
-                History is kept. Restore any time.
+            {filtered.length === 0 ? (
+              <p className="hint" style={{ marginTop: 8 }}>
+                No habits in this filter.
               </p>
-            </div>
-            <Link href="/habits/archived" className="btn btn-ghost btn-sm">
-              View all
-            </Link>
-          </div>
-
-          {archived.length === 0 ? (
-            <p className="hint">Nothing archived right now.</p>
-          ) : (
-            <div className="habit-list">
-              {archived.slice(0, 2).map((habit: ArchivedHabit) => (
-                <ArchivedRow
-                  key={habit.id}
-                  habit={habit}
-                  onRestore={restoreHabit}
-                />
-              ))}
-            </div>
-          )}
-        </motion.section>
+            ) : null}
+          </>
+        )}
       </motion.div>
     </MotionConfig>
   );
