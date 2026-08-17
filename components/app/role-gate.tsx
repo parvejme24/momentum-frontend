@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
+import { PageSpinner } from "@/components/ui/page-spinner";
 import { useAuth } from "@/lib/auth/context";
 
 export function RoleGate({
@@ -19,15 +20,7 @@ export function RoleGate({
   const { isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="page-head">
-        <p className="eyebrow">Momentum</p>
-        <h1>{title}</h1>
-        <p className="hint" style={{ marginTop: 12 }}>
-          Loading…
-        </p>
-      </div>
-    );
+    return <PageSpinner />;
   }
 
   if (!allowed) {

@@ -850,7 +850,8 @@ h2 + .lede,
 .swatches label:hover {
   transform: translateY(-3px);
 }
-.swatches input:checked + label {
+.swatches label.is-selected,
+.swatches label:has(input:checked) {
   box-shadow:
     0 0 0 3px var(--paper),
     0 0 0 5px var(--ink);
@@ -3666,6 +3667,16 @@ h2 + .lede,
   border: 2px dashed var(--ink-30);
   border-radius: 2px;
   display: block;
+}
+
+.page-spinner {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  color: var(--blue);
 }
 
 /* ---------- 17. MOTION UTILITIES ---------- */

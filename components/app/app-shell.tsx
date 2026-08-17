@@ -18,6 +18,7 @@ import {
 
 import { BrandLockup } from "@/components/home/brand-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { PageSpinner } from "@/components/ui/page-spinner";
 import { customer } from "@/lib/data/customer";
 import { useAuth } from "@/lib/auth/context";
 import { isAdmin } from "@/lib/auth/role";
@@ -131,9 +132,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="app">
         <div className="main">
-          <div className="page-head">
-            <p className="hint">Loading…</p>
-          </div>
+          <PageSpinner />
         </div>
       </div>
     );
