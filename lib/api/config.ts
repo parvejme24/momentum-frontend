@@ -52,3 +52,45 @@ export function authPath(action: string): string {
   const slug = action.replace(/^\//, "");
   return `${API_PREFIX.auth}/${slug}`;
 }
+
+export function habitPath(suffix = ""): string {
+  const slug = suffix.replace(/^\//, "");
+  return slug ? `${API_PREFIX.habits}/${slug}` : API_PREFIX.habits;
+}
+
+export function todayPath(suffix = ""): string {
+  const slug = suffix.replace(/^\//, "");
+  return slug ? `${API_PREFIX.today}/${slug}` : API_PREFIX.today;
+}
+
+export function logsPath(suffix = ""): string {
+  const slug = suffix.replace(/^\//, "");
+  return slug ? `${API_PREFIX.logs}/${slug}` : API_PREFIX.logs;
+}
+
+export function statsPath(suffix = ""): string {
+  const slug = suffix.replace(/^\//, "");
+  return slug ? `${API_PREFIX.stats}/${slug}` : API_PREFIX.stats;
+}
+
+export function reminderPath(suffix = ""): string {
+  const slug = suffix.replace(/^\//, "");
+  return slug ? `${API_PREFIX.reminders}/${slug}` : API_PREFIX.reminders;
+}
+
+export function devicePath(suffix = ""): string {
+  const slug = suffix.replace(/^\//, "");
+  return slug ? `${API_PREFIX.devices}/${slug}` : API_PREFIX.devices;
+}
+
+export function queryString(
+  params: Record<string, string | number | boolean | undefined | null>,
+): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value == null || value === "") continue;
+    search.set(key, String(value));
+  }
+  const encoded = search.toString();
+  return encoded ? `?${encoded}` : "";
+}
