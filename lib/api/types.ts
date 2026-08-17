@@ -47,6 +47,18 @@ export type LogoutRequest = {
   refreshToken: string;
 };
 
+export type UpdateMeRequest = {
+  name?: string;
+  timezone?: string;
+  weekStartsOn?: number;
+  avatarUrl?: string | null;
+};
+
+export type ChangePasswordRequest = {
+  currentPassword: string;
+  newPassword: string;
+};
+
 export type ForgotPasswordRequest = {
   email: string;
 };

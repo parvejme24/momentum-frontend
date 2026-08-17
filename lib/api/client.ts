@@ -26,7 +26,7 @@ export function setOnSessionInvalid(handler: (() => void) | null): void {
 }
 
 function apiBaseUrl(): string {
-  const base = process.env.NEXT_PUBLIC_API_URL;
+  const base = process.env.NEXT_PUBLIC_API_URL?.trim();
   if (!base) {
     throw new ApiError({
       code: "INTERNAL_ERROR",

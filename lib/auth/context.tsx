@@ -18,90 +18,35 @@ import {
 } from "@/lib/api/client";
 import { ApiError } from "@/lib/api/errors";
 import type {
-  ClientAuthResponse,
-  LoginRequest,
+  ChangePasswordRequest,
   RegisterRequest,
+  UpdateMeRequest,
   User,
 } from "@/lib/api/types";
+import {
+  fetchMe,
+  patchMe,
+  postChangePassword,
+  postLogout,
+  postLogoutAll,
+  postSessionAuth,
+} from "@/lib/auth/bff";
 
 type AuthContextValue = {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (input: Omit<RegisterRequest, "timezone"> & { timezone?: string }) => Promise<void>;
+  register: (
+    input: Omit<RegisterRequest, "timezone"> & { timezone?: string },
+  ) => Promise<void>;
   logout: () => Promise<void>;
+  logoutAll: () => Promise<void>;
+  updateMe: (input: UpdateMeRequest) => Promise<User>;
+  changePassword: (input: ChangePasswordRequest) => Promise<void>;
+  reloadMe: () => Promise<User>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-async function postAuth(
-  action: "login" | "register" | "logout",
-  body?: LoginRequest | RegisterRequest,
-): Promise<ClientAuthResponse | null> {
-  let res: Response;
-  try {
-    res = await fetch(`/api/auth/${action}`, {
-      method: "POST",
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-  } catch {
-    throw new ApiError({
-      code: "NETWORK_ERROR",
-      message: "Network request failed",
-      status: 0,
-    });
-  }
-
-  if (action === "logout") {
-    return null;
-  }
-
-  if (!res.ok) {
-    let payload: unknown;
-    try {
-      payload = await res.json();
-    } catch {
-      throw new ApiError({
-        code: "UNKNOWN",
-        message: res.statusText || "Request failed",
-        status: res.status,
-      });
-    }
-
-    if (
-      typeof payload === "object" &&
-      payload !== null &&
-      "error" in payload &&
-      typeof (payload as { error: unknown }).error === "object" &&
-      (payload as { error: unknown }).error !== null
-    ) {
-      const error = (
-        payload as {
-          error: {
-            code: string;
-            message: string;
-            details?: { field?: string; message?: string }[];
-          };
-        }
-      ).error;
-      throw new ApiError({
-        code: error.code,
-        message: error.message,
-        status: res.status,
-        details: error.details ?? [],
-      });
-    }
-
-    throw new ApiError({
-      code: "UNKNOWN",
-      message: res.statusText || "Request failed",
-      status: res.status,
-    });
-  }
-
-  return (await res.json()) as ClientAuthResponse;
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -148,14 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const data = await postAuth("login", { email, password });
-    if (!data) {
-      throw new ApiError({
-        code: "UNKNOWN",
-        message: "Login failed",
-        status: 500,
-      });
-    }
+    const data = await postSessionAuth("login", { email, password });
     setAccessToken(data.accessToken);
     setUser(data.user);
   }, []);
@@ -163,21 +101,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(
     async (input: Omit<RegisterRequest, "timezone"> & { timezone?: string }) => {
       const timezone =
-        input.timezone ||
-        Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const data = await postAuth("register", {
+        input.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const data = await postSessionAuth("register", {
         name: input.name,
         email: input.email,
         password: input.password,
         timezone,
       });
-      if (!data) {
-        throw new ApiError({
-          code: "UNKNOWN",
-          message: "Registration failed",
-          status: 500,
-        });
-      }
       setAccessToken(data.accessToken);
       setUser(data.user);
     },
@@ -186,16 +116,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await postAuth("logout");
+      await postLogout();
     } finally {
       clearLocalSession();
       router.replace("/login");
     }
   }, [clearLocalSession, router]);
 
+  const logoutAll = useCallback(async () => {
+    await postLogoutAll();
+    clearLocalSession();
+    router.replace("/login");
+  }, [clearLocalSession, router]);
+
+  const updateMe = useCallback(async (input: UpdateMeRequest) => {
+    const next = await patchMe(input);
+    setUser(next);
+    return next;
+  }, []);
+
+  const changePassword = useCallback(async (input: ChangePasswordRequest) => {
+    await postChangePassword(input);
+  }, []);
+
+  const reloadMe = useCallback(async () => {
+    const next = await fetchMe();
+    setUser(next);
+    return next;
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, login, register, logout }}
+      value={{
+        user,
+        isLoading,
+        login,
+        register,
+        logout,
+        logoutAll,
+        updateMe,
+        changePassword,
+        reloadMe,
+      }}
     >
       {children}
     </AuthContext.Provider>

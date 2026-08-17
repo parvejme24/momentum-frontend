@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getBackendUrl } from "@/lib/api/config";
 import type { ApiErrorEnvelope, AuthResponse } from "@/lib/api/types";
 import {
   clearRefreshToken,
@@ -7,22 +8,24 @@ import {
   setRefreshToken,
 } from "@/lib/auth/session";
 
-type AuthAction = "login" | "register" | "refresh" | "logout";
+type AuthAction =
+  | "login"
+  | "register"
+  | "refresh"
+  | "logout"
+  | "logout-all"
+  | "me"
+  | "change-password";
 
 const AUTH_ACTIONS = new Set<AuthAction>([
   "login",
   "register",
   "refresh",
   "logout",
+  "logout-all",
+  "me",
+  "change-password",
 ]);
-
-function apiBaseUrl(): string {
-  const base = process.env.NEXT_PUBLIC_API_URL;
-  if (!base) {
-    throw new Error("NEXT_PUBLIC_API_URL is not configured");
-  }
-  return base.replace(/\/$/, "");
-}
 
 function isAuthAction(value: string): value is AuthAction {
   return AUTH_ACTIONS.has(value as AuthAction);
@@ -35,35 +38,8 @@ function clientAuthPayload(data: AuthResponse) {
   };
 }
 
-async function forwardJson(
-  path: string,
-  body: unknown,
-): Promise<{ res: Response; payload: unknown }> {
-  const res = await fetch(`${apiBaseUrl()}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  let payload: unknown = null;
-  const text = await res.text();
-  if (text) {
-    try {
-      payload = JSON.parse(text) as unknown;
-    } catch {
-      payload = { error: { code: "UNKNOWN", message: text, details: [] } };
-    }
-  }
-
-  return { res, payload };
-}
-
 function errorResponse(status: number, payload: unknown) {
-  if (
-    typeof payload === "object" &&
-    payload !== null &&
-    "error" in payload
-  ) {
+  if (typeof payload === "object" && payload !== null && "error" in payload) {
     return NextResponse.json(payload as ApiErrorEnvelope, { status });
   }
 
@@ -79,6 +55,231 @@ function errorResponse(status: number, payload: unknown) {
   );
 }
 
+function invalidJson() {
+  return NextResponse.json(
+    {
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid JSON body",
+        details: [],
+      },
+    } satisfies ApiErrorEnvelope,
+    { status: 400 },
+  );
+}
+
+function unknownAction(action: string) {
+  return NextResponse.json(
+    {
+      error: {
+        code: "NOT_FOUND",
+        message: `Unknown auth action: ${action}`,
+        details: [],
+      },
+    } satisfies ApiErrorEnvelope,
+    { status: 404 },
+  );
+}
+
+function networkError() {
+  return NextResponse.json(
+    {
+      error: {
+        code: "NETWORK_ERROR",
+        message: "Failed to reach auth API",
+        details: [],
+      },
+    } satisfies ApiErrorEnvelope,
+    { status: 502 },
+  );
+}
+
+function invalidAuthPayload() {
+  return NextResponse.json(
+    {
+      error: {
+        code: "UNKNOWN",
+        message: "Invalid auth response from API",
+        details: [],
+      },
+    } satisfies ApiErrorEnvelope,
+    { status: 502 },
+  );
+}
+
+async function readJson(request: Request): Promise<unknown | NextResponse> {
+  try {
+    return await request.json();
+  } catch {
+    return invalidJson();
+  }
+}
+
+async function forward(
+  path: string,
+  init: {
+    method: string;
+    body?: unknown;
+    authorization?: string | null;
+  },
+): Promise<{ res: Response; payload: unknown }> {
+  const headers = new Headers();
+  if (init.body !== undefined) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (init.authorization) {
+    headers.set("Authorization", init.authorization);
+  }
+
+  const res = await fetch(`${getBackendUrl()}${path}`, {
+    method: init.method,
+    headers,
+    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+  });
+
+  let payload: unknown = null;
+  const text = await res.text();
+  if (text) {
+    try {
+      payload = JSON.parse(text) as unknown;
+    } catch {
+      payload = { error: { code: "UNKNOWN", message: text, details: [] } };
+    }
+  }
+
+  return { res, payload };
+}
+
+function isAuthResponse(payload: unknown): payload is AuthResponse {
+  if (typeof payload !== "object" || payload === null) return false;
+  const data = payload as AuthResponse;
+  return (
+    typeof data.refreshToken === "string" &&
+    typeof data.accessToken === "string" &&
+    typeof data.user === "object" &&
+    data.user !== null
+  );
+}
+
+function authorizationFrom(request: Request) {
+  return request.headers.get("authorization");
+}
+
+async function handleSessionAuth(action: "login" | "register", body: unknown) {
+  const { res, payload } = await forward(`/auth/${action}`, {
+    method: "POST",
+    body,
+  });
+
+  if (!res.ok) return errorResponse(res.status, payload);
+  if (!isAuthResponse(payload)) return invalidAuthPayload();
+
+  await setRefreshToken(payload.refreshToken);
+  return NextResponse.json(clientAuthPayload(payload));
+}
+
+async function handleRefresh() {
+  const refreshToken = await getRefreshToken();
+  if (!refreshToken) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "UNAUTHORIZED",
+          message: "No session",
+          details: [],
+        },
+      } satisfies ApiErrorEnvelope,
+      { status: 401 },
+    );
+  }
+
+  const { res, payload } = await forward("/auth/refresh", {
+    method: "POST",
+    body: { refreshToken },
+  });
+
+  if (!res.ok) {
+    await clearRefreshToken();
+    return errorResponse(res.status, payload);
+  }
+
+  if (!isAuthResponse(payload)) {
+    await clearRefreshToken();
+    return invalidAuthPayload();
+  }
+
+  await setRefreshToken(payload.refreshToken);
+  return NextResponse.json(clientAuthPayload(payload));
+}
+
+async function handleLogout() {
+  const refreshToken = await getRefreshToken();
+  if (refreshToken) {
+    try {
+      await forward("/auth/logout", {
+        method: "POST",
+        body: { refreshToken },
+      });
+    } catch {
+      // Still clear the local cookie even if the upstream call fails.
+    }
+  }
+  await clearRefreshToken();
+  return new NextResponse(null, { status: 200 });
+}
+
+function passthrough(res: Response, payload: unknown) {
+  if (!res.ok) return errorResponse(res.status, payload);
+  if (res.status === 204 || payload == null) {
+    return new NextResponse(null, { status: 204 });
+  }
+  return NextResponse.json(payload, { status: res.status });
+}
+
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ action: string }> },
+) {
+  const { action } = await context.params;
+  if (!isAuthAction(action) || action !== "me") {
+    return unknownAction(action);
+  }
+
+  try {
+    const { res, payload } = await forward("/auth/me", {
+      method: "GET",
+      authorization: authorizationFrom(request),
+    });
+    return passthrough(res, payload);
+  } catch {
+    return networkError();
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ action: string }> },
+) {
+  const { action } = await context.params;
+  if (!isAuthAction(action) || action !== "me") {
+    return unknownAction(action);
+  }
+
+  const body = await readJson(request);
+  if (body instanceof NextResponse) return body;
+
+  try {
+    const { res, payload } = await forward("/auth/me", {
+      method: "PATCH",
+      body,
+      authorization: authorizationFrom(request),
+    });
+    return passthrough(res, payload);
+  } catch {
+    return networkError();
+  }
+}
+
 export async function POST(
   request: Request,
   context: { params: Promise<{ action: string }> },
@@ -86,134 +287,47 @@ export async function POST(
   const { action } = await context.params;
 
   if (!isAuthAction(action)) {
-    return NextResponse.json(
-      {
-        error: {
-          code: "NOT_FOUND",
-          message: `Unknown auth action: ${action}`,
-          details: [],
-        },
-      } satisfies ApiErrorEnvelope,
-      { status: 404 },
-    );
+    return unknownAction(action);
   }
 
   try {
     if (action === "login" || action === "register") {
-      let body: unknown;
-      try {
-        body = await request.json();
-      } catch {
-        return NextResponse.json(
-          {
-            error: {
-              code: "VALIDATION_ERROR",
-              message: "Invalid JSON body",
-              details: [],
-            },
-          } satisfies ApiErrorEnvelope,
-          { status: 400 },
-        );
-      }
-
-      const { res, payload } = await forwardJson(`/auth/${action}`, body);
-
-      if (!res.ok) {
-        return errorResponse(res.status, payload);
-      }
-
-      const data = payload as AuthResponse;
-      if (
-        typeof data !== "object" ||
-        data === null ||
-        typeof data.refreshToken !== "string" ||
-        typeof data.accessToken !== "string"
-      ) {
-        return NextResponse.json(
-          {
-            error: {
-              code: "UNKNOWN",
-              message: "Invalid auth response from API",
-              details: [],
-            },
-          } satisfies ApiErrorEnvelope,
-          { status: 502 },
-        );
-      }
-
-      await setRefreshToken(data.refreshToken);
-      return NextResponse.json(clientAuthPayload(data));
+      const body = await readJson(request);
+      if (body instanceof NextResponse) return body;
+      return await handleSessionAuth(action, body);
     }
 
     if (action === "refresh") {
-      const refreshToken = await getRefreshToken();
-      if (!refreshToken) {
-        return NextResponse.json(
-          {
-            error: {
-              code: "UNAUTHORIZED",
-              message: "No session",
-              details: [],
-            },
-          } satisfies ApiErrorEnvelope,
-          { status: 401 },
-        );
-      }
+      return await handleRefresh();
+    }
 
-      const { res, payload } = await forwardJson("/auth/refresh", {
-        refreshToken,
+    if (action === "logout") {
+      return await handleLogout();
+    }
+
+    if (action === "logout-all") {
+      const { res, payload } = await forward("/auth/logout-all", {
+        method: "POST",
+        authorization: authorizationFrom(request),
       });
-
-      if (!res.ok) {
-        await clearRefreshToken();
-        return errorResponse(res.status, payload);
-      }
-
-      const data = payload as AuthResponse;
-      if (
-        typeof data !== "object" ||
-        data === null ||
-        typeof data.refreshToken !== "string" ||
-        typeof data.accessToken !== "string"
-      ) {
-        await clearRefreshToken();
-        return NextResponse.json(
-          {
-            error: {
-              code: "UNKNOWN",
-              message: "Invalid refresh response from API",
-              details: [],
-            },
-          } satisfies ApiErrorEnvelope,
-          { status: 502 },
-        );
-      }
-
-      await setRefreshToken(data.refreshToken);
-      return NextResponse.json(clientAuthPayload(data));
+      if (!res.ok) return errorResponse(res.status, payload);
+      await clearRefreshToken();
+      return new NextResponse(null, { status: 200 });
     }
 
-    // logout
-    const refreshToken = await getRefreshToken();
-    if (refreshToken) {
-      try {
-        await forwardJson("/auth/logout", { refreshToken });
-      } catch {
-        // Still clear the local cookie even if the upstream call fails.
-      }
+    if (action === "change-password") {
+      const body = await readJson(request);
+      if (body instanceof NextResponse) return body;
+      const { res, payload } = await forward("/auth/change-password", {
+        method: "POST",
+        body,
+        authorization: authorizationFrom(request),
+      });
+      return passthrough(res, payload);
     }
-    await clearRefreshToken();
-    return new NextResponse(null, { status: 200 });
+
+    return unknownAction(action);
   } catch {
-    return NextResponse.json(
-      {
-        error: {
-          code: "NETWORK_ERROR",
-          message: "Failed to reach auth API",
-          details: [],
-        },
-      } satisfies ApiErrorEnvelope,
-      { status: 502 },
-    );
+    return networkError();
   }
 }
