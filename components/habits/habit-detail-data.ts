@@ -1,3 +1,4 @@
+import customer from "@/data/customer.json";
 import {
   ACTIVE_HABITS,
   INITIAL_ARCHIVED,
@@ -51,56 +52,6 @@ export type HabitDetail = {
   activeWeekdays?: number[];
 };
 
-const READ_DETAIL: HabitDetail = {
-  id: "read",
-  title: "Read 30 pages",
-  emoji: "📖",
-  tint: "var(--blue-soft)",
-  schedule: "Every day",
-  quantityLabel: "30 pages",
-  reminderLabel: "Reminder 21:30",
-  unit: "pages",
-  markedToday: true,
-  todayQuantity: { current: 32, target: 30 },
-  currentStreak: 47,
-  longestStreak: 61,
-  longestRange: "Feb 3 → Apr 4",
-  completionRate: 86,
-  completedDays: 313,
-  trackedDays: 364,
-  totalLogged: 9412,
-  totalLoggedUnit: "pages read",
-  weekRates: [0.42, 0.55, 0.48, 0.61, 0.7, 0.58, 0.74, 0.81, 0.69, 0.86, 0.78, 0.91],
-  weekdayRates: [0.88, 0.91, 0.86, 0.9, 0.84, 0.61, 0.87],
-  weekdayInsight:
-    "Friday is your weakest day at 61%. Everything else sits above 82% — it's a Friday problem, not a reading problem.",
-  reminders: [
-    {
-      id: "evening",
-      time: "21:30",
-      schedule: "Every day",
-      timezone: "Asia/Dhaka",
-      enabled: true,
-    },
-    {
-      id: "morning",
-      time: "07:00",
-      schedule: "Weekends only",
-      enabled: false,
-      paused: true,
-    },
-  ],
-  recentDays: [
-    { id: "d0", label: "Today", quantity: "32 pages", status: "done" },
-    { id: "d1", label: "Yesterday", quantity: "30 pages", status: "done" },
-    { id: "d2", label: "2 days ago", quantity: "18 pages", status: "partial" },
-    { id: "d3", label: "3 days ago", status: "skipped" },
-    { id: "d4", label: "4 days ago", quantity: "41 pages", status: "done" },
-  ],
-  heatSeed: 101,
-  fillRate: 0.86,
-};
-
 function detailFromLibrary(habit: LibraryHabit): HabitDetail {
   const unit =
     habit.detail?.replace(/^\d+\s*/, "") ||
@@ -141,7 +92,7 @@ function detailFromLibrary(habit: LibraryHabit): HabitDetail {
         id: "default",
         time: "20:00",
         schedule: habit.schedule,
-        timezone: "Asia/Dhaka",
+        timezone: customer.profile.timezone,
         enabled: true,
       },
     ],
@@ -179,7 +130,8 @@ function detailFromLibrary(habit: LibraryHabit): HabitDetail {
 }
 
 export function getHabitDetail(id: string): HabitDetail | null {
-  if (id === "read") return READ_DETAIL;
+  const fromFile = (customer.habitDetails as Record<string, HabitDetail>)[id];
+  if (fromFile) return fromFile;
 
   const active = ACTIVE_HABITS.find((h) => h.id === id);
   if (active) return detailFromLibrary(active);

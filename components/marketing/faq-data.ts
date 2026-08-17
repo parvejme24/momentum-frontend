@@ -80,7 +80,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
       },
       {
         q: "Where do I download invoices?",
-        a: "Open Subscription in the app. Paid invoices have a Download button — you get a plain-text receipt with amount, date, and billing details.",
+        a: "Open Subscription in the app. Paid invoices have a Download PDF button — you get a PDF receipt with amount, date, and billing details.",
       },
     ],
   },

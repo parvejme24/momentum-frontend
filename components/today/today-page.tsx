@@ -7,6 +7,7 @@ import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
 import { useToast } from "@/components/auth/toast";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
+import { customer } from "@/lib/data/customer";
 import { HabitRow, RestHabitRow } from "@/components/today/habit-row";
 import { ProgressRing } from "@/components/today/progress-ring";
 import {
@@ -125,7 +126,7 @@ export function TodayPage() {
                 <Flame size={12} aria-hidden />
                 Best {best} days
               </span>
-              <span className="chip chip-quiet">86% this month</span>
+              <span className="chip chip-quiet">{customer.today.monthRate}% this month</span>
             </div>
           </div>
         </motion.section>

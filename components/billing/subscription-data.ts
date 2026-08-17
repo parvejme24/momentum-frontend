@@ -1,3 +1,5 @@
+import customer from "@/data/customer.json";
+
 export type PlanId = "free" | "pro" | "team";
 
 export type Plan = {
@@ -71,41 +73,12 @@ export const PLANS: Plan[] = [
   },
 ];
 
-export const CURRENT_SUBSCRIPTION = {
-  planId: "pro" as PlanId,
-  renewsOn: "13 Sep 2026",
-  paymentMethod: "Visa ···· 4242",
-  billingEmail: "parvej@example.com",
-  status: "active" as const,
+export const CURRENT_SUBSCRIPTION = customer.subscription as {
+  planId: PlanId;
+  renewsOn: string;
+  paymentMethod: string;
+  billingEmail: string;
+  status: "active";
 };
 
-export const INVOICES: Invoice[] = [
-  {
-    id: "inv-sep",
-    label: "Pro · September",
-    date: "13 Sep 2026",
-    amount: "$6.00",
-    status: "upcoming",
-  },
-  {
-    id: "inv-aug",
-    label: "Pro · August",
-    date: "13 Aug 2026",
-    amount: "$6.00",
-    status: "paid",
-  },
-  {
-    id: "inv-jul",
-    label: "Pro · July",
-    date: "13 Jul 2026",
-    amount: "$6.00",
-    status: "paid",
-  },
-  {
-    id: "inv-jun",
-    label: "Pro · June",
-    date: "13 Jun 2026",
-    amount: "$6.00",
-    status: "paid",
-  },
-];
+export const INVOICES: Invoice[] = customer.invoices as Invoice[];

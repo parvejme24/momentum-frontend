@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
+import customer from "@/data/customer.json";
 import { MiniHeatmap } from "@/components/habits/mini-heatmap";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
 import { RateBars } from "@/components/stats/rate-bars";
@@ -53,26 +54,26 @@ export function StatsPage() {
         variants={reduce ? undefined : staggerContainer}
       >
         <motion.header
-          className="page-head row-between stats-head"
+          className="page-head stats-head"
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <div>
-            <p className="eyebrow">Since 12 August 2025</p>
+          <p className="eyebrow">Since {customer.profile.memberSince}</p>
+          <div className="stats-title-row">
             <h1>Stats</h1>
-          </div>
-          <div className="tab-bar" role="tablist" aria-label="Date range">
-            {RANGE_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={range === tab.id}
-                className={range === tab.id ? "tab active" : "tab"}
-                onClick={() => setRange(tab.id)}
-              >
-                {tab.label}
-              </button>
-            ))}
+            <div className="tab-bar" role="tablist" aria-label="Date range">
+              {RANGE_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={range === tab.id}
+                  className={range === tab.id ? "tab active" : "tab"}
+                  onClick={() => setRange(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
         </motion.header>
 

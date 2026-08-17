@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
+import customer from "@/data/customer.json";
 import { PasswordInput } from "@/components/auth/password-input";
 import { useToast } from "@/components/auth/toast";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
@@ -11,8 +12,21 @@ import { ConfirmSheet } from "@/components/settings/confirm-sheet";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/lib/auth/context";
 import { isAdmin } from "@/lib/auth/role";
+import { ApiError } from "@/lib/api/errors";
 
 type WeekStart = "saturday" | "sunday" | "monday";
+
+const WEEK_START_TO_NUMBER: Record<WeekStart, number> = {
+  sunday: 0,
+  monday: 1,
+  saturday: 6,
+};
+
+function weekStartFromNumber(value: number | undefined): WeekStart {
+  if (value === 1) return "monday";
+  if (value === 6) return "saturday";
+  return "sunday";
+}
 
 type Device = {
   id: string;
@@ -29,24 +43,7 @@ const TIMEZONES = [
   "America/New_York",
 ];
 
-const INITIAL_DEVICES: Device[] = [
-  {
-    id: "oneplus",
-    name: "OnePlus 15 · Android",
-    meta: "This device · Dhaka",
-    current: true,
-  },
-  {
-    id: "mac",
-    name: "Mac mini · Chrome",
-    meta: "Last seen 2 hours ago",
-  },
-  {
-    id: "ipad",
-    name: "iPad · Safari",
-    meta: "Last seen 18 days ago",
-  },
-];
+const INITIAL_DEVICES: Device[] = customer.devices as Device[];
 
 function initialFromName(name: string) {
   const trimmed = name.trim();
@@ -56,12 +53,12 @@ function initialFromName(name: string) {
 export function SettingsPage() {
   const reduce = useReducedMotion();
   const { pushToast } = useToast();
-  const { user } = useAuth();
+  const { user, updateMe, changePassword, logoutAll } = useAuth();
   const admin = isAdmin(user);
 
-  const defaultName = user?.name?.trim() || "Parvej";
-  const defaultEmail = user?.email?.trim() || "parvej@example.com";
-  const defaultTimezone = user?.timezone || "Asia/Dhaka";
+  const defaultName = user?.name?.trim() || customer.profile.name;
+  const defaultEmail = user?.email?.trim() || customer.profile.email;
+  const defaultTimezone = user?.timezone || customer.profile.timezone;
 
   const [name, setName] = useState(defaultName);
   const [email, setEmail] = useState(defaultEmail);
@@ -70,9 +67,15 @@ export function SettingsPage() {
   );
 
   const [timezone, setTimezone] = useState(
-    TIMEZONES.includes(defaultTimezone) ? defaultTimezone : "Asia/Dhaka",
+    TIMEZONES.includes(defaultTimezone) ? defaultTimezone : customer.profile.timezone,
   );
-  const [weekStartsOn, setWeekStartsOn] = useState<WeekStart>("saturday");
+  const [weekStartsOn, setWeekStartsOn] = useState<WeekStart>(
+    weekStartFromNumber(user?.weekStartsOn ?? customer.profile.weekStartsOn),
+  );
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingTime, setSavingTime] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [signingOutAll, setSigningOutAll] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -80,11 +83,11 @@ export function SettingsPage() {
     {},
   );
 
-  const [pushPhone, setPushPhone] = useState(true);
-  const [pushBrowser, setPushBrowser] = useState(true);
-  const [weeklyEmail, setWeeklyEmail] = useState(false);
-  const [quietFrom, setQuietFrom] = useState("23:00");
-  const [quietTo, setQuietTo] = useState("07:00");
+  const [pushPhone, setPushPhone] = useState(customer.notifications.pushPhone);
+  const [pushBrowser, setPushBrowser] = useState(customer.notifications.pushBrowser);
+  const [weeklyEmail, setWeeklyEmail] = useState(customer.notifications.weeklyEmail);
+  const [quietFrom, setQuietFrom] = useState(customer.notifications.quietFrom);
+  const [quietTo, setQuietTo] = useState(customer.notifications.quietTo);
 
   const [devices, setDevices] = useState(INITIAL_DEVICES);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -93,7 +96,7 @@ export function SettingsPage() {
   const avatarInitial = useMemo(() => initialFromName(name), [name]);
   const canDelete = deleteConfirm.trim().toUpperCase() === "DELETE";
 
-  function saveProfile(event: React.FormEvent) {
+  async function saveProfile(event: React.FormEvent) {
     event.preventDefault();
     const next: Record<string, string> = {};
     if (!name.trim()) next.name = "Enter your name";
@@ -102,15 +105,43 @@ export function SettingsPage() {
     }
     setProfileErrors(next);
     if (Object.keys(next).length) return;
-    pushToast("Profile saved");
+
+    setSavingProfile(true);
+    try {
+      await updateMe({ name: name.trim() });
+      pushToast("Profile saved");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        const fromApi = err.fieldErrors();
+        if (Object.keys(fromApi).length) setProfileErrors(fromApi);
+        else pushToast(err.message);
+      } else {
+        pushToast("Couldn’t save profile");
+      }
+    } finally {
+      setSavingProfile(false);
+    }
   }
 
-  function saveTime(event: React.FormEvent) {
+  async function saveTime(event: React.FormEvent) {
     event.preventDefault();
-    pushToast("Timezone updated — reminders moved with you");
+    setSavingTime(true);
+    try {
+      await updateMe({
+        timezone,
+        weekStartsOn: WEEK_START_TO_NUMBER[weekStartsOn],
+      });
+      pushToast("Timezone updated — reminders moved with you");
+    } catch (err) {
+      pushToast(
+        err instanceof ApiError ? err.message : "Couldn’t update timezone",
+      );
+    } finally {
+      setSavingTime(false);
+    }
   }
 
-  function updatePassword(event: React.FormEvent) {
+  async function updatePassword(event: React.FormEvent) {
     event.preventDefault();
     const next: Record<string, string> = {};
     if (!currentPassword) next.currentPassword = "Enter your current password";
@@ -119,9 +150,36 @@ export function SettingsPage() {
     }
     setPasswordErrors(next);
     if (Object.keys(next).length) return;
-    setCurrentPassword("");
-    setNewPassword("");
-    pushToast("Password changed — other devices signed out");
+
+    setSavingPassword(true);
+    try {
+      await changePassword({ currentPassword, newPassword });
+      setCurrentPassword("");
+      setNewPassword("");
+      pushToast("Password changed — other devices signed out");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        const fromApi = err.fieldErrors();
+        if (Object.keys(fromApi).length) setPasswordErrors(fromApi);
+        else pushToast(err.message);
+      } else {
+        pushToast("Couldn’t update password");
+      }
+    } finally {
+      setSavingPassword(false);
+    }
+  }
+
+  async function signOutEverywhere() {
+    setSigningOutAll(true);
+    try {
+      await logoutAll();
+    } catch (err) {
+      setSigningOutAll(false);
+      pushToast(
+        err instanceof ApiError ? err.message : "Couldn’t sign out everywhere",
+      );
+    }
   }
 
   function signOutDevice(id: string, deviceName: string) {
@@ -228,8 +286,8 @@ export function SettingsPage() {
                   )}
                 </label>
 
-                <button type="submit" className="btn btn-primary">
-                  Save changes
+                <button type="submit" className="btn btn-primary" disabled={savingProfile}>
+                  {savingProfile ? "Saving…" : "Save changes"}
                 </button>
               </form>
             </motion.section>
@@ -297,8 +355,8 @@ export function SettingsPage() {
                   </div>
                 </fieldset>
 
-                <button type="submit" className="btn btn-primary">
-                  Save changes
+                <button type="submit" className="btn btn-primary" disabled={savingTime}>
+                  {savingTime ? "Saving…" : "Save changes"}
                 </button>
               </form>
             </motion.section>
@@ -367,8 +425,8 @@ export function SettingsPage() {
                   )}
                 </label>
 
-                <button type="submit" className="btn btn-primary">
-                  Update password
+                <button type="submit" className="btn btn-primary" disabled={savingPassword}>
+                  {savingPassword ? "Updating…" : "Update password"}
                 </button>
               </form>
             </motion.section>
@@ -497,8 +555,18 @@ export function SettingsPage() {
                   </li>
                 ))}
               </ul>
+              <button
+                type="button"
+                className="btn btn-ghost btn-block"
+                style={{ marginTop: 16 }}
+                disabled={signingOutAll}
+                onClick={() => void signOutEverywhere()}
+              >
+                {signingOutAll ? "Signing out…" : "Sign out everywhere"}
+              </button>
             </motion.section>
 
+            {!admin ? (
             <motion.section
               className="card"
               aria-labelledby="billing-heading"
@@ -519,6 +587,7 @@ export function SettingsPage() {
                 </Link>
               </div>
             </motion.section>
+            ) : null}
 
             <motion.section
               className="card"

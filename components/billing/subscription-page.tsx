@@ -17,6 +17,7 @@ import {
 } from "@/components/billing/subscription-data";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
 import { ConfirmSheet } from "@/components/settings/confirm-sheet";
+import { customer } from "@/lib/data/customer";
 import { useAuth } from "@/lib/auth/context";
 
 export function SubscriptionPage() {
@@ -34,9 +35,9 @@ export function SubscriptionPage() {
 
   const billingEmail =
     user?.email?.trim() || CURRENT_SUBSCRIPTION.billingEmail;
-  const billingName = user?.name?.trim() || "Momentum member";
+  const billingName = user?.name?.trim() || customer.profile.name;
 
-  function handleDownloadInvoice(invoice: (typeof INVOICES)[number]) {
+  async function handleDownloadInvoice(invoice: (typeof INVOICES)[number]) {
     if (!canDownloadInvoice(invoice)) {
       pushToast(
         invoice.status === "upcoming"
@@ -45,12 +46,16 @@ export function SubscriptionPage() {
       );
       return;
     }
-    downloadInvoice(invoice, {
-      name: billingName,
-      email: billingEmail,
-      paymentMethod: CURRENT_SUBSCRIPTION.paymentMethod,
-    });
-    pushToast(`Downloaded ${invoice.label}`);
+    try {
+      await downloadInvoice(invoice, {
+        name: billingName,
+        email: billingEmail,
+        paymentMethod: CURRENT_SUBSCRIPTION.paymentMethod,
+      });
+      pushToast(`Downloaded ${invoice.label} PDF`);
+    } catch {
+      pushToast("Couldn’t download the PDF. Try again.");
+    }
   }
 
   function choosePlan(id: PlanId) {
@@ -265,14 +270,14 @@ export function SubscriptionPage() {
                     disabled={!downloadable}
                     aria-label={
                       downloadable
-                        ? `Download invoice for ${invoice.label}`
+                        ? `Download PDF invoice for ${invoice.label}`
                         : `Invoice for ${invoice.label} not ready`
                     }
-                    title={downloadable ? "Download invoice" : "Not ready yet"}
+                    title={downloadable ? "Download PDF" : "Not ready yet"}
                     onClick={() => handleDownloadInvoice(invoice)}
                   >
                     <Download size={14} strokeWidth={2.4} aria-hidden />
-                    Download
+                    Download PDF
                   </button>
                 </li>
               );

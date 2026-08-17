@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -16,6 +17,7 @@ import {
 
 import { BrandLockup } from "@/components/home/brand-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { customer } from "@/lib/data/customer";
 import { useAuth } from "@/lib/auth/context";
 import { isAdmin } from "@/lib/auth/role";
 
@@ -58,6 +60,10 @@ function isActive(pathname: string, href: string, mode: "side" | "tab" = "side")
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function isModifiedClick(event: React.MouseEvent) {
+  return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0;
+}
+
 function initialFromName(name: string) {
   const trimmed = name.trim();
   return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
@@ -65,13 +71,17 @@ function initialFromName(name: string) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
   const { user } = useAuth();
   const admin = isAdmin(user);
-  const name = user?.name?.trim() || "You";
-  const timezone =
-    user?.timezone ||
-    Intl.DateTimeFormat().resolvedOptions().timeZone ||
-    "UTC";
+  const name = user?.name?.trim() || customer.profile.name;
+  const timezone = user?.timezone || customer.profile.timezone;
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
+
+  const currentPath = pendingHref ?? pathname;
 
   const sideNav: NavItem[] = [
     ...BASE_SIDE_NAV,
@@ -80,6 +90,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       : { href: "/subscription", label: "Subscription", icon: CreditCard },
     { href: "/settings", label: "Settings", icon: Settings },
   ];
+
+  function markPending(href: string) {
+    return (event: React.MouseEvent<HTMLAnchorElement>) => {
+      if (isModifiedClick(event)) return;
+      setPendingHref(href);
+    };
+  }
 
   return (
     <div className="app">
@@ -91,13 +108,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="nav" aria-label="Primary">
           {sideNav.map((item) => {
             const Icon = item.icon;
-            const active = isActive(pathname, item.href, "side");
+            const active = isActive(currentPath, item.href, "side");
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={active ? "active" : undefined}
+                className={active ? "is-current" : undefined}
                 aria-current={active ? "page" : undefined}
+                onClick={markPending(item.href)}
               >
                 <Icon strokeWidth={2.2} aria-hidden />
                 {item.label}
@@ -138,13 +156,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <ul>
           {TAB_NAV.map((item) => {
             const Icon = item.icon;
-            const active = isActive(pathname, item.href, "tab");
+            const active = isActive(currentPath, item.href, "tab");
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={active ? "active" : undefined}
+                  className={active ? "is-current" : undefined}
                   aria-current={active ? "page" : undefined}
+                  onClick={markPending(item.href)}
                 >
                   <Icon strokeWidth={2.2} aria-hidden />
                   {item.label}

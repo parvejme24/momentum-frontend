@@ -1,3 +1,5 @@
+import customer from "@/data/customer.json";
+
 export type ManagedUserStatus = "active" | "trial" | "cancelled" | "suspended";
 export type ManagedUserPlan = "free" | "pro" | "team";
 
@@ -16,13 +18,13 @@ export type ManagedUser = {
 export const MANAGED_USERS: ManagedUser[] = [
   {
     id: "u1",
-    name: "Parvej Ahmed",
-    email: "parvej@example.com",
-    timezone: "Asia/Dhaka",
-    plan: "pro",
-    status: "active",
-    habits: 6,
-    joinedAt: "12 Aug 2025",
+    name: customer.profile.name,
+    email: customer.profile.email,
+    timezone: customer.profile.timezone,
+    plan: customer.subscription.planId as ManagedUserPlan,
+    status: customer.subscription.status as ManagedUserStatus,
+    habits: customer.habits.active.length,
+    joinedAt: customer.profile.memberSince,
     lastActive: "Today",
   },
   {

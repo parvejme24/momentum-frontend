@@ -5,10 +5,15 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Flame } from "lucide-react";
 
 import { easeOut } from "@/components/home/motion";
+import { customer } from "@/lib/data/customer";
 
 const WEEKS = 52;
 const DAYS = 7;
 const TOTAL = WEEKS * DAYS;
+
+const featuredHabit = customer.habits.active[0];
+const featuredDetail =
+  customer.habitDetails[featuredHabit.id as keyof typeof customer.habitDetails];
 
 type CellLevel = 0 | 1 | 2 | 3 | 4;
 
@@ -22,8 +27,8 @@ function mulberry32(seed: number) {
   };
 }
 
-function buildYearChain(): CellLevel[] {
-  const rand = mulberry32(20260313);
+function buildYearChain(seed: number, currentStreak: number, longestStreak: number): CellLevel[] {
+  const rand = mulberry32(seed);
   const cells: CellLevel[] = Array.from({ length: TOTAL }, () => 0);
 
   for (let i = 0; i < TOTAL; i++) {
@@ -35,13 +40,15 @@ function buildYearChain(): CellLevel[] {
     else cells[i] = 4;
   }
 
-  for (let i = TOTAL - 47; i < TOTAL; i++) {
+  const current = Math.min(currentStreak, TOTAL - 1);
+  for (let i = TOTAL - current; i < TOTAL; i++) {
     cells[i] = (2 + Math.floor(rand() * 3)) as CellLevel;
   }
-  cells[TOTAL - 48] = 0;
+  if (TOTAL - current - 1 >= 0) cells[TOTAL - current - 1] = 0;
 
   const longestStart = 120;
-  for (let i = longestStart; i < longestStart + 61; i++) {
+  const longest = Math.min(longestStreak, TOTAL - longestStart);
+  for (let i = longestStart; i < longestStart + longest; i++) {
     cells[i] = (2 + Math.floor(rand() * 3)) as CellLevel;
   }
 
@@ -55,7 +62,15 @@ function levelClass(level: CellLevel): string {
 
 export function YearHeatmap() {
   const reduce = useReducedMotion();
-  const cells = useMemo(() => buildYearChain(), []);
+  const cells = useMemo(
+    () =>
+      buildYearChain(
+        featuredHabit.heatSeed,
+        featuredHabit.streakDays,
+        featuredDetail?.longestStreak ?? featuredHabit.streakDays,
+      ),
+    [],
+  );
 
   const columns = useMemo(() => {
     const cols: CellLevel[][] = [];
@@ -86,16 +101,19 @@ export function YearHeatmap() {
       <div className="chain-cap">
         <div className="chain-cap-meta">
           <div className="chain-cap-title">
-            <h3>Read 30 pages</h3>
-            <span className="chip chip-blue">Every day</span>
+            <h3>{featuredHabit.title}</h3>
+            <span className="chip chip-blue">{featuredHabit.schedule}</span>
           </div>
           <p className="chain-cap-sub mono muted">Last 364 days</p>
         </div>
 
         <div className="chain-stats">
-          <Stat label="Current" value="47" flame />
-          <Stat label="Longest" value="61" />
-          <Stat label="Rate" value="86%" />
+          <Stat label="Current" value={String(featuredHabit.streakDays)} flame />
+          <Stat
+            label="Longest"
+            value={String(featuredDetail?.longestStreak ?? featuredHabit.streakDays)}
+          />
+          <Stat label="Rate" value={`${featuredHabit.rate}%`} />
         </div>
       </div>
 
@@ -103,7 +121,7 @@ export function YearHeatmap() {
         <div
           className="chain chain-motion"
           role="img"
-          aria-label="Year heatmap for Read 30 pages, last 364 days"
+          aria-label={`Year heatmap for ${featuredHabit.title}, last 364 days`}
         >
           {columns.map((col, wi) => (
             <motion.div
