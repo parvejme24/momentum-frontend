@@ -88,6 +88,8 @@ export function LoginForm() {
         if (Object.keys(fromApi).length > 0) setFieldErrors(fromApi);
         if (err.code === "UNAUTHORIZED") {
           setFormError(err.message || "Invalid email or password");
+        } else if (err.code === "RATE_LIMITED") {
+          setFormError("Too many attempts. Wait a minute and try again.");
         } else if (Object.keys(fromApi).length === 0) {
           setFormError(err.message);
         }

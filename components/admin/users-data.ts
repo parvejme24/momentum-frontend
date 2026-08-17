@@ -96,3 +96,15 @@ export function statusLabel(status: ManagedUserStatus) {
   if (status === "cancelled") return "Cancelled";
   return "Suspended";
 }
+
+export function userCounts(users: ManagedUser[]) {
+  return {
+    total: users.length,
+    active: users.filter((u) => u.status === "active").length,
+    trial: users.filter((u) => u.status === "trial").length,
+    paid: users.filter((u) => u.plan !== "free").length,
+    flagged: users.filter(
+      (u) => u.status === "cancelled" || u.status === "suspended",
+    ),
+  };
+}

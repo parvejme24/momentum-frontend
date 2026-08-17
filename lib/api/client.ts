@@ -1,4 +1,5 @@
 import { ApiError } from "@/lib/api/errors";
+import { normalizeApiOrigin } from "@/lib/api/config";
 import type { ApiErrorEnvelope, ClientAuthResponse } from "@/lib/api/types";
 
 type JsonBody = Record<string, unknown> | unknown[] | null;
@@ -10,7 +11,7 @@ type RequestOptions = Omit<RequestInit, "body" | "method"> & {
 };
 
 let accessToken: string | null = null;
-let refreshPromise: Promise<ClientAuthResponse> | null = null;
+let refreshPromise: Promise<ClientAuthResponse | null> | null = null;
 let onSessionInvalid: (() => void) | null = null;
 
 export function getAccessToken(): string | null {
@@ -34,7 +35,7 @@ function apiBaseUrl(): string {
       status: 500,
     });
   }
-  return base.replace(/\/$/, "");
+  return normalizeApiOrigin(base);
 }
 
 function joinUrl(path: string): string {
@@ -95,8 +96,11 @@ function invalidateSession(): void {
 /**
  * Single-flight session refresh. Concurrent callers share one promise so
  * rotating refresh tokens never race.
+ *
+ * Returns null when there is no session — that is a normal logged-out
+ * state, not a failed request.
  */
-export async function refreshSession(): Promise<ClientAuthResponse> {
+export async function refreshSession(): Promise<ClientAuthResponse | null> {
   refreshPromise ??= (async () => {
     let res: Response;
     try {
@@ -128,6 +132,16 @@ export async function refreshSession(): Promise<ClientAuthResponse> {
     }
 
     if (
+      typeof data === "object" &&
+      data !== null &&
+      "user" in data &&
+      (data as { user: unknown }).user === null
+    ) {
+      accessToken = null;
+      return null;
+    }
+
+    if (
       typeof data !== "object" ||
       data === null ||
       typeof (data as ClientAuthResponse).accessToken !== "string" ||
@@ -154,6 +168,14 @@ export async function refreshSession(): Promise<ClientAuthResponse> {
 
 async function refreshAccessToken(): Promise<string> {
   const session = await refreshSession();
+  if (!session) {
+    invalidateSession();
+    throw new ApiError({
+      code: "UNAUTHORIZED",
+      message: "No session",
+      status: 401,
+    });
+  }
   return session.accessToken;
 }
 

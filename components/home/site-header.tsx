@@ -6,10 +6,12 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 
+import { AccountMenu } from "@/components/home/account-menu";
 import { BrandLink } from "@/components/home/brand-mark";
 import { InkButton } from "@/components/home/ink-button";
 import { easeOut } from "@/components/home/motion";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAuth } from "@/lib/auth/context";
 
 const NAV = [
   { href: "/", label: "Home", index: "01" },
@@ -26,6 +28,12 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const reduce = useReducedMotion();
+  const { user, isLoading } = useAuth();
+  const signedIn = Boolean(user);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!open) return;
@@ -68,13 +76,18 @@ export function SiteHeader() {
         <div className="topbar-actions">
           <ThemeToggle />
           <div className="topbar-cta">
-            <InkButton href="/login" variant="ghost" size="sm">
-              Sign in
-            </InkButton>
-            <InkButton href="/register" size="sm">
-              Start free
-            </InkButton>
+            {isLoading || signedIn ? null : (
+              <>
+                <InkButton href="/login" variant="ghost" size="sm">
+                  Sign in
+                </InkButton>
+                <InkButton href="/register" size="sm">
+                  Start free
+                </InkButton>
+              </>
+            )}
           </div>
+          {signedIn ? <AccountMenu /> : null}
 
           <button
             type="button"
@@ -142,14 +155,16 @@ export function SiteHeader() {
                 })}
               </nav>
 
-              <div className="mobile-nav-actions">
-                <InkButton href="/login" variant="ghost" className="btn-block">
-                  Sign in
-                </InkButton>
-                <InkButton href="/register" className="btn-block">
-                  Start free
-                </InkButton>
-              </div>
+              {signedIn ? null : (
+                <div className="mobile-nav-actions">
+                  <InkButton href="/login" variant="ghost" className="btn-block">
+                    Sign in
+                  </InkButton>
+                  <InkButton href="/register" className="btn-block">
+                    Start free
+                  </InkButton>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         ) : null}

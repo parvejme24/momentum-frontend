@@ -11,3 +11,7 @@ export function getUserRole(user: User | null | undefined): UserRole {
 export function isAdmin(user: User | null | undefined) {
   return getUserRole(user) === "admin";
 }
+
+export function isCustomer(user: User | null | undefined) {
+  return getUserRole(user) === "customer";
+}

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getBackendUrl } from "@/lib/api/config";
+import { authPath, getApiOrigin } from "@/lib/api/config";
 import type { ApiErrorEnvelope, AuthResponse } from "@/lib/api/types";
 import {
   clearRefreshToken,
@@ -15,7 +15,11 @@ type AuthAction =
   | "logout"
   | "logout-all"
   | "me"
-  | "change-password";
+  | "change-password"
+  | "forgot-password"
+  | "reset-password"
+  | "verify-email"
+  | "resend-verification";
 
 const AUTH_ACTIONS = new Set<AuthAction>([
   "login",
@@ -25,6 +29,10 @@ const AUTH_ACTIONS = new Set<AuthAction>([
   "logout-all",
   "me",
   "change-password",
+  "forgot-password",
+  "reset-password",
+  "verify-email",
+  "resend-verification",
 ]);
 
 function isAuthAction(value: string): value is AuthAction {
@@ -131,7 +139,7 @@ async function forward(
     headers.set("Authorization", init.authorization);
   }
 
-  const res = await fetch(`${getBackendUrl()}${path}`, {
+  const res = await fetch(`${getApiOrigin()}${path}`, {
     method: init.method,
     headers,
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
@@ -166,7 +174,7 @@ function authorizationFrom(request: Request) {
 }
 
 async function handleSessionAuth(action: "login" | "register", body: unknown) {
-  const { res, payload } = await forward(`/auth/${action}`, {
+  const { res, payload } = await forward(authPath(action), {
     method: "POST",
     body,
   });
@@ -181,31 +189,17 @@ async function handleSessionAuth(action: "login" | "register", body: unknown) {
 async function handleRefresh() {
   const refreshToken = await getRefreshToken();
   if (!refreshToken) {
-    return NextResponse.json(
-      {
-        error: {
-          code: "UNAUTHORIZED",
-          message: "No session",
-          details: [],
-        },
-      } satisfies ApiErrorEnvelope,
-      { status: 401 },
-    );
+    return NextResponse.json({ user: null });
   }
 
-  const { res, payload } = await forward("/auth/refresh", {
+  const { res, payload } = await forward(authPath("refresh"), {
     method: "POST",
     body: { refreshToken },
   });
 
-  if (!res.ok) {
+  if (!res.ok || !isAuthResponse(payload)) {
     await clearRefreshToken();
-    return errorResponse(res.status, payload);
-  }
-
-  if (!isAuthResponse(payload)) {
-    await clearRefreshToken();
-    return invalidAuthPayload();
+    return NextResponse.json({ user: null });
   }
 
   await setRefreshToken(payload.refreshToken);
@@ -216,7 +210,7 @@ async function handleLogout() {
   const refreshToken = await getRefreshToken();
   if (refreshToken) {
     try {
-      await forward("/auth/logout", {
+      await forward(authPath("logout"), {
         method: "POST",
         body: { refreshToken },
       });
@@ -246,7 +240,7 @@ export async function GET(
   }
 
   try {
-    const { res, payload } = await forward("/auth/me", {
+    const { res, payload } = await forward(authPath("me"), {
       method: "GET",
       authorization: authorizationFrom(request),
     });
@@ -269,7 +263,7 @@ export async function PATCH(
   if (body instanceof NextResponse) return body;
 
   try {
-    const { res, payload } = await forward("/auth/me", {
+    const { res, payload } = await forward(authPath("me"), {
       method: "PATCH",
       body,
       authorization: authorizationFrom(request),
@@ -306,7 +300,7 @@ export async function POST(
     }
 
     if (action === "logout-all") {
-      const { res, payload } = await forward("/auth/logout-all", {
+      const { res, payload } = await forward(authPath("logout-all"), {
         method: "POST",
         authorization: authorizationFrom(request),
       });
@@ -318,9 +312,31 @@ export async function POST(
     if (action === "change-password") {
       const body = await readJson(request);
       if (body instanceof NextResponse) return body;
-      const { res, payload } = await forward("/auth/change-password", {
+      const { res, payload } = await forward(authPath("change-password"), {
         method: "POST",
         body,
+        authorization: authorizationFrom(request),
+      });
+      return passthrough(res, payload);
+    }
+
+    if (
+      action === "forgot-password" ||
+      action === "reset-password" ||
+      action === "verify-email"
+    ) {
+      const body = await readJson(request);
+      if (body instanceof NextResponse) return body;
+      const { res, payload } = await forward(authPath(action), {
+        method: "POST",
+        body,
+      });
+      return passthrough(res, payload);
+    }
+
+    if (action === "resend-verification") {
+      const { res, payload } = await forward(authPath("resend-verification"), {
+        method: "POST",
         authorization: authorizationFrom(request),
       });
       return passthrough(res, payload);

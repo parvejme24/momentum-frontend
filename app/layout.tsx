@@ -44,6 +44,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
+      data-scroll-behavior="smooth"
       className={`${bricolage.variable} ${instrument.variable} ${jetbrains.variable} h-full`}
     >
       <head>

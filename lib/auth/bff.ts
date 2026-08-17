@@ -3,10 +3,13 @@ import { getAccessToken } from "@/lib/api/client";
 import type {
   ChangePasswordRequest,
   ClientAuthResponse,
+  ForgotPasswordRequest,
   LoginRequest,
   RegisterRequest,
+  ResetPasswordRequest,
   UpdateMeRequest,
   User,
+  VerifyEmailRequest,
 } from "@/lib/api/types";
 
 async function parseApiError(res: Response): Promise<ApiError> {
@@ -150,4 +153,39 @@ export async function postChangePassword(
     body: JSON.stringify(body),
   });
   if (!res.ok) throw await parseApiError(res);
+}
+
+async function postJsonAction(
+  action: string,
+  body?: unknown,
+): Promise<void> {
+  const res = await authFetch(action, {
+    method: "POST",
+    headers:
+      body === undefined ? undefined : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!res.ok) throw await parseApiError(res);
+}
+
+export async function postForgotPassword(
+  body: ForgotPasswordRequest,
+): Promise<void> {
+  await postJsonAction("forgot-password", body);
+}
+
+export async function postResetPassword(
+  body: ResetPasswordRequest,
+): Promise<void> {
+  await postJsonAction("reset-password", body);
+}
+
+export async function postVerifyEmail(
+  body: VerifyEmailRequest,
+): Promise<void> {
+  await postJsonAction("verify-email", body);
+}
+
+export async function postResendVerification(): Promise<void> {
+  await postJsonAction("resend-verification");
 }

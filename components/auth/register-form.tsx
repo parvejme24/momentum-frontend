@@ -128,8 +128,25 @@ export function RegisterForm() {
     } catch (err) {
       if (err instanceof ApiError) {
         const fromApi = err.fieldErrors();
-        if (Object.keys(fromApi).length > 0) setFieldErrors(fromApi);
-        if (Object.keys(fromApi).length === 0) {
+        const emailTaken =
+          err.code === "CONFLICT" ||
+          err.status === 409 ||
+          /already (exist|in use|registered)|email.*exist/i.test(
+            err.message,
+          ) ||
+          /already (exist|in use|registered)/i.test(fromApi.email ?? "");
+
+        if (emailTaken) {
+          setFieldErrors({
+            ...fromApi,
+            email: fromApi.email || "This email already exists",
+          });
+          pushToast("This email already exists");
+        } else if (Object.keys(fromApi).length > 0) {
+          setFieldErrors(fromApi);
+        } else if (err.code === "RATE_LIMITED") {
+          setFormError("Too many attempts. Wait a minute and try again.");
+        } else {
           setFormError(err.message);
         }
       } else {

@@ -53,7 +53,8 @@ function initialFromName(name: string) {
 export function SettingsPage() {
   const reduce = useReducedMotion();
   const { pushToast } = useToast();
-  const { user, updateMe, changePassword, logoutAll } = useAuth();
+  const { user, updateMe, changePassword, logoutAll, resendVerification } =
+    useAuth();
   const admin = isAdmin(user);
 
   const defaultName = user?.name?.trim() || customer.profile.name;
@@ -76,6 +77,7 @@ export function SettingsPage() {
   const [savingTime, setSavingTime] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [signingOutAll, setSigningOutAll] = useState(false);
+  const [resendingVerification, setResendingVerification] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -167,6 +169,22 @@ export function SettingsPage() {
       }
     } finally {
       setSavingPassword(false);
+    }
+  }
+
+  async function sendVerification() {
+    setResendingVerification(true);
+    try {
+      await resendVerification();
+      pushToast("Verification email sent");
+    } catch (err) {
+      pushToast(
+        err instanceof ApiError
+          ? err.message
+          : "Couldn’t send verification email",
+      );
+    } finally {
+      setResendingVerification(false);
     }
   }
 
@@ -284,6 +302,19 @@ export function SettingsPage() {
                       Used for sign-in and password resets
                     </span>
                   )}
+                  {user?.emailVerified === false ? (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{ marginTop: 8 }}
+                      onClick={() => void sendVerification()}
+                      disabled={resendingVerification}
+                    >
+                      {resendingVerification
+                        ? "Sending…"
+                        : "Resend verification email"}
+                    </button>
+                  ) : null}
                 </label>
 
                 <button type="submit" className="btn btn-primary" disabled={savingProfile}>

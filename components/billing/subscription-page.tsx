@@ -8,6 +8,7 @@ import {
   canDownloadInvoice,
   downloadInvoice,
 } from "@/components/billing/download-invoice";
+import { RoleGate } from "@/components/app/role-gate";
 import { useToast } from "@/components/auth/toast";
 import {
   CURRENT_SUBSCRIPTION,
@@ -19,11 +20,13 @@ import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
 import { ConfirmSheet } from "@/components/settings/confirm-sheet";
 import { customer } from "@/lib/data/customer";
 import { useAuth } from "@/lib/auth/context";
+import { isCustomer } from "@/lib/auth/role";
 
 export function SubscriptionPage() {
   const reduce = useReducedMotion();
   const { pushToast } = useToast();
   const { user } = useAuth();
+  const customerAccount = isCustomer(user);
 
   const [planId, setPlanId] = useState<PlanId>(CURRENT_SUBSCRIPTION.planId);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -78,6 +81,11 @@ export function SubscriptionPage() {
   }
 
   return (
+    <RoleGate
+      allowed={customerAccount}
+      title="Subscription"
+      message="Billing lives on customer accounts. Admins manage people, not plans."
+    >
     <MotionConfig reducedMotion="user">
       <motion.div
         className="subscription-page"
@@ -313,5 +321,6 @@ export function SubscriptionPage() {
         </ConfirmSheet>
       </motion.div>
     </MotionConfig>
+    </RoleGate>
   );
 }

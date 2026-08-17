@@ -8,6 +8,7 @@ export type User = {
   weekStartsOn: number;
   avatarUrl: string | null;
   role?: UserRole;
+  emailVerified?: boolean;
 };
 
 export type AuthTokens = {
@@ -61,6 +62,15 @@ export type ChangePasswordRequest = {
 
 export type ForgotPasswordRequest = {
   email: string;
+};
+
+export type ResetPasswordRequest = {
+  token: string;
+  password: string;
+};
+
+export type VerifyEmailRequest = {
+  token: string;
 };
 
 export type ApiErrorDetail = {

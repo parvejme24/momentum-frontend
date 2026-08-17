@@ -23,6 +23,9 @@ function makeQueryClient() {
             : count < 2,
         refetchOnWindowFocus: true,
       },
+      mutations: {
+        retry: false,
+      },
     },
   });
 }

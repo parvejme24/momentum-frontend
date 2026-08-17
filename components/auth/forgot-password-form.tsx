@@ -6,28 +6,13 @@ import { Loader2 } from "lucide-react";
 
 import { AuthFormItem, AuthShell } from "@/components/auth/auth-shell";
 import { BrandLink } from "@/components/home/brand-mark";
-import { api } from "@/lib/api/client";
 import { ApiError } from "@/lib/api/errors";
+import { useAuth } from "@/lib/auth/context";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-async function requestPasswordReset(email: string): Promise<void> {
-  try {
-    await api.post("/auth/forgot-password", { email }, { skipAuthRetry: true });
-  } catch (err) {
-    // Backend endpoint is not shipped yet — keep the page usable, and avoid
-    // revealing whether an account exists once the API lands.
-    if (
-      err instanceof ApiError &&
-      (err.status === 404 || err.code === "NOT_FOUND")
-    ) {
-      return;
-    }
-    throw err;
-  }
-}
-
 export function ForgotPasswordForm() {
+  const { forgotPassword } = useAuth();
   const [email, setEmail] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -49,7 +34,7 @@ export function ForgotPasswordForm() {
 
     setPending(true);
     try {
-      await requestPasswordReset(trimmed);
+      await forgotPassword(trimmed);
       setSentTo(trimmed);
     } catch (err) {
       if (err instanceof ApiError) {

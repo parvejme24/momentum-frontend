@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Archive,
   BarChart3,
   CalendarDays,
   CreditCard,
+  LayoutDashboard,
   ListChecks,
   Plus,
   Settings,
@@ -27,18 +28,32 @@ type NavItem = {
   icon: typeof CalendarDays;
 };
 
-const BASE_SIDE_NAV: NavItem[] = [
+const CUSTOMER_SIDE_NAV: NavItem[] = [
   { href: "/dashboard", label: "Today", icon: CalendarDays },
   { href: "/habits", label: "Habits", icon: ListChecks },
   { href: "/habits/archived", label: "Archive", icon: Archive },
   { href: "/stats", label: "Stats", icon: BarChart3 },
+  { href: "/subscription", label: "Subscription", icon: CreditCard },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-const TAB_NAV: NavItem[] = [
+const ADMIN_SIDE_NAV: NavItem[] = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/users", label: "Users", icon: Users },
+  { href: "/settings", label: "Settings", icon: Settings },
+];
+
+const CUSTOMER_TAB_NAV: NavItem[] = [
   { href: "/dashboard", label: "Today", icon: CalendarDays },
   { href: "/habits", label: "Habits", icon: ListChecks },
   { href: "/habits/new", label: "New", icon: Plus },
   { href: "/stats", label: "Stats", icon: BarChart3 },
+  { href: "/settings", label: "You", icon: UserRound },
+];
+
+const ADMIN_TAB_NAV: NavItem[] = [
+  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+  { href: "/users", label: "Users", icon: Users },
   { href: "/settings", label: "You", icon: UserRound },
 ];
 
@@ -71,8 +86,10 @@ function initialFromName(name: string) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
-  const { user } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
+  const { user, isLoading, logout } = useAuth();
   const admin = isAdmin(user);
   const name = user?.name?.trim() || customer.profile.name;
   const timezone = user?.timezone || customer.profile.timezone;
@@ -81,15 +98,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setPendingHref(null);
   }, [pathname]);
 
-  const currentPath = pendingHref ?? pathname;
+  useEffect(() => {
+    if (isLoading || user) return;
+    const next =
+      pathname && pathname !== "/dashboard"
+        ? `?next=${encodeURIComponent(pathname)}`
+        : "";
+    router.replace(`/login${next}`);
+  }, [isLoading, user, pathname, router]);
 
-  const sideNav: NavItem[] = [
-    ...BASE_SIDE_NAV,
-    admin
-      ? { href: "/users", label: "Users", icon: Users }
-      : { href: "/subscription", label: "Subscription", icon: CreditCard },
-    { href: "/settings", label: "Settings", icon: Settings },
-  ];
+  const currentPath = pendingHref ?? pathname;
+  const sideNav = admin ? ADMIN_SIDE_NAV : CUSTOMER_SIDE_NAV;
+  const tabNav = admin ? ADMIN_TAB_NAV : CUSTOMER_TAB_NAV;
 
   function markPending(href: string) {
     return (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -98,10 +118,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }
 
+  async function onSignOut() {
+    setSigningOut(true);
+    try {
+      await logout();
+    } finally {
+      setSigningOut(false);
+    }
+  }
+
+  if (isLoading || !user) {
+    return (
+      <div className="app">
+        <div className="main">
+          <div className="page-head">
+            <p className="hint">Loading…</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <aside className="sidebar" aria-label="App">
-        <Link href="/dashboard" aria-label="Momentum today">
+        <Link
+          href="/dashboard"
+          aria-label={admin ? "Momentum dashboard" : "Momentum today"}
+        >
           <BrandLockup />
         </Link>
 
@@ -124,12 +168,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div style={{ marginTop: 18 }}>
-          <Link href="/habits/new" className="btn btn-primary btn-block btn-sm">
-            <Plus size={16} strokeWidth={2.4} aria-hidden />
-            New habit
-          </Link>
-        </div>
+        {!admin ? (
+          <div style={{ marginTop: 18 }}>
+            <Link href="/habits/new" className="btn btn-primary btn-block btn-sm">
+              <Plus size={16} strokeWidth={2.4} aria-hidden />
+              New habit
+            </Link>
+          </div>
+        ) : null}
 
         <div className="side-foot">
           <div className="who">
@@ -138,10 +184,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="who-meta">
               <div className="who-name">{name}</div>
-              <div className="who-tz mono">{timezone}</div>
+              <div className="who-tz mono">
+                {admin ? "Admin · " : ""}
+                {timezone}
+              </div>
             </div>
             <ThemeToggle className="side-theme" />
           </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm btn-block"
+            style={{ marginTop: 10 }}
+            onClick={() => void onSignOut()}
+            disabled={signingOut}
+          >
+            {signingOut ? "Signing out…" : "Sign out"}
+          </button>
         </div>
       </aside>
 
@@ -154,7 +212,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <nav className="tabbar" aria-label="Mobile">
         <ul>
-          {TAB_NAV.map((item) => {
+          {tabNav.map((item) => {
             const Icon = item.icon;
             const active = isActive(currentPath, item.href, "tab");
             return (

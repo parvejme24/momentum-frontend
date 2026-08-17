@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Search, Trash2 } from "lucide-react";
 import {
   AnimatePresence,
@@ -14,9 +13,11 @@ import {
   MANAGED_USERS,
   planLabel,
   statusLabel,
+  userCounts,
   type ManagedUser,
   type ManagedUserStatus,
 } from "@/components/admin/users-data";
+import { RoleGate } from "@/components/app/role-gate";
 import { useToast } from "@/components/auth/toast";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
 import { ConfirmSheet } from "@/components/settings/confirm-sheet";
@@ -46,9 +47,8 @@ function statusChip(status: ManagedUserStatus) {
 
 export function UsersPage() {
   const reduce = useReducedMotion();
-  const router = useRouter();
   const { pushToast } = useToast();
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
   const admin = isAdmin(user);
 
   const [users, setUsers] = useState(MANAGED_USERS);
@@ -69,49 +69,14 @@ export function UsersPage() {
   }, [users, filter, query]);
 
   const summary = useMemo(() => {
-    const active = users.filter((u) => u.status === "active").length;
-    const trial = users.filter((u) => u.status === "trial").length;
-    const paid = users.filter((u) => u.plan !== "free").length;
+    const counts = userCounts(users);
     return [
-      { key: "Total", value: String(users.length), note: "accounts" },
-      { key: "Active", value: String(active), note: "currently marking", flame: false },
-      { key: "On trial", value: String(trial), note: "free window open" },
-      { key: "Paid plans", value: String(paid), note: "Pro or Team" },
+      { key: "Total", value: String(counts.total), note: "accounts" },
+      { key: "Active", value: String(counts.active), note: "currently marking" },
+      { key: "On trial", value: String(counts.trial), note: "free window open" },
+      { key: "Paid plans", value: String(counts.paid), note: "Pro or Team" },
     ];
   }, [users]);
-
-  if (isLoading) {
-    return (
-      <div className="page-head">
-        <p className="eyebrow">Admin</p>
-        <h1>Users</h1>
-        <p className="hint" style={{ marginTop: 12 }}>
-          Loading…
-        </p>
-      </div>
-    );
-  }
-
-  if (!admin) {
-    return (
-      <div className="page-head">
-        <p className="eyebrow">Admin only</p>
-        <h1>Users</h1>
-        <p className="lede" style={{ marginTop: 12, maxWidth: "42ch" }}>
-          This screen is for Momentum admins. Your account doesn’t have access.
-        </p>
-        <p style={{ marginTop: 24 }}>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => router.push("/dashboard")}
-          >
-            Back to Today
-          </button>
-        </p>
-      </div>
-    );
-  }
 
   function confirmDelete() {
     if (!deleteTarget) return;
@@ -121,6 +86,11 @@ export function UsersPage() {
   }
 
   return (
+    <RoleGate
+      allowed={admin}
+      title="Users"
+      message="This screen is for Momentum admins. Your account doesn’t have access."
+    >
     <MotionConfig reducedMotion="user">
       <motion.div
         className="users-page"
@@ -296,5 +266,6 @@ export function UsersPage() {
         </ConfirmSheet>
       </motion.div>
     </MotionConfig>
+    </RoleGate>
   );
 }

@@ -5,10 +5,10 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useState,
   type ReactNode,
 } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 import {
@@ -16,10 +16,12 @@ import {
   setAccessToken,
   setOnSessionInvalid,
 } from "@/lib/api/client";
-import { ApiError } from "@/lib/api/errors";
 import type {
   ChangePasswordRequest,
+  ClientAuthResponse,
+  LoginRequest,
   RegisterRequest,
+  ResetPasswordRequest,
   UpdateMeRequest,
   User,
 } from "@/lib/api/types";
@@ -27,10 +29,15 @@ import {
   fetchMe,
   patchMe,
   postChangePassword,
+  postForgotPassword,
   postLogout,
   postLogoutAll,
+  postResendVerification,
+  postResetPassword,
   postSessionAuth,
+  postVerifyEmail,
 } from "@/lib/auth/bff";
+import { authKeys } from "@/lib/auth/keys";
 
 type AuthContextValue = {
   user: User | null;
@@ -43,119 +50,225 @@ type AuthContextValue = {
   logoutAll: () => Promise<void>;
   updateMe: (input: UpdateMeRequest) => Promise<User>;
   changePassword: (input: ChangePasswordRequest) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (input: ResetPasswordRequest) => Promise<void>;
+  verifyEmail: (token: string) => Promise<void>;
+  resendVerification: () => Promise<void>;
   reloadMe: () => Promise<User>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+async function readSession(): Promise<ClientAuthResponse | null> {
+  const data = await refreshSession();
+  setAccessToken(data?.accessToken ?? null);
+  return data;
+}
+
+function withUser(
+  previous: ClientAuthResponse | null | undefined,
+  user: User,
+): ClientAuthResponse | null {
+  if (!previous) return previous ?? null;
+  return { ...previous, user };
+}
+
+function setSessionUser(queryClient: QueryClient, user: User) {
+  queryClient.setQueryData<ClientAuthResponse | null>(authKeys.session(), (previous) =>
+    withUser((previous ?? null) as ClientAuthResponse | null, user),
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const clearLocalSession = useCallback(() => {
+  const sessionQuery = useQuery({
+    queryKey: authKeys.session(),
+    queryFn: readSession,
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: Infinity,
+  });
+
+  const applySession = useCallback(
+    (data: ClientAuthResponse) => {
+      setAccessToken(data.accessToken);
+      queryClient.setQueryData(authKeys.session(), data);
+    },
+    [queryClient],
+  );
+
+  const clearSession = useCallback(() => {
     setAccessToken(null);
-    setUser(null);
     queryClient.clear();
   }, [queryClient]);
 
   useEffect(() => {
     setOnSessionInvalid(() => {
-      clearLocalSession();
-      router.replace("/login");
+      setAccessToken(null);
+      queryClient.setQueryData(authKeys.session(), null);
     });
     return () => setOnSessionInvalid(null);
-  }, [clearLocalSession, router]);
+  }, [queryClient]);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loginMutation = useMutation({
+    mutationFn: (body: LoginRequest) => postSessionAuth("login", body),
+    onSuccess: applySession,
+  });
 
-    async function bootstrap() {
+  const registerMutation = useMutation({
+    mutationFn: (body: RegisterRequest) => postSessionAuth("register", body),
+    onSuccess: applySession,
+  });
+
+  const logoutMutation = useMutation({
+    mutationFn: postLogout,
+    onSettled: () => {
+      clearSession();
+      router.replace("/login");
+    },
+  });
+
+  const logoutAllMutation = useMutation({
+    mutationFn: postLogoutAll,
+    onSuccess: () => {
+      clearSession();
+      router.replace("/login");
+    },
+  });
+
+  const updateMeMutation = useMutation({
+    mutationFn: patchMe,
+    onSuccess: (user) => {
+      setSessionUser(queryClient, user);
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: postChangePassword,
+  });
+
+  const forgotPasswordMutation = useMutation({
+    mutationFn: postForgotPassword,
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: postResetPassword,
+  });
+
+  const verifyEmailMutation = useMutation({
+    mutationFn: (token: string) => postVerifyEmail({ token }),
+    onSuccess: async () => {
       try {
-        const data = await refreshSession();
-        if (cancelled) return;
-        setUser(data.user);
+        const user = await fetchMe();
+        setSessionUser(queryClient, user);
       } catch {
-        if (!cancelled) {
-          setAccessToken(null);
-          setUser(null);
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
+        queryClient.setQueryData(
+          authKeys.session(),
+          (previous: ClientAuthResponse | null | undefined) => {
+            if (!previous) return previous;
+            return {
+              ...previous,
+              user: { ...previous.user, emailVerified: true },
+            };
+          },
+        );
       }
-    }
+    },
+  });
 
-    void bootstrap();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const resendVerificationMutation = useMutation({
+    mutationFn: postResendVerification,
+  });
 
-  const login = useCallback(async (email: string, password: string) => {
-    const data = await postSessionAuth("login", { email, password });
-    setAccessToken(data.accessToken);
-    setUser(data.user);
-  }, []);
+  const login = useCallback(
+    async (email: string, password: string) => {
+      await loginMutation.mutateAsync({ email, password });
+    },
+    [loginMutation.mutateAsync],
+  );
 
   const register = useCallback(
     async (input: Omit<RegisterRequest, "timezone"> & { timezone?: string }) => {
       const timezone =
         input.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const data = await postSessionAuth("register", {
+      await registerMutation.mutateAsync({
         name: input.name,
         email: input.email,
         password: input.password,
         timezone,
       });
-      setAccessToken(data.accessToken);
-      setUser(data.user);
     },
-    [],
+    [registerMutation.mutateAsync],
   );
 
   const logout = useCallback(async () => {
-    try {
-      await postLogout();
-    } finally {
-      clearLocalSession();
-      router.replace("/login");
-    }
-  }, [clearLocalSession, router]);
+    await logoutMutation.mutateAsync();
+  }, [logoutMutation.mutateAsync]);
 
   const logoutAll = useCallback(async () => {
-    await postLogoutAll();
-    clearLocalSession();
-    router.replace("/login");
-  }, [clearLocalSession, router]);
+    await logoutAllMutation.mutateAsync();
+  }, [logoutAllMutation.mutateAsync]);
 
-  const updateMe = useCallback(async (input: UpdateMeRequest) => {
-    const next = await patchMe(input);
-    setUser(next);
-    return next;
-  }, []);
+  const updateMe = useCallback(
+    async (input: UpdateMeRequest) => updateMeMutation.mutateAsync(input),
+    [updateMeMutation.mutateAsync],
+  );
 
-  const changePassword = useCallback(async (input: ChangePasswordRequest) => {
-    await postChangePassword(input);
-  }, []);
+  const changePassword = useCallback(
+    async (input: ChangePasswordRequest) => {
+      await changePasswordMutation.mutateAsync(input);
+    },
+    [changePasswordMutation.mutateAsync],
+  );
+
+  const forgotPassword = useCallback(
+    async (email: string) => {
+      await forgotPasswordMutation.mutateAsync({ email });
+    },
+    [forgotPasswordMutation.mutateAsync],
+  );
+
+  const resetPassword = useCallback(
+    async (input: ResetPasswordRequest) => {
+      await resetPasswordMutation.mutateAsync(input);
+    },
+    [resetPasswordMutation.mutateAsync],
+  );
+
+  const verifyEmail = useCallback(
+    async (token: string) => {
+      await verifyEmailMutation.mutateAsync(token);
+    },
+    [verifyEmailMutation.mutateAsync],
+  );
+
+  const resendVerification = useCallback(async () => {
+    await resendVerificationMutation.mutateAsync();
+  }, [resendVerificationMutation.mutateAsync]);
 
   const reloadMe = useCallback(async () => {
-    const next = await fetchMe();
-    setUser(next);
-    return next;
-  }, []);
+    const user = await fetchMe();
+    setSessionUser(queryClient, user);
+    return user;
+  }, [queryClient]);
 
   return (
     <AuthContext.Provider
       value={{
-        user,
-        isLoading,
+        user: sessionQuery.data?.user ?? null,
+        isLoading: sessionQuery.isPending,
         login,
         register,
         logout,
         logoutAll,
         updateMe,
         changePassword,
+        forgotPassword,
+        resetPassword,
+        verifyEmail,
+        resendVerification,
         reloadMe,
       }}
     >

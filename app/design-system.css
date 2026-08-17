@@ -2381,6 +2381,36 @@ h2 + .lede,
   height: 36px;
 }
 
+/* ---------- 12e2. ADMIN DASHBOARD ---------- */
+.admin-dash {
+  min-width: 0;
+}
+.admin-dash-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr);
+  gap: var(--gap);
+}
+.admin-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.admin-feed-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 2px solid var(--ink-12);
+}
+.admin-feed-item:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.admin-feed-copy {
+  min-width: 0;
+  flex: 1;
+}
+
 /* ---------- 12f. SUBSCRIPTION ---------- */
 .subscription-current {
   margin-bottom: 22px;
@@ -2530,6 +2560,82 @@ h2 + .lede,
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.account-menu {
+  position: relative;
+}
+.account-menu-trigger {
+  overflow: hidden;
+}
+.account-menu-trigger .avatar {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: inherit;
+  font-size: 1rem;
+  object-fit: cover;
+}
+.account-menu-trigger:focus-visible {
+  outline: 2px solid var(--flame);
+  outline-offset: 2px;
+}
+.account-menu-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 70;
+  min-width: 228px;
+  padding: 8px;
+  background: var(--paper-white);
+  border: var(--stroke);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.account-menu-who {
+  padding: 8px 10px 12px;
+  margin: 0 2px 6px;
+  border-bottom: 2px solid var(--ink-12);
+}
+.account-menu-name {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.account-menu-email {
+  margin-top: 2px;
+  font-size: 0.72rem;
+  color: var(--ink-50);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-menu-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: calc(var(--radius) - 2px);
+  background: none;
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.account-menu-link:hover,
+.account-menu-link:focus-visible {
+  background: var(--blue-soft);
+  outline: none;
+}
+.account-menu-signout {
+  margin-top: 4px;
+  color: var(--ink-70);
+}
+.account-menu-signout:hover,
+.account-menu-signout:focus-visible {
+  background: var(--flame-soft);
 }
 .topbar-menu {
   display: none;
@@ -3346,6 +3452,9 @@ h2 + .lede,
   color: var(--blue-deep);
   font-size: 0.9rem;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .label-row {
   display: flex;
@@ -3707,6 +3816,9 @@ h2 + .lede,
     align-items: flex-start;
   }
   .settings-layout {
+    grid-template-columns: 1fr;
+  }
+  .admin-dash-split {
     grid-template-columns: 1fr;
   }
   .settings-week-opts {
