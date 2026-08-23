@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Check } from "lucide-react";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
-import { PLANS } from "@/components/billing/subscription-data";
+import { PlanFeatureList, CompareFeatureCell } from "@/components/billing/plan-feature-list";
 import { ClosingCta, SiteFooter } from "@/components/home/closing-cta";
 import { InkButton } from "@/components/home/ink-button";
 import {
@@ -15,9 +14,25 @@ import {
 } from "@/components/home/motion";
 import { SiteHeader } from "@/components/home/site-header";
 import { PRICING_FAQ } from "@/components/marketing/faq-data";
+import {
+  PricingCompareSkeleton,
+  PricingPlanGridSkeleton,
+} from "@/components/marketing/pricing-skeletons";
+import { QueryError } from "@/components/ui/query-error";
+import { usePlanCompare, usePublicPlans } from "@/lib/billing/hooks";
+import { planPricingCtaHref } from "@/lib/billing/checkout";
+import { useAuth } from "@/lib/auth/context";
+import { formatCents, intervalLabel } from "@/lib/money";
+import { planFeaturesForDisplay } from "@/lib/pricing/features";
 
 export function PricingPage() {
   const reduce = useReducedMotion();
+  const { user, isLoading: authLoading } = useAuth();
+  const plansQuery = usePublicPlans();
+  const compareQuery = usePlanCompare();
+  const plans = plansQuery.data ?? [];
+  const compare = compareQuery.data;
+  const isLoggedIn = Boolean(user);
 
   return (
     <MotionConfig reducedMotion="user">
@@ -60,62 +75,75 @@ export function PricingPage() {
 
         <section className="section pricing-plans-section" aria-label="Plans">
           <div className="wrap">
-            <div className="pricing-plan-grid">
-              {PLANS.map((plan, index) => (
-                <MotionItem
-                  key={plan.id}
-                  as="article"
-                  className={
-                    plan.highlighted
-                      ? "card pricing-plan-card featured"
-                      : "card pricing-plan-card"
-                  }
-                  hoverLift={!plan.highlighted}
-                  style={
-                    plan.highlighted
-                      ? { boxShadow: "var(--shadow-lift)" }
-                      : { boxShadow: "var(--shadow-sm)" }
-                  }
-                  initial={reduce ? false : { opacity: 0, y: 20 }}
-                  whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.2 }}
-                  transition={{
-                    duration: 0.5,
-                    delay: reduce ? 0 : index * 0.08,
-                  }}
-                >
-                  <div className="pricing-plan-top">
-                    <h2 className="section-title">{plan.name}</h2>
-                    {plan.highlighted ? (
-                      <span className="chip chip-flame">Popular</span>
-                    ) : null}
-                  </div>
-                  <p className="pricing-plan-price mono">
-                    {plan.price}
-                    <span className="subscription-period">{plan.period}</span>
-                  </p>
-                  <p className="muted" style={{ marginTop: 10, fontSize: "0.92rem" }}>
-                    {plan.blurb}
-                  </p>
-                  <ul className="subscription-features">
-                    {plan.features.map((feature) => (
-                      <li key={feature}>
-                        <Check size={15} strokeWidth={2.6} aria-hidden />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                  <InkButton
-                    href={plan.publicCta?.href ?? "/register"}
-                    variant={plan.publicCta?.variant ?? "primary"}
-                    className="btn-block"
-                    size={plan.highlighted ? "lg" : "md"}
-                  >
-                    {plan.publicCta?.label ?? "Get started"}
-                  </InkButton>
-                </MotionItem>
-              ))}
-            </div>
+            {plansQuery.isLoading ? (
+              <PricingPlanGridSkeleton />
+            ) : (
+              <>
+                <QueryError error={plansQuery.error} fallback="Could not load plans" />
+
+                <div className="pricing-plan-grid">
+                  {plans.map((plan, index) => (
+                    <MotionItem
+                      key={plan.id}
+                      as="article"
+                      className={
+                        plan.highlighted
+                          ? "card pricing-plan-card featured"
+                          : "card pricing-plan-card"
+                      }
+                      hoverLift={!plan.highlighted}
+                      style={
+                        plan.highlighted
+                          ? { boxShadow: "var(--shadow-lift)" }
+                          : { boxShadow: "var(--shadow-sm)" }
+                      }
+                      initial={reduce ? false : { opacity: 0, y: 20 }}
+                      whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
+                      viewport={{ once: true, amount: 0.2 }}
+                      transition={{
+                        duration: 0.5,
+                        delay: reduce ? 0 : index * 0.08,
+                      }}
+                    >
+                      <div className="pricing-plan-top">
+                        <h2 className="section-title">{plan.name}</h2>
+                        {plan.highlighted ? (
+                          <span className="chip chip-flame">Popular</span>
+                        ) : null}
+                      </div>
+                      <p className="pricing-plan-price mono">
+                        {formatCents(plan.priceCents, plan.currency)}
+                        <span className="subscription-period">
+                          {intervalLabel(plan.interval, plan.intervalCount)}
+                        </span>
+                      </p>
+                      <p className="muted" style={{ marginTop: 10, fontSize: "0.92rem" }}>
+                        {plan.blurb}
+                      </p>
+                      <PlanFeatureList
+                        features={planFeaturesForDisplay(plan, compare)}
+                      />
+                      <InkButton
+                        href={
+                          authLoading
+                            ? plan.ctaHref || "/register"
+                            : planPricingCtaHref(plan, isLoggedIn)
+                        }
+                        variant={plan.highlighted ? "primary" : "ghost"}
+                        className="btn-block"
+                        size={plan.highlighted ? "lg" : "md"}
+                      >
+                        {plan.ctaLabel || "Get started"}
+                      </InkButton>
+                    </MotionItem>
+                  ))}
+                </div>
+
+                {!plansQuery.error && plans.length === 0 ? (
+                  <p className="hint">No published plans yet.</p>
+                ) : null}
+              </>
+            )}
 
             <p className="hint pricing-footnote mono">
               Already tracking?{" "}
@@ -142,38 +170,49 @@ export function PricingPage() {
               </h2>
             </MotionItem>
 
-            <MotionItem className="card pricing-table-card">
-              <div className="pricing-table-scroll">
-                <table className="pricing-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Feature</th>
-                      <th scope="col">Free</th>
-                      <th scope="col">Pro</th>
-                      <th scope="col">Team</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      ["Active habits", "3", "Unlimited", "Unlimited"],
-                      ["Heatmap window", "90 days", "364 days", "364 days"],
-                      ["Stats & weekday insight", "—", "✓", "✓"],
-                      ["Reminders", "1 device", "All devices", "All devices"],
-                      ["Export", "CSV", "CSV + JSON", "CSV + JSON"],
-                      ["Shared boards", "—", "—", "✓"],
-                      ["Admin seats", "—", "—", "✓"],
-                    ].map(([feature, free, pro, team]) => (
-                      <tr key={feature}>
-                        <th scope="row">{feature}</th>
-                        <td className="mono">{free}</td>
-                        <td className="mono">{pro}</td>
-                        <td className="mono">{team}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </MotionItem>
+            {compareQuery.isLoading ? (
+              <PricingCompareSkeleton />
+            ) : (
+              <>
+                <QueryError
+                  error={compareQuery.error}
+                  fallback="Could not load plan comparison"
+                />
+
+                {compare?.plans.length && compare.features.length ? (
+                  <div className="card pricing-table-card pricing-compare-content">
+                    <div className="pricing-table-scroll">
+                      <table className="pricing-table">
+                        <thead>
+                          <tr>
+                            <th scope="col">Feature</th>
+                            {compare.plans.map((plan) => (
+                              <th key={plan.slug} scope="col">
+                                {plan.name}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {compare.features.map((row) => (
+                            <tr key={row.key}>
+                              <th scope="row">{row.label}</th>
+                              {compare.plans.map((plan) => (
+                                <td key={plan.slug} className="mono">
+                                  <CompareFeatureCell feature={row.values[plan.slug]} />
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : !compareQuery.error ? (
+                  <p className="hint">Comparison table is not available yet.</p>
+                ) : null}
+              </>
+            )}
           </div>
         </MotionSection>
 

@@ -12,6 +12,7 @@ import {
   staggerContainer,
 } from "@/components/home/motion";
 import { SiteHeader } from "@/components/home/site-header";
+import { FaqAccordion } from "@/components/marketing/faq-accordion";
 import { FAQ_GROUPS } from "@/components/marketing/faq-data";
 
 export function FaqPage() {
@@ -80,22 +81,7 @@ export function FaqPage() {
                 </h2>
               </MotionItem>
 
-              <div className="faq-list">
-                {group.items.map((item) => (
-                  <MotionItem
-                    key={item.q}
-                    as="article"
-                    className="card faq-item"
-                    hoverLift
-                    style={{ boxShadow: "var(--shadow-sm)" }}
-                  >
-                    <h3 className="section-title">{item.q}</h3>
-                    <p className="muted" style={{ marginTop: 10, lineHeight: 1.55 }}>
-                      {item.a}
-                    </p>
-                  </MotionItem>
-                ))}
-              </div>
+              <FaqAccordion items={group.items} />
             </div>
           </MotionSection>
         ))}

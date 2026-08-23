@@ -1,4 +1,32 @@
-import type { Invoice } from "@/components/billing/subscription-data";
+import type { CustomerInvoice, PaymentStatus } from "@/lib/api/types";
+import { formatPrettyIso } from "@/lib/dates";
+import { formatCents } from "@/lib/money";
+
+export function normalizePaymentStatus(status: unknown): PaymentStatus {
+  const raw = String(status ?? "")
+    .toLowerCase()
+    .trim();
+  if (raw === "paid" || raw === "succeeded") return "succeeded";
+  if (raw === "pending") return "pending";
+  if (raw === "failed") return "failed";
+  if (raw === "refunded") return "refunded";
+  return "pending";
+}
+
+export function normalizeCustomerInvoice(invoice: CustomerInvoice): CustomerInvoice {
+  return {
+    ...invoice,
+    status: normalizePaymentStatus(invoice.status),
+  };
+}
+
+export type InvoiceDownload = {
+  id: string;
+  label: string;
+  date: string;
+  amount: string;
+  status: string;
+};
 
 type InvoiceMeta = {
   name: string;
@@ -14,10 +42,46 @@ const PAPER: [number, number, number] = [251, 252, 250];
 const ROW: [number, number, number] = [227, 231, 226];
 
 function invoiceNumber(id: string) {
-  return id.replace(/^inv-/, "MOM-2026-").toUpperCase();
+  if (id.startsWith("inv-")) {
+    return id.replace(/^inv-/, "MOM-2026-").toUpperCase();
+  }
+  const compact = id.replace(/-/g, "").slice(0, 8).toUpperCase();
+  return `MOM-${compact}`;
 }
 
-export async function downloadInvoice(invoice: Invoice, meta: InvoiceMeta) {
+function invoiceStatusLabel(status: string) {
+  const normalized = normalizePaymentStatus(status);
+  if (normalized === "succeeded") return "PAID";
+  if (normalized === "refunded") return "REFUNDED";
+  if (normalized === "pending") return "PENDING";
+  if (normalized === "failed") return "FAILED";
+  return String(status).toUpperCase();
+}
+
+export function canDownloadInvoice(
+  invoice: Pick<CustomerInvoice, "status" | "amountCents">,
+) {
+  if (invoice.amountCents <= 0) return false;
+  const status = normalizePaymentStatus(invoice.status);
+  return status !== "failed";
+}
+
+export function paymentMethodFromReceipt(receiptUrl: string | null) {
+  if (receiptUrl?.startsWith("sslcommerz:")) return "SSLCommerz";
+  return "Card";
+}
+
+export function toInvoiceDownload(invoice: CustomerInvoice): InvoiceDownload {
+  return {
+    id: invoice.id,
+    label: invoice.description || "Momentum plan",
+    date: formatPrettyIso(invoice.paidAt),
+    amount: formatCents(invoice.amountCents, invoice.currency),
+    status: invoice.status,
+  };
+}
+
+export async function downloadInvoice(invoice: InvoiceDownload, meta: InvoiceMeta) {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -66,7 +130,7 @@ export async function downloadInvoice(invoice: Invoice, meta: InvoiceMeta) {
   doc.setFontSize(11);
   doc.setTextColor(...INK);
   doc.text(invoice.date, margin, y);
-  doc.text(invoice.status.toUpperCase(), margin + 160, y);
+  doc.text(invoiceStatusLabel(invoice.status), margin + 160, y);
 
   y += 32;
   doc.setFont("helvetica", "bold");
@@ -119,9 +183,19 @@ export async function downloadInvoice(invoice: Invoice, meta: InvoiceMeta) {
   doc.setTextColor(...BLUE);
   doc.text("momentum.app", margin, y);
 
-  doc.save(`${invoice.id}.pdf`);
+  doc.save(`${invoiceNumber(invoice.id)}.pdf`);
 }
 
-export function canDownloadInvoice(invoice: Invoice) {
-  return invoice.status === "paid";
+export async function downloadCustomerInvoice(
+  invoice: CustomerInvoice,
+  meta: Omit<InvoiceMeta, "paymentMethod">,
+) {
+  if (!canDownloadInvoice(invoice)) {
+    throw new Error("Invoice is not downloadable");
+  }
+
+  await downloadInvoice(toInvoiceDownload(invoice), {
+    ...meta,
+    paymentMethod: paymentMethodFromReceipt(invoice.receiptUrl),
+  });
 }
