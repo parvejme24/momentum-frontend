@@ -30,6 +30,7 @@ import {
   patchMe,
   postChangePassword,
   postForgotPassword,
+  postGoogleLogin,
   postLogout,
   postLogoutAll,
   postResendVerification,
@@ -43,6 +44,7 @@ type AuthContextValue = {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
   register: (
     input: Omit<RegisterRequest, "timezone"> & { timezone?: string },
   ) => Promise<void>;
@@ -111,6 +113,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return () => setOnSessionInvalid(null);
   }, [queryClient]);
+
+  const googleLoginMutation = useMutation({
+    mutationFn: (credential: string) => postGoogleLogin(credential),
+    onSuccess: applySession,
+  });
 
   const loginMutation = useMutation({
     mutationFn: (body: LoginRequest) => postSessionAuth("login", body),
@@ -189,6 +196,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [loginMutation.mutateAsync],
   );
 
+  const loginWithGoogle = useCallback(
+    async (credential: string) => {
+      await googleLoginMutation.mutateAsync(credential);
+    },
+    [googleLoginMutation.mutateAsync],
+  );
+
   const register = useCallback(
     async (input: Omit<RegisterRequest, "timezone"> & { timezone?: string }) => {
       const timezone =
@@ -260,6 +274,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: sessionQuery.data?.user ?? null,
         isLoading: sessionQuery.isPending,
         login,
+        loginWithGoogle,
         register,
         logout,
         logoutAll,

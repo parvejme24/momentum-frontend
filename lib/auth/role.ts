@@ -15,3 +15,8 @@ export function isAdmin(user: User | null | undefined) {
 export function isCustomer(user: User | null | undefined) {
   return getUserRole(user) === "customer";
 }
+
+/** Admins get complimentary Pro access for their personal habit workspace. */
+export function hasAdminComplimentaryAccess(user: User | null | undefined) {
+  return isAdmin(user);
+}

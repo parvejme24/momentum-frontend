@@ -22,6 +22,11 @@ export function formatPrettyIso(
     year: "numeric",
   },
 ): string {
+  if (iso.includes("T")) {
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return iso;
+    return new Intl.DateTimeFormat("en-GB", options).format(date);
+  }
   const [year, month, day] = iso.split("-").map(Number);
   const date = new Date(year, (month ?? 1) - 1, day ?? 1);
   if (Number.isNaN(date.getTime())) return iso;

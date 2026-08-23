@@ -7,6 +7,8 @@ export type ApiErrorCode =
   | "NOT_FOUND"
   | "CONFLICT"
   | "RATE_LIMITED"
+  | "ACCOUNT_BANNED"
+  | "SERVICE_UNAVAILABLE"
   | "INTERNAL_ERROR"
   | "NETWORK_ERROR"
   | "UNKNOWN";
@@ -18,6 +20,8 @@ const KNOWN_CODES = new Set<string>([
   "NOT_FOUND",
   "CONFLICT",
   "RATE_LIMITED",
+  "ACCOUNT_BANNED",
+  "SERVICE_UNAVAILABLE",
   "INTERNAL_ERROR",
   "NETWORK_ERROR",
   "UNKNOWN",

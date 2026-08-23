@@ -89,6 +89,19 @@ export function parseUserPayload(payload: unknown): User | null {
   return null;
 }
 
+export async function postGoogleLogin(
+  credential: string,
+): Promise<ClientAuthResponse> {
+  const res = await authFetch("google", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ credential }),
+  });
+
+  if (!res.ok) throw await parseApiError(res);
+  return (await res.json()) as ClientAuthResponse;
+}
+
 export async function postSessionAuth(
   action: "login" | "register",
   body: LoginRequest | RegisterRequest,
