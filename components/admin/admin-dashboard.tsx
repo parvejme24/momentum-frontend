@@ -3,40 +3,90 @@
 import Link from "next/link";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
-import {
-  MANAGED_USERS,
-  planLabel,
-  statusLabel,
-  userCounts,
-} from "@/components/admin/users-data";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
+import { AdminDashboardSkeleton } from "@/components/ui/page-skeletons";
+import { QueryError } from "@/components/ui/query-error";
+import {
+  useAdminPayments,
+  useAdminRevenue,
+  useAdminUsers,
+} from "@/lib/admin/hooks";
+import { allTimeRevenueQuery } from "@/lib/admin/live";
+import {
+  accountStatusChip,
+  accountStatusLabel,
+  formatLastActive,
+  initialFromName,
+  paymentMethodLabel,
+  paymentStatusChip,
+  paymentStatusLabel,
+  planName,
+} from "@/lib/admin/map";
 import { useAuth } from "@/lib/auth/context";
-
-function initialFromName(name: string) {
-  const trimmed = name.trim();
-  return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
-}
-
-function statusChip(status: (typeof MANAGED_USERS)[number]["status"]) {
-  if (status === "active") return "chip chip-blue";
-  if (status === "trial") return "chip chip-flame";
-  return "chip chip-quiet";
-}
+import { formatPrettyIso } from "@/lib/dates";
+import { formatCents } from "@/lib/money";
+import { useNotifications } from "@/lib/notifications/hooks";
 
 export function AdminDashboard() {
   const reduce = useReducedMotion();
   const { user } = useAuth();
-  const counts = userCounts(MANAGED_USERS);
-  const recent = MANAGED_USERS.slice(0, 4);
-  const flagged = counts.flagged;
+  const liveQuery = useAdminUsers({
+    status: "live",
+    limit: 6,
+    sort: "lastActiveAt",
+    order: "desc",
+  });
+  const allQuery = useAdminUsers({ status: "all", limit: 1 });
+  const bannedQuery = useAdminUsers({ status: "banned", limit: 6 });
+  const revenueQuery = useAdminRevenue(allTimeRevenueQuery());
+  const paymentsQuery = useAdminPayments({ page: 1, limit: 12 });
+  const notesQuery = useNotifications({ limit: 5 });
+
+  const loading =
+    liveQuery.isLoading ||
+    allQuery.isLoading ||
+    bannedQuery.isLoading ||
+    revenueQuery.isLoading ||
+    paymentsQuery.isLoading;
+
+  const live = liveQuery.data?.users ?? [];
+  const banned = bannedQuery.data?.users ?? [];
+  const flagged = [
+    ...banned,
+    ...live.filter((item) => item.plan?.status === "past_due"),
+  ].slice(0, 6);
+  const payments = paymentsQuery.data?.payments ?? [];
+  const paymentTotal = paymentsQuery.data?.total ?? 0;
   const firstName = (user?.name?.trim() || "there").split(" ")[0];
+  const totals = revenueQuery.data?.totals;
+  const currency = revenueQuery.data?.currency ?? "USD";
 
   const summary = [
-    { key: "Accounts", value: String(counts.total), note: "on Momentum" },
-    { key: "Active", value: String(counts.active), note: "currently marking" },
-    { key: "On trial", value: String(counts.trial), note: "free window open" },
-    { key: "Paid plans", value: String(counts.paid), note: "Pro or Team" },
+    {
+      key: "Accounts",
+      value: String(allQuery.data?.total ?? 0),
+      note: "on Momentum",
+    },
+    {
+      key: "Gross",
+      value: formatCents(totals?.grossCents ?? 0, currency),
+      note: "all collected",
+    },
+    {
+      key: "Net",
+      value: formatCents(totals?.netCents ?? 0, currency),
+      note: "minus refunds",
+    },
+    {
+      key: "Payments",
+      value: String(paymentTotal || totals?.paymentCount || 0),
+      note: "all recorded",
+    },
   ];
+
+  if (loading) {
+    return <AdminDashboardSkeleton />;
+  }
 
   return (
     <MotionConfig reducedMotion="user">
@@ -54,8 +104,8 @@ export function AdminDashboard() {
             <p className="eyebrow">Admin</p>
             <h1>Dashboard</h1>
             <p className="lede" style={{ marginTop: 10, maxWidth: "46ch" }}>
-              Hello {firstName}. Accounts, plans, and the people who need a
-              look — not a CRM wall.
+              Hello {firstName}. Accounts, live payments, and the people who need
+              a look.
             </p>
           </div>
           <Link href="/users" className="btn btn-sm today-new-desktop">
@@ -63,9 +113,19 @@ export function AdminDashboard() {
           </Link>
         </motion.header>
 
+        <QueryError
+          error={
+            liveQuery.error ||
+            allQuery.error ||
+            bannedQuery.error ||
+            revenueQuery.error ||
+            paymentsQuery.error
+          }
+        />
+
         <motion.section
           className="grid-4 users-summary"
-          aria-label="Account summary"
+          aria-label="Account and revenue summary"
           variants={reduce ? undefined : fadeUpSoft}
         >
           {summary.map((tile) => (
@@ -75,6 +135,46 @@ export function AdminDashboard() {
               <div className="stat-n">{tile.note}</div>
             </article>
           ))}
+        </motion.section>
+
+        <motion.section
+          className="card"
+          style={{ marginTop: 18 }}
+          aria-labelledby="payments-heading"
+          variants={reduce ? undefined : fadeUpSoft}
+        >
+          <div className="panel-head">
+            <h2 id="payments-heading" className="section-title">
+              Payments
+            </h2>
+            <Link href="/payments" className="auth-inline-link mono">
+              All {paymentTotal > 0 ? `${paymentTotal} →` : "→"}
+            </Link>
+          </div>
+          {payments.length === 0 ? (
+            <p className="hint">No payments yet.</p>
+          ) : (
+            <ul className="admin-feed">
+              {payments.map((item) => (
+                <li key={item.id} className="admin-feed-item">
+                  <div className="admin-feed-copy">
+                    <Link href={`/users/${item.user.id}`} className="users-name">
+                      {item.user.name}
+                    </Link>
+                    <div className="users-email mono">
+                      {formatCents(item.amountCents, item.currency)} ·{" "}
+                      {item.plan?.name ?? "No plan"} ·{" "}
+                      {paymentMethodLabel(item.method)} ·{" "}
+                      {formatPrettyIso(item.paidAt)}
+                    </div>
+                  </div>
+                  <span className={paymentStatusChip(item.status)}>
+                    {paymentStatusLabel(item.status)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </motion.section>
 
         <motion.div
@@ -90,24 +190,30 @@ export function AdminDashboard() {
                 All users →
               </Link>
             </div>
-            <ul className="admin-feed">
-              {recent.map((item) => (
-                <li key={item.id} className="admin-feed-item">
-                  <div className="avatar" aria-hidden>
-                    {initialFromName(item.name)}
-                  </div>
-                  <div className="admin-feed-copy">
-                    <div className="users-name">{item.name}</div>
-                    <div className="users-email mono">
-                      {planLabel(item.plan)} · {item.lastActive}
+            {live.length === 0 ? (
+              <p className="hint">No accounts yet.</p>
+            ) : (
+              <ul className="admin-feed">
+                {live.map((item) => (
+                  <li key={item.id} className="admin-feed-item">
+                    <div className="avatar" aria-hidden>
+                      {initialFromName(item.name)}
                     </div>
-                  </div>
-                  <span className={statusChip(item.status)}>
-                    {statusLabel(item.status)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                    <div className="admin-feed-copy">
+                      <Link href={`/users/${item.id}`} className="users-name">
+                        {item.name}
+                      </Link>
+                      <div className="users-email mono">
+                        {planName(item)} · {formatLastActive(item.lastActiveAt)}
+                      </div>
+                    </div>
+                    <span className={accountStatusChip(item.status)}>
+                      {accountStatusLabel(item.status)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           <section className="card" aria-labelledby="attention-heading">
@@ -127,23 +233,60 @@ export function AdminDashboard() {
                       {initialFromName(item.name)}
                     </div>
                     <div className="admin-feed-copy">
-                      <div className="users-name">{item.name}</div>
+                      <Link href={`/users/${item.id}`} className="users-name">
+                        {item.name}
+                      </Link>
                       <div className="users-email mono">{item.email}</div>
                     </div>
-                    <span className={statusChip(item.status)}>
-                      {statusLabel(item.status)}
+                    <span className={accountStatusChip(item.status)}>
+                      {item.plan?.status === "past_due"
+                        ? "Past due"
+                        : accountStatusLabel(item.status)}
                     </span>
                   </li>
                 ))}
               </ul>
             )}
             <p style={{ marginTop: 18 }}>
-              <Link href="/users" className="btn btn-ghost btn-sm">
-                Review accounts
+              <Link href="/payments" className="btn btn-ghost btn-sm">
+                Review payments
               </Link>
             </p>
           </section>
         </motion.div>
+
+        <motion.section
+          className="card"
+          style={{ marginTop: 18 }}
+          aria-labelledby="notes-heading"
+          variants={reduce ? undefined : fadeUpSoft}
+        >
+          <div className="panel-head">
+            <h2 id="notes-heading" className="section-title">
+              Notifications
+            </h2>
+            <Link href="/notifications" className="auth-inline-link mono">
+              Inbox →
+            </Link>
+          </div>
+          {(notesQuery.data?.notifications ?? []).length === 0 ? (
+            <p className="hint">No admin notices yet.</p>
+          ) : (
+            <ul className="admin-feed">
+              {notesQuery.data?.notifications.map((item) => (
+                <li key={item.id} className="admin-feed-item">
+                  <div className="admin-feed-copy">
+                    <div className="users-name">{item.title}</div>
+                    <div className="users-email">{item.body}</div>
+                  </div>
+                  {item.readAt ? null : (
+                    <span className="chip chip-flame">New</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </motion.section>
       </motion.div>
     </MotionConfig>
   );
