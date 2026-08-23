@@ -674,7 +674,6 @@ export function SettingsPage() {
               </button>
             </motion.section>
 
-            {!admin ? (
             <motion.section
               className="card"
               aria-labelledby="billing-heading"
@@ -686,8 +685,9 @@ export function SettingsPage() {
                 </h2>
               </div>
               <p className="lede" style={{ maxWidth: "42ch" }}>
-                Plan, renewal date, and invoices — keep the year chain without
-                surprise charges.
+                {admin
+                  ? "Complimentary Pro access for your personal habits — no renewal required."
+                  : "Plan, renewal date, and invoices — keep the year chain without surprise charges."}
               </p>
               <div className="settings-actions" style={{ marginTop: 16 }}>
                 <Link href="/subscription" className="btn btn-ghost">
@@ -695,7 +695,6 @@ export function SettingsPage() {
                 </Link>
               </div>
             </motion.section>
-            ) : null}
 
             <motion.section
               className="card"

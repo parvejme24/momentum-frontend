@@ -11,7 +11,7 @@ import {
   WEEKDAY_LABELS,
   type RangeKey,
 } from "@/components/stats/sample-data";
-import { PageSpinner } from "@/components/ui/page-spinner";
+import { StatsPageSkeleton } from "@/components/ui/page-skeletons";
 import { ApiError } from "@/lib/api/errors";
 import type { StatsRange } from "@/lib/api/types";
 import { formatPrettyIso } from "@/lib/dates";
@@ -92,7 +92,7 @@ export function StatsPage() {
     last != null && prev != null ? Math.round((last - prev) * 100) : 0;
 
   if (statsQuery.isLoading) {
-    return <PageSpinner label="Loading stats" />;
+    return <StatsPageSkeleton />;
   }
 
   return (

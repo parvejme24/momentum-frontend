@@ -15,11 +15,12 @@ import {
   type RecentDay,
 } from "@/components/habits/habit-detail-data";
 import { YearChain } from "@/components/habits/year-chain";
+import { AiHabitCoach } from "@/components/ai/ai-habit-coach";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
 import { ConfirmSheet } from "@/components/settings/confirm-sheet";
 import { RateBars } from "@/components/stats/rate-bars";
 import { Switch } from "@/components/ui/switch";
-import { PageSpinner } from "@/components/ui/page-spinner";
+import { HabitDetailSkeleton } from "@/components/ui/page-skeletons";
 import { ApiError } from "@/lib/api/errors";
 import { useAuth } from "@/lib/auth/context";
 import { addDaysIso, asPercent, formatPrettyIso, isoDateInTimeZone } from "@/lib/dates";
@@ -243,15 +244,19 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
   const weekdayRates = stats ? habitStatsWeekdayRates(stats) : [];
   const insight = stats ? weekdayInsight(stats.byWeekday) : base?.weekdayInsight;
 
+  const coachContext =
+    marked && base && base.currentStreak >= 7
+      ? "celebration"
+      : marked
+        ? "check_in"
+        : base && base.currentStreak > 0
+          ? "streak"
+          : base && base.currentStreak === 0
+            ? "missed"
+            : "general";
+
   if (habitQuery.isLoading) {
-    return (
-      <div className="page-head">
-        <Link href="/habits" className="back-link mono">
-          ← All habits
-        </Link>
-        <PageSpinner label="Loading habit" />
-      </div>
-    );
+    return <HabitDetailSkeleton />;
   }
 
   if (!base) {
@@ -415,6 +420,10 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
             </div>
           </div>
         </motion.header>
+
+        <motion.div variants={reduce ? undefined : fadeUpSoft}>
+          <AiHabitCoach habitId={habitId} context={coachContext} />
+        </motion.div>
 
         <motion.section
           className="habit-detail-section"

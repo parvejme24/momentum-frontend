@@ -15,7 +15,7 @@ import { ArchivedCard } from "@/components/habits/archived-card";
 import type { ArchivedHabit } from "@/components/habits/sample-data";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
 import { ConfirmSheet } from "@/components/settings/confirm-sheet";
-import { PageSpinner } from "@/components/ui/page-spinner";
+import { HabitCardsSkeleton } from "@/components/ui/page-skeletons";
 import { ApiError } from "@/lib/api/errors";
 import {
   useDeleteHabit,
@@ -128,7 +128,7 @@ export function ArchivedPage() {
         ) : null}
 
         {loading ? (
-          <PageSpinner label="Loading archive" />
+          <HabitCardsSkeleton count={4} />
         ) : archived.length === 0 ? (
           <motion.div
             className="empty archived-empty"

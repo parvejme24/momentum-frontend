@@ -13,7 +13,7 @@ import {
 import { HabitCard } from "@/components/habits/habit-card";
 import type { HabitCategory, LibraryHabit } from "@/components/habits/sample-data";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
-import { PageSpinner } from "@/components/ui/page-spinner";
+import { HabitCardsSkeleton } from "@/components/ui/page-skeletons";
 import { ApiError } from "@/lib/api/errors";
 import { useHabits } from "@/lib/habits/hooks";
 import { toLibraryHabit } from "@/lib/habits/map";
@@ -98,7 +98,7 @@ export function HabitsPage() {
         </motion.div>
 
         {activeQuery.isLoading ? (
-          <PageSpinner label="Loading habits" />
+          <HabitCardsSkeleton count={4} />
         ) : active.length === 0 ? (
           <motion.div
             className="empty"

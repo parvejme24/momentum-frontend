@@ -8,6 +8,7 @@ import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
 import { useToast } from "@/components/auth/toast";
 import { HabitPreview } from "@/components/habits/habit-preview";
+import { AiHabitIdeasPanel } from "@/components/ai/ai-habit-ideas-panel";
 import {
   COLOR_OPTIONS,
   ICON_OPTIONS,
@@ -26,6 +27,7 @@ import { createHabitReminder } from "@/lib/api/reminders";
 import { useAuth } from "@/lib/auth/context";
 import { useCreateHabit } from "@/lib/habits/hooks";
 import { toCreateHabitRequest } from "@/lib/habits/map";
+import type { AiHabitIdeaPrefill } from "@/lib/ai/map";
 
 export function NewHabitForm() {
   const reduce = useReducedMotion();
@@ -73,6 +75,19 @@ export function NewHabitForm() {
         ? prev.filter((d) => d !== value)
         : [...prev, value].sort((a, b) => a - b),
     );
+  }
+
+  function applyAiIdea(prefill: AiHabitIdeaPrefill) {
+    setName(prefill.name);
+    setNote(prefill.note);
+    setIcon(prefill.icon);
+    setColorId(prefill.colorId);
+    setHabitType(prefill.habitType);
+    setScheduleMode(prefill.scheduleMode);
+    setWeekdays(prefill.weekdays);
+    setTimesPerWeek(prefill.timesPerWeek);
+    setIntervalDays(prefill.intervalDays);
+    setNameError(null);
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -554,6 +569,7 @@ export function NewHabitForm() {
             className="new-habit-preview-col"
             variants={reduce ? undefined : fadeUpSoft}
           >
+            <AiHabitIdeasPanel onApply={(prefill) => applyAiIdea(prefill)} />
             <HabitPreview
               name={name}
               icon={icon}

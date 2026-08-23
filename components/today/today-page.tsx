@@ -10,7 +10,8 @@ import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
 import { HabitRow, RestHabitRow } from "@/components/today/habit-row";
 import { ProgressRing } from "@/components/today/progress-ring";
 import { WeekBars } from "@/components/today/week-bars";
-import { PageSpinner } from "@/components/ui/page-spinner";
+import { AiSuggestionsPanel } from "@/components/ai/ai-suggestions-panel";
+import { TodayPageSkeleton } from "@/components/ui/page-skeletons";
 import { ApiError } from "@/lib/api/errors";
 import { asPercent, formatPrettyIso } from "@/lib/dates";
 import { useGroupedReminders } from "@/lib/reminders/hooks";
@@ -103,7 +104,7 @@ export function TodayPage() {
   }
 
   if (todayQuery.isLoading) {
-    return <PageSpinner label="Loading today" />;
+    return <TodayPageSkeleton />;
   }
 
   if (todayQuery.error) {
@@ -162,6 +163,10 @@ export function TodayPage() {
             </div>
           </div>
         </motion.section>
+
+        <motion.div className="today-ai-wrap" variants={reduce ? undefined : fadeUpSoft}>
+          <AiSuggestionsPanel />
+        </motion.div>
 
         <motion.section
           className="today-section"

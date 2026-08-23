@@ -5,22 +5,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
-  BarChart3,
-  LayoutDashboard,
-  ListChecks,
   LogOut,
-  Settings,
-  Users,
 } from "lucide-react";
 
 import { easeOut } from "@/components/home/motion";
+import { buildAccountMenuLinks } from "@/lib/app/navigation";
 import { useAuth } from "@/lib/auth/context";
 import { isAdmin } from "@/lib/auth/role";
 
 type MenuLink = {
   href: string;
   label: string;
-  icon: typeof LayoutDashboard;
+  icon: ReturnType<typeof buildAccountMenuLinks>[number]["icon"];
 };
 
 function initialFromName(name: string) {
@@ -42,18 +38,7 @@ export function AccountMenu() {
   const email = user?.email?.trim() || "";
   const initial = initialFromName(name);
 
-  const links: MenuLink[] = admin
-    ? [
-        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { href: "/users", label: "Users", icon: Users },
-        { href: "/settings", label: "Settings", icon: Settings },
-      ]
-    : [
-        { href: "/dashboard", label: "Today", icon: LayoutDashboard },
-        { href: "/habits", label: "Habits", icon: ListChecks },
-        { href: "/stats", label: "Stats", icon: BarChart3 },
-        { href: "/settings", label: "Settings", icon: Settings },
-      ];
+  const links: MenuLink[] = buildAccountMenuLinks(admin);
 
   useEffect(() => {
     setOpen(false);
