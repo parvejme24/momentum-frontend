@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-import { PageSpinner } from "@/components/ui/page-spinner";
+import { PageHeadSkeleton } from "@/components/ui/page-skeletons";
 import { useAuth } from "@/lib/auth/context";
 
 export function RoleGate({
@@ -20,7 +20,7 @@ export function RoleGate({
   const { isLoading } = useAuth();
 
   if (isLoading) {
-    return <PageSpinner />;
+    return <PageHeadSkeleton withLede />;
   }
 
   if (!allowed) {

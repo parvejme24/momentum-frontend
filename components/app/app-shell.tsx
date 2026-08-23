@@ -1,80 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import {
-  Archive,
-  BarChart3,
-  CalendarDays,
-  CreditCard,
-  LayoutDashboard,
-  ListChecks,
-  Plus,
-  Settings,
-  Users,
-  UserRound,
-} from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Plus } from "lucide-react";
 
 import { BrandLockup } from "@/components/home/brand-mark";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { PageSpinner } from "@/components/ui/page-spinner";
+import { AppShellSkeleton } from "@/components/ui/page-skeletons";
+import {
+  ADMIN_TAB_NAV,
+  buildSideNavSections,
+  CUSTOMER_TAB_NAV,
+  isNavActive,
+} from "@/lib/app/navigation";
 import { customer } from "@/lib/data/customer";
 import { useAuth } from "@/lib/auth/context";
+import { loginRedirectPath } from "@/lib/auth/protected-routes";
 import { isAdmin } from "@/lib/auth/role";
-
-type NavItem = {
-  href: string;
-  label: string;
-  icon: typeof CalendarDays;
-};
-
-const CUSTOMER_SIDE_NAV: NavItem[] = [
-  { href: "/dashboard", label: "Today", icon: CalendarDays },
-  { href: "/habits", label: "Habits", icon: ListChecks },
-  { href: "/habits/archived", label: "Archive", icon: Archive },
-  { href: "/stats", label: "Stats", icon: BarChart3 },
-  { href: "/subscription", label: "Subscription", icon: CreditCard },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
-
-const ADMIN_SIDE_NAV: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/users", label: "Users", icon: Users },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
-
-const CUSTOMER_TAB_NAV: NavItem[] = [
-  { href: "/dashboard", label: "Today", icon: CalendarDays },
-  { href: "/habits", label: "Habits", icon: ListChecks },
-  { href: "/habits/new", label: "New", icon: Plus },
-  { href: "/stats", label: "Stats", icon: BarChart3 },
-  { href: "/settings", label: "You", icon: UserRound },
-];
-
-const ADMIN_TAB_NAV: NavItem[] = [
-  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/users", label: "Users", icon: Users },
-  { href: "/settings", label: "You", icon: UserRound },
-];
-
-function isActive(pathname: string, href: string, mode: "side" | "tab" = "side") {
-  if (href === "/dashboard") return pathname === "/dashboard";
-  if (href === "/habits/new") return pathname.startsWith("/habits/new");
-  if (href === "/habits/archived") {
-    return pathname === "/habits/archived" || pathname.startsWith("/habits/archived/");
-  }
-  if (href === "/habits") {
-    if (pathname.startsWith("/habits/archived") || pathname.startsWith("/habits/new")) {
-      return false;
-    }
-    if (mode === "tab") {
-      return pathname === "/habits" || pathname.startsWith("/habits/");
-    }
-    return pathname === "/habits" || pathname.startsWith("/habits/");
-  }
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
 
 function isModifiedClick(event: React.MouseEvent) {
   return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0;
@@ -87,7 +31,6 @@ function initialFromName(name: string) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const { user, isLoading, logout } = useAuth();
@@ -99,17 +42,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setPendingHref(null);
   }, [pathname]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isLoading || user) return;
-    const next =
-      pathname && pathname !== "/dashboard"
-        ? `?next=${encodeURIComponent(pathname)}`
-        : "";
-    router.replace(`/login${next}`);
-  }, [isLoading, user, pathname, router]);
+    window.location.replace(loginRedirectPath(pathname || "/dashboard"));
+  }, [isLoading, user, pathname]);
 
   const currentPath = pendingHref ?? pathname;
-  const sideNav = admin ? ADMIN_SIDE_NAV : CUSTOMER_SIDE_NAV;
+  const sideNavSections = buildSideNavSections(admin);
   const tabNav = admin ? ADMIN_TAB_NAV : CUSTOMER_TAB_NAV;
 
   function markPending(href: string) {
@@ -128,53 +67,56 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }
 
-  if (isLoading || !user) {
-    return (
-      <div className="app">
-        <div className="main">
-          <PageSpinner />
-        </div>
-      </div>
-    );
+  if (isLoading) {
+    return <AppShellSkeleton />;
+  }
+
+  if (!user) {
+    return null;
   }
 
   return (
     <div className="app">
       <aside className="sidebar" aria-label="App">
-        <Link
-          href="/dashboard"
-          aria-label={admin ? "Momentum dashboard" : "Momentum today"}
-        >
+        <Link href="/dashboard" aria-label="Momentum today">
           <BrandLockup />
         </Link>
 
         <nav className="nav" aria-label="Primary">
-          {sideNav.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(currentPath, item.href, "side");
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={active ? "is-current" : undefined}
-                aria-current={active ? "page" : undefined}
-                onClick={markPending(item.href)}
-              >
-                <Icon strokeWidth={2.2} aria-hidden />
-                {item.label}
-              </Link>
-            );
-          })}
+          {sideNavSections.map((section, sectionIndex) => (
+            <div
+              key={section.label ?? `section-${sectionIndex}`}
+              className={section.label ? "nav-section" : undefined}
+            >
+              {section.label ? (
+                <p className="nav-section-label mono">{section.label}</p>
+              ) : null}
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const active = isNavActive(currentPath, item.href, "side");
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={active ? "is-current" : undefined}
+                    aria-current={active ? "page" : undefined}
+                    onClick={markPending(item.href)}
+                  >
+                    <Icon strokeWidth={2.2} aria-hidden />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
-        {!admin ? (
-          <div style={{ marginTop: 18 }}>
-            <Link href="/habits/new" className="btn btn-primary btn-block btn-sm">
-              <Plus size={16} strokeWidth={2.4} aria-hidden />
-              New habit
-            </Link>
-          </div>
-        ) : null}
+        <div style={{ marginTop: 18 }}>
+          <Link href="/habits/new" className="btn btn-primary btn-block btn-sm">
+            <Plus size={16} strokeWidth={2.4} aria-hidden />
+            New habit
+          </Link>
+        </div>
 
         <div className="side-foot">
           <div className="who">
@@ -189,6 +131,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <ThemeToggle className="side-theme" />
+            <NotificationBell />
           </div>
           <button
             type="button"
@@ -204,6 +147,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="main">
         <div className="app-mobile-bar">
+          <NotificationBell />
           <ThemeToggle />
         </div>
         {children}
@@ -213,7 +157,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <ul>
           {tabNav.map((item) => {
             const Icon = item.icon;
-            const active = isActive(currentPath, item.href, "tab");
+            const active = isNavActive(currentPath, item.href, "tab");
             return (
               <li key={item.href}>
                 <Link
