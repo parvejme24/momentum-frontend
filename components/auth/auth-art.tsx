@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 
 import { BrandLink } from "@/components/home/brand-mark";
 import { easeOut } from "@/components/home/motion";
@@ -39,7 +39,6 @@ function levelClass(level: CellLevel): string {
 }
 
 export function AuthChain({ seed = 42 }: { seed?: number }) {
-  const reduce = useReducedMotion();
   const cells = useMemo(() => buildChain(seed), [seed]);
   const columns = useMemo(() => {
     const cols: CellLevel[][] = [];
@@ -60,14 +59,14 @@ export function AuthChain({ seed = 42 }: { seed?: number }) {
           <motion.div
             key={wi}
             className="chain-col"
-            initial={reduce ? false : "hidden"}
+            initial={false}
             animate="show"
             variants={{
               hidden: {},
               show: {
                 transition: {
-                  delayChildren: reduce ? 0 : wi * 0.012,
-                  staggerChildren: reduce ? 0 : 0.01,
+                  delayChildren: wi * 0.012,
+                  staggerChildren: 0.01,
                 },
               },
             }}
@@ -76,6 +75,7 @@ export function AuthChain({ seed = 42 }: { seed?: number }) {
               <motion.i
                 key={`${wi}-${di}`}
                 className={levelClass(level)}
+                initial={false}
                 variants={{
                   hidden: { opacity: 0, scale: 0.3 },
                   show: {
@@ -107,12 +107,10 @@ export function AuthArtPanel({
   body: string;
   footer: React.ReactNode;
 }) {
-  const reduce = useReducedMotion();
-
   return (
     <aside className="auth-art">
       <motion.div
-        initial={reduce ? false : { opacity: 0, y: 12 }}
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: easeOut }}
       >

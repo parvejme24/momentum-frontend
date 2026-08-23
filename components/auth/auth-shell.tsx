@@ -1,11 +1,10 @@
 "use client";
 
-import { motion, useReducedMotion, MotionConfig } from "framer-motion";
+import { MotionConfig } from "framer-motion";
 
 import { AuthArtPanel } from "@/components/auth/auth-art";
 import { BrandLink } from "@/components/home/brand-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { easeOut, fadeUp, staggerContainer } from "@/components/home/motion";
 
 export function AuthShell({
   children,
@@ -18,8 +17,6 @@ export function AuthShell({
     footer: React.ReactNode;
   };
 }) {
-  const reduce = useReducedMotion();
-
   return (
     <MotionConfig reducedMotion="user">
       <div className="auth">
@@ -37,14 +34,7 @@ export function AuthShell({
             <BrandLink size="sm" className="auth-form-brand-mobile" />
           </div>
 
-          <motion.div
-            className="auth-box rise-auth"
-            initial={reduce ? false : "hidden"}
-            animate="show"
-            variants={reduce ? undefined : staggerContainer}
-          >
-            {children}
-          </motion.div>
+          <div className="auth-box rise-auth">{children}</div>
         </div>
       </div>
     </MotionConfig>
@@ -58,14 +48,5 @@ export function AuthFormItem({
   children: React.ReactNode;
   className?: string;
 }) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      className={className}
-      variants={reduce ? undefined : fadeUp}
-      transition={{ duration: 0.45, ease: easeOut }}
-    >
-      {children}
-    </motion.div>
-  );
+  return <div className={className}>{children}</div>;
 }

@@ -11,6 +11,7 @@ import {
 type AuthAction =
   | "login"
   | "register"
+  | "google"
   | "refresh"
   | "logout"
   | "logout-all"
@@ -24,6 +25,7 @@ type AuthAction =
 const AUTH_ACTIONS = new Set<AuthAction>([
   "login",
   "register",
+  "google",
   "refresh",
   "logout",
   "logout-all",
@@ -173,7 +175,10 @@ function authorizationFrom(request: Request) {
   return request.headers.get("authorization");
 }
 
-async function handleSessionAuth(action: "login" | "register", body: unknown) {
+async function handleSessionAuth(
+  action: "login" | "register" | "google",
+  body: unknown,
+) {
   const { res, payload } = await forward(authPath(action), {
     method: "POST",
     body,
@@ -285,7 +290,7 @@ export async function POST(
   }
 
   try {
-    if (action === "login" || action === "register") {
+    if (action === "login" || action === "register" || action === "google") {
       const body = await readJson(request);
       if (body instanceof NextResponse) return body;
       return await handleSessionAuth(action, body);
