@@ -7,6 +7,7 @@ import type {
 import { tintForColor } from "@/components/habits/schedule-utils";
 import type { ArchivedHabit, LibraryHabit } from "@/components/habits/sample-data";
 import type { CreateHabitRequest, Habit, HabitScheduleType } from "@/lib/api/types";
+import { normalizeHabitIcon } from "@/lib/habits/icon";
 
 export const COLOR_HEX: Record<ColorId, string> = {
   blue: "#2B4CE0",
@@ -66,7 +67,7 @@ export function toLibraryHabit(habit: Habit): LibraryHabit {
   return {
     id: habit.id,
     title: habit.title,
-    emoji: habit.icon || "✓",
+    emoji: normalizeHabitIcon(habit.icon),
     tint: tintFromApiColor(habit.color),
     categories: [
       quitting ? "quitting" : "building",

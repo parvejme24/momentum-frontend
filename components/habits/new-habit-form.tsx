@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -9,6 +9,7 @@ import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 import { useToast } from "@/components/auth/toast";
 import { HabitPreview } from "@/components/habits/habit-preview";
 import { AiHabitIdeasPanel } from "@/components/ai/ai-habit-ideas-panel";
+import { AiCreateHabitPanel } from "@/components/ai/ai-create-habit-panel";
 import {
   COLOR_OPTIONS,
   ICON_OPTIONS,
@@ -27,7 +28,7 @@ import { createHabitReminder } from "@/lib/api/reminders";
 import { useAuth } from "@/lib/auth/context";
 import { useCreateHabit } from "@/lib/habits/hooks";
 import { toCreateHabitRequest } from "@/lib/habits/map";
-import type { AiHabitIdeaPrefill } from "@/lib/ai/map";
+import { AI_HABIT_PREFILL_KEY, type AiHabitIdeaPrefill } from "@/lib/ai/map";
 
 export function NewHabitForm() {
   const reduce = useReducedMotion();
@@ -89,6 +90,19 @@ export function NewHabitForm() {
     setIntervalDays(prefill.intervalDays);
     setNameError(null);
   }
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem(AI_HABIT_PREFILL_KEY);
+    if (!raw) return;
+    try {
+      const prefill = JSON.parse(raw) as AiHabitIdeaPrefill;
+      applyAiIdea(prefill);
+    } catch {
+      /* ignore bad prefill */
+    } finally {
+      sessionStorage.removeItem(AI_HABIT_PREFILL_KEY);
+    }
+  }, []);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -569,6 +583,7 @@ export function NewHabitForm() {
             className="new-habit-preview-col"
             variants={reduce ? undefined : fadeUpSoft}
           >
+            <AiCreateHabitPanel onApply={(prefill) => applyAiIdea(prefill)} />
             <AiHabitIdeasPanel onApply={(prefill) => applyAiIdea(prefill)} />
             <HabitPreview
               name={name}
