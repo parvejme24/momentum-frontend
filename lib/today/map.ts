@@ -1,6 +1,7 @@
 import type { DueHabit, RestHabit } from "@/components/today/sample-data";
 import type { Reminder, TodayHabitItem, TodayNotDueItem } from "@/lib/api/types";
 import { addDaysIso, formatPrettyIso } from "@/lib/dates";
+import { normalizeHabitIcon } from "@/lib/habits/icon";
 import { tintFromApiColor } from "@/lib/habits/map";
 
 function formatNextDue(iso: string | null, today: string) {
@@ -20,7 +21,7 @@ export function toDueHabit(
   return {
     id: item.id,
     title: item.title,
-    emoji: item.icon || "✓",
+    emoji: normalizeHabitIcon(item.icon),
     tint: tintFromApiColor(item.color),
     done: marked,
     streakDays: item.streak.current,
@@ -41,7 +42,7 @@ export function toRestHabit(item: TodayNotDueItem, today: string): RestHabit {
   return {
     id: item.id,
     title: item.title,
-    emoji: item.icon || "✓",
+    emoji: normalizeHabitIcon(item.icon),
     tint: "var(--blue-soft)",
     scheduleLabel: item.schedule,
     nextLabel: formatNextDue(item.nextDueDate, today),

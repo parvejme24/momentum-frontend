@@ -8,6 +8,7 @@ import type {
   Reminder,
 } from "@/lib/api/types";
 import { asPercent, formatPrettyIso } from "@/lib/dates";
+import { normalizeHabitIcon } from "@/lib/habits/icon";
 
 const WEEKDAY_SHORT = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
@@ -111,7 +112,7 @@ export function overviewCompare(data: OverviewStatsResponse): HabitCompare[] {
   return data.habits.map((habit) => ({
     id: habit.id,
     title: habit.title,
-    emoji: habit.icon || "✓",
+    emoji: normalizeHabitIcon(habit.icon),
     tint: "var(--blue-soft)",
     rate: asPercent(habit.rate),
     heatSeed: habit.id.length * 91,
@@ -126,7 +127,7 @@ export function overviewMilestones(data: OverviewStatsResponse): Milestone[] {
     .slice(0, 4)
     .map((habit) => ({
       id: habit.id,
-      emoji: habit.icon || "✓",
+      emoji: normalizeHabitIcon(habit.icon),
       tint: "var(--blue-soft)",
       title: habit.title,
       detail: `Longest chain ${habit.streak.longest} days`,
