@@ -10,6 +10,7 @@ import {
   Receipt,
   Settings,
   Sparkles,
+  Bot,
   Users,
   UserRound,
 } from "lucide-react";
@@ -39,6 +40,7 @@ export const ADMIN_SIDE_NAV: NavItem[] = [
   { href: "/subscriptions", label: "Subscriptions", icon: CreditCard },
   { href: "/payments", label: "Payments", icon: Receipt },
   { href: "/plans", label: "Plans", icon: Sparkles },
+  { href: "/ai-prompts", label: "AI prompts", icon: Bot },
 ];
 
 export const SETTINGS_NAV_ITEM: NavItem = {

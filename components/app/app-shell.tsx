@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Plus } from "lucide-react";
 
+import { AiChatWidget } from "@/components/ai/ai-chat-widget";
 import { BrandLockup } from "@/components/home/brand-mark";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -174,6 +175,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </ul>
       </nav>
+
+      <AiChatWidget />
     </div>
   );
 }
