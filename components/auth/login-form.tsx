@@ -163,35 +163,39 @@ export function LoginForm({ nextPath = null }: { nextPath?: string | null }) {
           <div className="auth-demo-logins">
             <p className="auth-demo-label mono">Quick demo access</p>
             <div className="auth-demo-grid">
-              <button
-                type="button"
-                className="btn btn-ghost btn-block auth-demo-btn"
-                disabled={isBusy}
-                onClick={() => onDemoLogin("customer")}
-              >
-                {demoPending === "customer" ? (
-                  <Loader2 className="animate-spin" size={18} />
-                ) : (
-                  <UserRound size={18} aria-hidden />
-                )}
-                Login as Customer
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost btn-block auth-demo-btn auth-demo-btn-admin"
-                disabled={isBusy}
-                onClick={() => onDemoLogin("admin")}
-              >
-                {demoPending === "admin" ? (
-                  <Loader2 className="animate-spin" size={18} />
-                ) : (
-                  <Shield size={18} aria-hidden />
-                )}
-                Login as Admin
-              </button>
+              {DEMO_LOGINS.map((demo) => {
+                const isAdmin = demo.role === "admin";
+                const pending = demoPending === demo.role;
+                return (
+                  <button
+                    key={demo.role}
+                    type="button"
+                    className={
+                      isAdmin
+                        ? "btn btn-ghost btn-block auth-demo-btn auth-demo-btn-admin"
+                        : "btn btn-ghost btn-block auth-demo-btn"
+                    }
+                    disabled={isBusy}
+                    onClick={() => void onDemoLogin(demo.role)}
+                  >
+                    <span className="auth-demo-btn-top">
+                      {pending ? (
+                        <Loader2 className="animate-spin" size={18} />
+                      ) : isAdmin ? (
+                        <Shield size={18} aria-hidden />
+                      ) : (
+                        <UserRound size={18} aria-hidden />
+                      )}
+                      <span>{demo.label}</span>
+                    </span>
+                    <span className="auth-demo-creds mono">{demo.email}</span>
+                    <span className="auth-demo-creds mono">{demo.password}</span>
+                  </button>
+                );
+              })}
             </div>
             <p className="auth-demo-note mono">
-              Uses seeded demo accounts for local testing.
+              Run <code>npm run db:seed</code> in momentum-backend if login fails.
             </p>
           </div>
         </AuthFormItem>

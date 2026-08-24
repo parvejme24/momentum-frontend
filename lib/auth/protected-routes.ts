@@ -11,6 +11,7 @@ export const PROTECTED_ROUTE_PREFIXES = [
   "/admin",
   "/payments",
   "/plans",
+  "/ai-prompts",
   "/notifications",
 ] as const;
 

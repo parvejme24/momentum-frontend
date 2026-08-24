@@ -76,6 +76,8 @@ export const config = {
     "/payments/:path*",
     "/plans",
     "/plans/:path*",
+    "/ai-prompts",
+    "/ai-prompts/:path*",
     "/notifications",
     "/notifications/:path*",
   ],
