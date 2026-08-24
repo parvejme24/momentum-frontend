@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useMemo } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, CreditCard, Landmark, ShieldCheck, X } from "lucide-react";
 import { motion } from "framer-motion";
@@ -22,6 +22,7 @@ import {
   usePlanCompare,
   usePublicPlans,
 } from "@/lib/billing/hooks";
+import { useAuth } from "@/lib/auth/context";
 import { formatCents, intervalLabel } from "@/lib/money";
 import { planFeaturesForDisplay } from "@/lib/pricing/features";
 
@@ -63,6 +64,7 @@ function CheckoutBody() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { pushToast } = useToast();
+  const { user, isLoading: authLoading } = useAuth();
   const planId = searchParams.get("plan");
 
   const plansQuery = usePublicPlans();
@@ -83,11 +85,19 @@ function CheckoutBody() {
   const sslReady = billingConfig?.sslcommerz.configured ?? false;
   const paidCheckoutReady = checkoutAvailable(billingConfig);
 
+  useEffect(() => {
+    if (authLoading || user) return;
+    const next = encodeURIComponent(
+      `${window.location.pathname}${window.location.search}`,
+    );
+    router.replace(`/login?next=${next}`);
+  }, [authLoading, user, router]);
+
   async function startPayment(provider: PaymentProvider) {
-    if (!plan) return;
+    if (!plan || !user) return;
     try {
       const origin = originUrl();
-      const redirects = checkoutRedirectUrls(provider, origin);
+      const redirects = checkoutRedirectUrls(provider, origin, billingConfig);
       const result = await checkout.mutateAsync({
         planId: plan.id,
         provider,
@@ -106,7 +116,10 @@ function CheckoutBody() {
   }
 
   const loading =
-    plansQuery.isLoading || billingConfigQuery.isLoading || compareQuery.isLoading;
+    authLoading ||
+    plansQuery.isLoading ||
+    billingConfigQuery.isLoading ||
+    compareQuery.isLoading;
 
   if (loading) {
     return <CheckoutLoading />;
@@ -232,7 +245,7 @@ function CheckoutBody() {
                 <button
                   type="button"
                   className="btn btn-primary btn-block"
-                  disabled={checkout.isPending}
+                  disabled={checkout.isPending || authLoading || !user}
                   onClick={() => void startPayment("stripe")}
                 >
                   Continue with Stripe
@@ -266,7 +279,7 @@ function CheckoutBody() {
                 <button
                   type="button"
                   className="btn btn-block"
-                  disabled={checkout.isPending}
+                  disabled={checkout.isPending || authLoading || !user}
                   onClick={() => void startPayment("sslcommerz")}
                 >
                   Continue with SSLCommerz

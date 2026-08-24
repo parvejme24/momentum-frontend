@@ -39,15 +39,37 @@ export const PAYMENT_RETURN_PATH = "/payment/return";
 /** Clean URL after payment return handling finishes. */
 export const POST_CHECKOUT_PATH = "/dashboard";
 
-export function checkoutRedirectUrls(provider: PaymentProvider, origin: string) {
-  const base = `${origin}${PAYMENT_RETURN_PATH}`;
-  if (provider === "sslcommerz") {
+/** App origin from billing config (matches backend APP_URL validation). */
+export function appOriginFromBillingConfig(
+  config: BillingConfig | undefined,
+): string | null {
+  const sample =
+    config?.sslcommerz.successUrl ||
+    config?.sslcommerz.cancelUrl ||
+    config?.sslcommerz.failUrl;
+  if (!sample) return null;
+  try {
+    return new URL(sample).origin;
+  } catch {
+    return null;
+  }
+}
+
+export function checkoutRedirectUrls(
+  provider: PaymentProvider,
+  origin: string,
+  config?: BillingConfig,
+) {
+  if (provider === "sslcommerz" && config?.sslcommerz.configured) {
     return {
-      successUrl: `${base}?sslcommerz=success`,
-      cancelUrl: `${base}?sslcommerz=cancel`,
-      failUrl: `${base}?sslcommerz=fail`,
+      successUrl: config.sslcommerz.successUrl,
+      cancelUrl: config.sslcommerz.cancelUrl,
+      failUrl: config.sslcommerz.failUrl,
     };
   }
+
+  const appOrigin = appOriginFromBillingConfig(config) ?? origin;
+  const base = `${appOrigin}${PAYMENT_RETURN_PATH}`;
 
   return {
     successUrl: `${base}?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
