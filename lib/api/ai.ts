@@ -1,6 +1,11 @@
 import { api } from "@/lib/api/client";
 import { aiPath } from "@/lib/api/config";
 import type {
+  AiChatInput,
+  AiChatResponse,
+  AiCreateHabitInput,
+  AiCreateHabitResponse,
+  AiFeaturesResponse,
   AiHabitIdeasInput,
   AiHabitIdeasResponse,
   AiHabitMessageInput,
@@ -12,6 +17,10 @@ import type {
 
 export async function getAiStatus(): Promise<AiStatusResponse> {
   return api.get<AiStatusResponse>(aiPath("status"));
+}
+
+export async function getAiFeatures(): Promise<AiFeaturesResponse> {
+  return api.get<AiFeaturesResponse>(aiPath("features"));
 }
 
 export async function postAiSuggestions(
@@ -37,6 +46,19 @@ export async function postAiHabitMessage(
 ): Promise<AiHabitMessageResponse> {
   return api.post<AiHabitMessageResponse>(
     aiPath("habit-message"),
+    body as Record<string, unknown>,
+  );
+}
+
+export async function postAiChat(body: AiChatInput): Promise<AiChatResponse> {
+  return api.post<AiChatResponse>(aiPath("chat"), body as Record<string, unknown>);
+}
+
+export async function postAiCreateHabit(
+  body: AiCreateHabitInput,
+): Promise<AiCreateHabitResponse> {
+  return api.post<AiCreateHabitResponse>(
+    aiPath("create-habit"),
     body as Record<string, unknown>,
   );
 }

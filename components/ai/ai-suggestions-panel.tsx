@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { LoaderCircle, RefreshCw, Sparkles } from "lucide-react";
 
 import { AiUpgradePrompt } from "@/components/ai/ai-upgrade-prompt";
 import { mutationErrorMessage } from "@/lib/admin/map";
-import type { AiFocus, AiSuggestion } from "@/lib/api/types";
+import type { AiFocus } from "@/lib/api/types";
 import { useAiStatus, useAiSuggestions } from "@/lib/ai/hooks";
 import { suggestionAccent } from "@/lib/ai/map";
 
@@ -18,28 +18,10 @@ const FOCUS_TABS: { id: AiFocus; label: string }[] = [
 
 export function AiSuggestionsPanel() {
   const statusQuery = useAiStatus();
-  const suggestions = useAiSuggestions();
   const [focus, setFocus] = useState<AiFocus>("general");
-  const [items, setItems] = useState<AiSuggestion[]>([]);
-
   const enabled = statusQuery.data?.enabled ?? false;
-
-  const load = useCallback(
-    async (nextFocus: AiFocus) => {
-      try {
-        const result = await suggestions.mutateAsync({ focus: nextFocus });
-        setItems(result.suggestions);
-      } catch {
-        setItems([]);
-      }
-    },
-    [suggestions],
-  );
-
-  useEffect(() => {
-    if (!enabled) return;
-    void load(focus);
-  }, [enabled, focus, load]);
+  const suggestions = useAiSuggestions(focus, enabled && !statusQuery.isLoading);
+  const items = suggestions.data?.suggestions ?? [];
 
   if (statusQuery.isLoading) return null;
   if (!enabled) return <AiUpgradePrompt compact />;
@@ -54,10 +36,10 @@ export function AiSuggestionsPanel() {
         <button
           type="button"
           className="btn btn-ghost btn-sm ai-panel-refresh"
-          disabled={suggestions.isPending}
-          onClick={() => void load(focus)}
+          disabled={suggestions.isFetching}
+          onClick={() => void suggestions.refetch()}
         >
-          {suggestions.isPending ? (
+          {suggestions.isFetching ? (
             <LoaderCircle size={14} className="ai-spin" aria-hidden />
           ) : (
             <RefreshCw size={14} aria-hidden />
@@ -74,9 +56,7 @@ export function AiSuggestionsPanel() {
             role="tab"
             aria-selected={focus === tab.id}
             className={focus === tab.id ? "tab active" : "tab"}
-            onClick={() => {
-              setFocus(tab.id);
-            }}
+            onClick={() => setFocus(tab.id)}
           >
             {tab.label}
           </button>
@@ -89,7 +69,7 @@ export function AiSuggestionsPanel() {
         </p>
       ) : null}
 
-      {suggestions.isPending && items.length === 0 ? (
+      {suggestions.isLoading && items.length === 0 ? (
         <p className="hint ai-panel-loading">Thinking…</p>
       ) : items.length === 0 ? (
         <p className="hint">No suggestions yet.</p>
