@@ -1,4 +1,5 @@
 import type {
+  ListAdminAiPromptsQuery,
   ListAdminPaymentsQuery,
   ListAdminSubscriptionsQuery,
   ListAdminUsersQuery,
@@ -31,6 +32,12 @@ export const adminKeys = {
     all: ["admin", "plans"] as const,
     list: (status = "all") => ["admin", "plans", "list", status] as const,
     detail: (id: string) => ["admin", "plans", "detail", id] as const,
+  },
+  aiPrompts: {
+    all: ["admin", "ai-prompts"] as const,
+    list: (query: ListAdminAiPromptsQuery = {}) =>
+      ["admin", "ai-prompts", "list", query] as const,
+    detail: (id: string) => ["admin", "ai-prompts", "detail", id] as const,
   },
 };
 

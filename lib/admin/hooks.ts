@@ -30,6 +30,15 @@ import {
   updateAdminPayment,
 } from "@/lib/api/admin-payments";
 import {
+  archiveAdminAiPrompt,
+  createAdminAiPrompt,
+  deleteAdminAiPrompt,
+  getAdminAiPrompt,
+  listAdminAiPrompts,
+  publishAdminAiPrompt,
+  updateAdminAiPrompt,
+} from "@/lib/api/admin-ai";
+import {
   archiveAdminPlan,
   createAdminPlan,
   deleteAdminPlan,
@@ -41,10 +50,12 @@ import {
 } from "@/lib/api/pricing";
 import type {
   BanUserInput,
+  CreateAiPromptInput,
   CreatePaymentInput,
   CreatePlanInput,
   CreateSubscriptionInput,
   GrantPlanAccessInput,
+  ListAdminAiPromptsQuery,
   ListAdminPaymentsQuery,
   ListAdminSubscriptionsQuery,
   ListAdminUsersQuery,
@@ -52,6 +63,7 @@ import type {
   RenewSubscriptionInput,
   RevenueQuery,
   UpdateAdminUserInput,
+  UpdateAiPromptInput,
   UpdatePaymentInput,
   UpdatePlanInput,
   UpdateSubscriptionInput,
@@ -75,6 +87,7 @@ function useInvalidateAdmin() {
       queryClient.invalidateQueries({ queryKey: adminKeys.subscriptions.all }),
       queryClient.invalidateQueries({ queryKey: adminKeys.payments.all }),
       queryClient.invalidateQueries({ queryKey: adminKeys.plans.all }),
+      queryClient.invalidateQueries({ queryKey: adminKeys.aiPrompts.all }),
     ]);
 }
 
@@ -342,6 +355,65 @@ export function useReorderAdminPlans() {
   const invalidate = useInvalidateAdmin();
   return useMutation({
     mutationFn: (ids: string[]) => reorderAdminPlans(ids),
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function useAdminAiPrompts(query: ListAdminAiPromptsQuery = {}) {
+  const enabled = useAdminEnabled();
+  return useQuery({
+    queryKey: adminKeys.aiPrompts.list(query),
+    queryFn: () => listAdminAiPrompts(query),
+    enabled,
+  });
+}
+
+export function useAdminAiPrompt(id: string) {
+  const enabled = useAdminEnabled();
+  return useQuery({
+    queryKey: adminKeys.aiPrompts.detail(id),
+    queryFn: () => getAdminAiPrompt(id),
+    enabled: enabled && Boolean(id),
+  });
+}
+
+export function useCreateAdminAiPrompt() {
+  const invalidate = useInvalidateAdmin();
+  return useMutation({
+    mutationFn: (body: CreateAiPromptInput) => createAdminAiPrompt(body),
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function useUpdateAdminAiPrompt() {
+  const invalidate = useInvalidateAdmin();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: UpdateAiPromptInput }) =>
+      updateAdminAiPrompt(id, body),
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function usePublishAdminAiPrompt() {
+  const invalidate = useInvalidateAdmin();
+  return useMutation({
+    mutationFn: (id: string) => publishAdminAiPrompt(id),
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function useArchiveAdminAiPrompt() {
+  const invalidate = useInvalidateAdmin();
+  return useMutation({
+    mutationFn: (id: string) => archiveAdminAiPrompt(id),
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function useDeleteAdminAiPrompt() {
+  const invalidate = useInvalidateAdmin();
+  return useMutation({
+    mutationFn: (id: string) => deleteAdminAiPrompt(id),
     onSuccess: () => invalidate(),
   });
 }

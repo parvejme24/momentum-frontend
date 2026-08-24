@@ -6,6 +6,7 @@ import type {
   PlanStatus,
   SubscriptionStatus,
 } from "@/lib/api/types";
+import { ApiError } from "@/lib/api/errors";
 import { formatPrettyIso } from "@/lib/dates";
 
 export function formatLastActive(iso: string | null) {
@@ -88,5 +89,17 @@ export function initialFromName(name: string) {
 }
 
 export function mutationErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error && error.message ? error.message : fallback;
+  if (error instanceof ApiError) {
+    if (error.code === "RATE_LIMITED") {
+      return "Too many AI requests — wait a minute and try again.";
+    }
+    if (error.code === "NETWORK_ERROR") {
+      return "Could not reach the server. Check your connection and try again.";
+    }
+    if (error.message) return error.message;
+  }
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
 }
