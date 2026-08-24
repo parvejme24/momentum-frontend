@@ -11,6 +11,7 @@
  *   /v1/pricing
  *   /v1/billing
  *   /v1/ai
+ *   /v1/admin/ai
  *   /v1/notifications
  *   /v1/admin/users
  *   /v1/admin/subscriptions
@@ -35,6 +36,7 @@ export const API_PREFIX = {
   billing: "/v1/billing",
   ai: "/v1/ai",
   notifications: "/v1/notifications",
+  adminAi: "/v1/admin/ai",
   adminPricing: "/v1/admin/pricing",
   adminUsers: "/v1/admin/users",
   adminSubscriptions: "/v1/admin/subscriptions",
@@ -107,6 +109,10 @@ export function billingPath(suffix = ""): string {
 
 export function aiPath(suffix = ""): string {
   return withSuffix(API_PREFIX.ai, suffix);
+}
+
+export function adminAiPath(suffix = ""): string {
+  return withSuffix(API_PREFIX.adminAi, suffix);
 }
 
 export function notificationsPath(suffix = ""): string {

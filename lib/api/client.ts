@@ -224,12 +224,11 @@ async function request<T>(
 
   const error = await parseErrorResponse(res);
 
-  if (error.code === "UNAUTHORIZED") {
-    invalidateSession();
-    throw error;
-  }
-
-  if (error.code === "TOKEN_EXPIRED" && !skipAuthRetry && !hasRetried) {
+  if (
+    (error.code === "TOKEN_EXPIRED" || error.code === "UNAUTHORIZED") &&
+    !skipAuthRetry &&
+    !hasRetried
+  ) {
     try {
       await refreshAccessToken();
     } catch (refreshError) {
@@ -237,6 +236,11 @@ async function request<T>(
       throw refreshError;
     }
     return request<T>(method, path, options, true);
+  }
+
+  if (error.code === "UNAUTHORIZED") {
+    invalidateSession();
+    throw error;
   }
 
   throw error;

@@ -904,6 +904,15 @@ export type ApiErrorEnvelope = {
 
 export type AiFocus = "habits" | "streaks" | "schedule" | "general";
 
+export type AiPromptFeature =
+  | "chat"
+  | "generate_habit"
+  | "create_habit"
+  | "suggestions"
+  | "habit_message";
+
+export type AiPromptStatus = "draft" | "published" | "archived";
+
 export type AiSuggestionsInput = {
   focus?: AiFocus;
   prompt?: string;
@@ -920,6 +929,22 @@ export type AiHabitMessageInput = {
   context?: "check_in" | "streak" | "missed" | "celebration" | "general";
 };
 
+export type AiChatHistoryItem = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+export type AiChatInput = {
+  message: string;
+  habitId?: string;
+  history?: AiChatHistoryItem[];
+};
+
+export type AiCreateHabitInput = {
+  message?: string;
+  goal?: string;
+};
+
 export type AiSuggestion = {
   title: string;
   body: string;
@@ -930,6 +955,7 @@ export type AiSuggestionsResponse = {
   suggestions: AiSuggestion[];
   planSlug: string;
   source: "gemini" | "fallback";
+  promptSlug: string;
 };
 
 export type AiHabitIdea = {
@@ -946,6 +972,7 @@ export type AiHabitIdeasResponse = {
   ideas: AiHabitIdea[];
   planSlug: string;
   source: "gemini" | "fallback";
+  promptSlug: string;
 };
 
 export type AiHabitMessageResponse = {
@@ -954,6 +981,35 @@ export type AiHabitMessageResponse = {
   message: string;
   planSlug: string;
   source: "gemini" | "fallback";
+  promptSlug: string;
+};
+
+export type AiChatResponse = {
+  reply: string;
+  planSlug: string;
+  source: "gemini" | "fallback";
+  promptSlug: string;
+};
+
+export type AiCreatedHabitDraft = {
+  title: string;
+  description: string;
+  type: HabitTypeApi;
+  scheduleType: HabitScheduleType;
+  scheduleDays: number[];
+  targetPerWeek: number | null;
+  intervalDays: number | null;
+  icon: string;
+  color: string;
+  startDate: string;
+};
+
+export type AiCreateHabitResponse = {
+  habit: AiCreatedHabitDraft;
+  reason: string;
+  planSlug: string;
+  source: "gemini" | "fallback";
+  promptSlug: string;
 };
 
 export type AiStatusResponse = {
@@ -961,4 +1017,52 @@ export type AiStatusResponse = {
   planSlug: string;
   tier: "free" | "pro";
   geminiConfigured: boolean;
+};
+
+export type AiFeatureCard = {
+  feature: AiPromptFeature;
+  slug: string;
+  name: string;
+  description: string;
+};
+
+export type AiFeaturesResponse = {
+  features: AiFeatureCard[];
+};
+
+export type AdminAiPrompt = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  feature: AiPromptFeature;
+  body: string;
+  status: AiPromptStatus;
+  sortOrder: number;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ListAdminAiPromptsQuery = {
+  feature?: AiPromptFeature;
+  status?: AiPromptStatus | "all";
+};
+
+export type CreateAiPromptInput = {
+  slug: string;
+  name: string;
+  description?: string;
+  feature: AiPromptFeature;
+  body: string;
+  sortOrder?: number;
+};
+
+export type UpdateAiPromptInput = {
+  slug?: string;
+  name?: string;
+  description?: string | null;
+  feature?: AiPromptFeature;
+  body?: string;
+  sortOrder?: number;
 };
