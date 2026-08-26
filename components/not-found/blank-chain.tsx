@@ -3,10 +3,14 @@
 import { useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
+import { cn } from "@/lib/utils";
+
 type CellLevel = 0 | 1 | 2 | 3 | 4;
 
 const WEEKS = 9;
 const DAYS = 7;
+
+const LEVEL_BG = ["bg-l0", "bg-l1", "bg-l2", "bg-l3", "bg-l4"] as const;
 
 function mulberry32(seed: number) {
   let t = seed >>> 0;
@@ -45,8 +49,12 @@ function buildBlankDayChain(): CellLevel[] {
 }
 
 function levelClass(level: CellLevel, gap: boolean): string {
-  if (gap || level === 0) return "cell gap";
-  return `cell l${level}`;
+  return cn(
+    "relative size-[18px] rounded-[2px] border border-[rgba(20,26,46,0.07)] transition-[transform,border-color,box-shadow] duration-fast ease-smooth max-[640px]:size-4 hover:z-[2] hover:scale-[1.35] hover:border-[color-mix(in_srgb,var(--blue)_35%,transparent)] hover:shadow-paper-sm dark:hover:border-[#8ba4c9]/55 dark:hover:shadow-[2px_2px_0_rgba(139,164,201,0.35)]",
+    gap || level === 0
+      ? "border-dashed border-ink-30 bg-paper-white shadow-none"
+      : LEVEL_BG[level],
+  );
 }
 
 export function BlankChain() {
@@ -66,16 +74,16 @@ export function BlankChain() {
   }, [cells]);
 
   return (
-    <div className="heat-scroll not-found-chain-scroll">
+    <div className="flex justify-center overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
       <div
-        className="chain chain-motion not-found-chain"
+        className="flex w-max flex-row gap-1"
         role="img"
         aria-label="A short habit chain with a blank gap in the middle — this page was never logged"
       >
         {columns.map((col, week) => (
           <motion.div
             key={week}
-            className="chain-col"
+            className="flex flex-col gap-1"
             initial={reduce ? false : "hidden"}
             animate="show"
             variants={{

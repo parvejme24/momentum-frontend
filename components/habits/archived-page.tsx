@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import {
-  AnimatePresence,
   motion,
   MotionConfig,
   useReducedMotion,
@@ -23,6 +22,23 @@ import {
   useRestoreHabit,
 } from "@/lib/habits/hooks";
 import { toArchivedHabit } from "@/lib/habits/map";
+import {
+  backLink,
+  btn,
+  btnDanger,
+  btnGhost,
+  btnPrimary,
+  btnSm,
+  eyebrow,
+  hint,
+  hintErr,
+  lede,
+  mono,
+  pageHead,
+  sectionTitle,
+  settingsActions,
+} from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 type DeleteTarget =
   | { kind: "one"; habit: ArchivedHabit }
@@ -95,24 +111,26 @@ export function ArchivedPage() {
   return (
     <MotionConfig reducedMotion="user">
       <motion.div
-        className="archived-page"
+        className="min-w-0"
         initial={reduce ? false : "hidden"}
         animate="show"
         variants={reduce ? undefined : staggerContainer}
       >
         <motion.header
-          className="archived-head"
+          className="mb-8"
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <Link href="/habits" className="back-link mono">
+          <Link href="/habits" className={cn(backLink, mono, "mb-4")}>
             ← All habits
           </Link>
-          <div className="page-head">
-            <p className="eyebrow">
+          <div className={cn(pageHead, "mb-0 w-full min-w-0")}>
+            <p className={cn(eyebrow, "mb-2")}>
               {archived.length} archived · {activeCount} active
             </p>
-            <h1>Archived</h1>
-            <p className="lede">
+            <h1 className="mt-4 wrap-anywhere text-[clamp(1.7rem,6vw,2.4rem)]">
+              Archived
+            </h1>
+            <p className={cn(lede, "mt-4 max-w-[48ch] wrap-break-word text-[clamp(0.92rem,2.6vw,1.08rem)]")}>
               Habits you archive leave Today, but their marks and chains stay
               here. Restore one when you want it back.
             </p>
@@ -120,7 +138,7 @@ export function ArchivedPage() {
         </motion.header>
 
         {archivedQuery.error ? (
-          <p className="hint hint-err">
+          <p className={cn(hint, hintErr)}>
             {archivedQuery.error instanceof ApiError
               ? archivedQuery.error.message
               : "Could not load archived habits"}
@@ -131,56 +149,58 @@ export function ArchivedPage() {
           <HabitCardsSkeleton count={4} />
         ) : archived.length === 0 ? (
           <motion.div
-            className="empty archived-empty"
+            className="mt-2 rounded-lg border-2 border-dashed border-ink-30 px-6 py-14 text-center"
             variants={reduce ? undefined : fadeUpSoft}
           >
-            <div className="empty-grid" aria-hidden>
+            <div
+              className="mb-5 grid grid-cols-[repeat(5,14px)] justify-center gap-1"
+              aria-hidden
+            >
               {Array.from({ length: 15 }).map((_, i) => (
-                <i key={i} />
+                <i
+                  key={i}
+                  className="block aspect-square rounded-[2px] border-2 border-dashed border-ink-30"
+                />
               ))}
             </div>
-            <h2 className="section-title">Nothing archived</h2>
-            <p className="hint" style={{ marginTop: 8 }}>
+            <h2 className={sectionTitle}>Nothing archived</h2>
+            <p className={cn(hint, "mt-2")}>
               When you archive a habit, it lands here with its full history.
             </p>
-            <Link
-              href="/habits"
-              className="btn btn-primary"
-              style={{ marginTop: 20 }}
-            >
+            <Link href="/habits" className={cn(btn, btnPrimary, "mt-5")}>
               Back to habits
             </Link>
           </motion.div>
         ) : (
           <>
             <motion.section
-              className="archived-grid"
+              className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 wide:grid-cols-4 [&>*]:m-0 [&>*]:min-w-0"
               aria-label="Archived habits"
-              variants={reduce ? undefined : fadeUpSoft}
+              initial={reduce ? false : "hidden"}
+              animate="show"
+              variants={reduce ? undefined : staggerContainer}
             >
-              <AnimatePresence mode="popLayout">
-                {archived.map((habit) => (
-                  <ArchivedCard
-                    key={habit.id}
-                    habit={habit}
-                    onRestore={onRestore}
-                    onDelete={(id) => {
-                      const item = archived.find((h) => h.id === id);
-                      if (!item) return;
-                      setDeleteTarget({ kind: "one", habit: item });
-                    }}
-                  />
-                ))}
-              </AnimatePresence>
+              {archived.map((habit) => (
+                <ArchivedCard
+                  key={habit.id}
+                  habit={habit}
+                  onRestore={onRestore}
+                  onDelete={(id) => {
+                    const item = archived.find((h) => h.id === id);
+                    if (!item) return;
+                    setDeleteTarget({ kind: "one", habit: item });
+                  }}
+                />
+              ))}
             </motion.section>
 
             <motion.aside
-              className="archived-clear"
+              className="mt-10 flex items-end justify-between gap-6 border-t border-ink/8 pt-8"
               variants={reduce ? undefined : fadeUpSoft}
             >
-              <div className="archived-clear-copy">
-                <p className="eyebrow">Clear archive</p>
-                <p className="archived-clear-lede">
+              <div className="min-w-0 flex-1">
+                <p className={eyebrow}>Clear archive</p>
+                <p className="mt-4 max-w-[46ch] text-[0.92rem] leading-[1.5] text-ink-70">
                   Done with this list? Delete all removes {archived.length}{" "}
                   {archived.length === 1 ? "habit" : "habits"} and their
                   history. Active habits are not touched.
@@ -188,7 +208,12 @@ export function ArchivedPage() {
               </div>
               <button
                 type="button"
-                className="btn btn-ghost btn-sm archived-delete-all"
+                className={cn(
+                  btn,
+                  btnGhost,
+                  btnSm,
+                  "shrink-0 border-flame text-flame hover:border-flame hover:text-flame hover:shadow-hover",
+                )}
                 onClick={() => setDeleteTarget({ kind: "all" })}
               >
                 <Trash2 size={15} strokeWidth={2.4} aria-hidden />
@@ -206,7 +231,7 @@ export function ArchivedPage() {
           }}
           title={sheetTitle}
         >
-          <p className="hint" style={{ marginTop: 10, lineHeight: 1.55 }}>
+          <p className={cn(hint, "mt-2.5 leading-[1.55]")}>
             {deleteTarget?.kind === "one" ? (
               <>
                 This removes the habit and its history for good. You can’t undo
@@ -219,10 +244,10 @@ export function ArchivedPage() {
               </>
             )}
           </p>
-          <div className="settings-actions" style={{ marginTop: 22 }}>
+          <div className={cn(settingsActions, "mt-[22px]")}>
             <button
               type="button"
-              className="btn btn-ghost"
+              className={cn(btn, btnGhost)}
               onClick={() => setDeleteTarget(null)}
               disabled={deleting}
             >
@@ -230,7 +255,7 @@ export function ArchivedPage() {
             </button>
             <button
               type="button"
-              className="btn btn-danger"
+              className={cn(btn, btnDanger)}
               onClick={() => void confirmDelete()}
               disabled={deleting}
             >

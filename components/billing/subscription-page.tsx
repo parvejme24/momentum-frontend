@@ -41,6 +41,29 @@ import { hasAdminComplimentaryAccess } from "@/lib/auth/role";
 import { formatPrettyIso } from "@/lib/dates";
 import { formatCents, intervalLabel } from "@/lib/money";
 import { planFeaturesForDisplay } from "@/lib/pricing/features";
+import {
+  btn,
+  btnBlock,
+  btnDanger,
+  btnGhost,
+  btnPrimary,
+  btnSm,
+  card,
+  chip,
+  chipBlue,
+  chipFlame,
+  chipQuiet,
+  eyebrow,
+  hint,
+  lede,
+  mono,
+  pageHead,
+  panelHead,
+  sectionTitle,
+  settingsActions,
+  statK,
+} from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 function originUrl(path: string) {
   if (typeof window === "undefined") return path;
@@ -202,18 +225,18 @@ function SubscriptionBody() {
       ) : (
         <MotionConfig reducedMotion="user">
           <motion.div
-            className="subscription-page"
+            className="min-w-0"
             initial={reduce ? false : "hidden"}
             animate="show"
             variants={reduce ? undefined : staggerContainer}
           >
             <motion.header
-              className="page-head"
+              className={pageHead}
               variants={reduce ? undefined : fadeUpSoft}
             >
-              <p className="eyebrow">Billing</p>
+              <p className={cn(eyebrow, "mb-2")}>Billing</p>
               <h1>Subscription</h1>
-              <p className="lede" style={{ marginTop: 10, maxWidth: "48ch" }}>
+              <p className={cn(lede, "mt-2.5 max-w-[48ch]")}>
                 One plan, one renewal date — keep the year chain without surprise
                 invoices.
               </p>
@@ -221,8 +244,7 @@ function SubscriptionBody() {
 
             {adminComplimentary ? (
               <motion.p
-                className="auth-alert"
-                style={{ marginBottom: 0 }}
+                className="mb-0 rounded-md border border-[var(--stroke)] bg-flame-soft px-3.5 py-3 text-[0.9rem] font-semibold text-danger-ink dark:border-[rgba(201,122,106,0.35)] dark:bg-[color-mix(in_srgb,#c97a6a_16%,var(--paper-raised))] dark:text-[#e8a598]"
                 variants={reduce ? undefined : fadeUpSoft}
               >
                 Admin accounts include complimentary Pro access with no renewal
@@ -241,8 +263,7 @@ function SubscriptionBody() {
 
             {!paidCheckoutReady ? (
               <motion.p
-                className="hint"
-                style={{ marginBottom: 0 }}
+                className={cn(hint, "mb-0")}
                 variants={reduce ? undefined : fadeUpSoft}
               >
                 Paid checkout is not configured on this environment yet. Free plan
@@ -251,16 +272,16 @@ function SubscriptionBody() {
             ) : null}
 
             <motion.section
-              className="card subscription-current"
+              className={cn(card, "mb-[22px]")}
               aria-labelledby="current-plan-heading"
               variants={reduce ? undefined : fadeUpSoft}
             >
-              <div className="panel-head">
+              <div className={panelHead}>
                 <div>
-                  <h2 id="current-plan-heading" className="section-title">
+                  <h2 id="current-plan-heading" className={sectionTitle}>
                     Current plan
                   </h2>
-                  <p className="hint" style={{ marginTop: 4 }}>
+                  <p className={cn(hint, "mt-1")}>
                     {subscription
                       ? subscription.cancelAtPeriodEnd
                         ? `Cancels on ${renewsOn}`
@@ -273,21 +294,26 @@ function SubscriptionBody() {
                     {subscription.plan.name}
                   </span>
                 ) : (
-                  <span className="chip chip-quiet">Free</span>
+                  <span className={cn(chip, chipQuiet)}>Free</span>
                 )}
               </div>
 
-              <div className="subscription-current-grid">
+              <div className="grid grid-cols-1 gap-[18px] nav:grid-cols-2 wide:grid-cols-4">
                 <div>
-                  <div className="stat-k">Price</div>
-                  <div className="subscription-price mono">
+                  <div className={statK}>Price</div>
+                  <div
+                    className={cn(
+                      mono,
+                      "mt-1.5 text-[clamp(1.5rem,3vw,2rem)] font-bold tracking-[-0.05em]",
+                    )}
+                  >
                     {subscription
                       ? formatCents(
                           subscription.plan.priceCents,
                           subscription.plan.currency,
                         )
                       : "$0"}
-                    <span className="subscription-period">
+                    <span className="ml-1 text-[0.82rem] font-semibold text-ink-50">
                       {subscription
                         ? intervalLabel(
                             subscription.plan.interval,
@@ -298,44 +324,46 @@ function SubscriptionBody() {
                   </div>
                 </div>
                 <div>
-                  <div className="stat-k">Renews</div>
-                  <div className="mono subscription-meta-value">{renewsOn}</div>
+                  <div className={statK}>Renews</div>
+                  <div className={cn(mono, "mt-1.5 text-[0.88rem] font-semibold text-ink-70")}>
+                    {renewsOn}
+                  </div>
                 </div>
                 <div>
-                  <div className="stat-k">Seats</div>
-                  <div className="mono subscription-meta-value">
+                  <div className={statK}>Seats</div>
+                  <div className={cn(mono, "mt-1.5 text-[0.88rem] font-semibold text-ink-70")}>
                     {subscription?.seats ?? 1}
                   </div>
                 </div>
                 <div>
-                  <div className="stat-k">Receipts to</div>
-                  <div className="mono subscription-meta-value">
+                  <div className={statK}>Receipts to</div>
+                  <div className={cn(mono, "mt-1.5 text-[0.88rem] font-semibold text-ink-70")}>
                     {user?.email ?? "—"}
                   </div>
                 </div>
                 {entitlements ? (
                   <>
                     <div>
-                      <div className="stat-k">Tier</div>
-                      <div className="mono subscription-meta-value">
+                      <div className={statK}>Tier</div>
+                      <div className={cn(mono, "mt-1.5 text-[0.88rem] font-semibold text-ink-70")}>
                         {entitlements.tier === "pro" ? "Pro" : "Free"}
                       </div>
                     </div>
                     <div>
-                      <div className="stat-k">Active habits</div>
-                      <div className="mono subscription-meta-value">
+                      <div className={statK}>Active habits</div>
+                      <div className={cn(mono, "mt-1.5 text-[0.88rem] font-semibold text-ink-70")}>
                         {entitlements.activeHabits} / {habitLimitLabel}
                       </div>
                     </div>
                     <div>
-                      <div className="stat-k">Access until</div>
-                      <div className="mono subscription-meta-value">
+                      <div className={statK}>Access until</div>
+                      <div className={cn(mono, "mt-1.5 text-[0.88rem] font-semibold text-ink-70")}>
                         {entitlementsExpires}
                       </div>
                     </div>
                     <div>
-                      <div className="stat-k">AI suggestions</div>
-                      <div className="mono subscription-meta-value">
+                      <div className={statK}>AI suggestions</div>
+                      <div className={cn(mono, "mt-1.5 text-[0.88rem] font-semibold text-ink-70")}>
                         {entitlements.aiEnabled ? "Included" : "—"}
                       </div>
                     </div>
@@ -344,10 +372,10 @@ function SubscriptionBody() {
               </div>
 
               {!adminComplimentary && stripeConfigured ? (
-                <div className="settings-actions" style={{ marginTop: 18 }}>
+                <div className={cn(settingsActions, "mt-[18px]")}>
                   <button
                     type="button"
-                    className="btn btn-ghost"
+                    className={cn(btn, btnGhost)}
                     disabled={busy}
                     onClick={() => void openPortal()}
                   >
@@ -356,7 +384,7 @@ function SubscriptionBody() {
                   {paidLive ? (
                     <button
                       type="button"
-                      className="btn btn-danger"
+                      className={cn(btn, btnDanger)}
                       disabled={busy || Boolean(subscription?.cancelAtPeriodEnd)}
                       onClick={() => setCancelOpen(true)}
                     >
@@ -365,10 +393,10 @@ function SubscriptionBody() {
                   ) : null}
                 </div>
               ) : !adminComplimentary && paidLive ? (
-                <div className="settings-actions" style={{ marginTop: 18 }}>
+                <div className={cn(settingsActions, "mt-[18px]")}>
                   <button
                     type="button"
-                    className="btn btn-danger"
+                    className={cn(btn, btnDanger)}
                     disabled={busy || Boolean(subscription?.cancelAtPeriodEnd)}
                     onClick={() => setCancelOpen(true)}
                   >
@@ -380,47 +408,44 @@ function SubscriptionBody() {
 
             {!adminComplimentary ? (
               <motion.section
-                className="subscription-plans"
+                className="mb-[22px]"
                 aria-labelledby="plans-heading"
                 variants={reduce ? undefined : fadeUpSoft}
               >
-                <div
-                  className="panel-head"
-                  style={{ borderBottom: 0, marginBottom: 14, paddingBottom: 0 }}
-                >
-                  <h2 id="plans-heading" className="section-title">
+                <div className={cn(panelHead, "mb-3.5 border-b-0 pb-0")}>
+                  <h2 id="plans-heading" className={sectionTitle}>
                     Plans
                   </h2>
                 </div>
-                <div className="subscription-plan-grid">
+                <div className="grid grid-cols-1 gap-[18px] wide:grid-cols-3">
                   {plans.map((plan) => {
                     const selected = plan.id === currentPlanId;
                     return (
                       <article
                         key={plan.id}
-                        className={
-                          selected
-                            ? "card subscription-plan selected"
-                            : plan.highlighted
-                              ? "card subscription-plan featured"
-                              : "card subscription-plan"
-                        }
+                        className={cn(
+                          card,
+                          "flex flex-col gap-3 p-[18px]",
+                          selected &&
+                            "border-blue shadow-[var(--shadow-lift),var(--focus-ring)]",
+                          !selected && plan.highlighted && "shadow-lift",
+                        )}
                       >
-                        <div className="subscription-plan-top">
-                          <h3 className="section-title">{plan.name}</h3>
+                        <div className="flex items-center justify-between gap-2.5">
+                          <h3 className={sectionTitle}>{plan.name}</h3>
                           {selected ? (
-                            <span className="chip chip-blue">Current</span>
+                            <span className={cn(chip, chipBlue)}>Current</span>
                           ) : plan.highlighted ? (
-                            <span className="chip chip-flame">Popular</span>
+                            <span className={cn(chip, chipFlame)}>Popular</span>
                           ) : null}
                         </div>
-                        <p className="subscription-plan-price mono">
+                        <p className={cn(mono, "text-[1.45rem] font-bold tracking-[-0.04em]")}>
                           {formatCents(plan.priceCents, plan.currency)}
-                          <span className="subscription-period">
+                          <span className="ml-1 text-[0.82rem] font-semibold text-ink-50">
                             {intervalLabel(plan.interval, plan.intervalCount)}
                           </span>
                         </p>
-                        <p className="hint" style={{ marginTop: 8 }}>
+                        <p className={cn(hint, "mt-2")}>
                           {plan.blurb}
                         </p>
                         <PlanFeatureList
@@ -428,13 +453,15 @@ function SubscriptionBody() {
                         />
                         <button
                           type="button"
-                          className={
+                          className={cn(
+                            btn,
+                            btnBlock,
                             selected
-                              ? "btn btn-ghost btn-block"
+                              ? btnGhost
                               : plan.highlighted
-                                ? "btn btn-primary btn-block"
-                                : "btn btn-block"
-                          }
+                                ? btnPrimary
+                                : null,
+                          )}
                           disabled={
                             busy ||
                             selected ||
@@ -453,47 +480,60 @@ function SubscriptionBody() {
                   })}
                 </div>
                 {plans.length === 0 ? (
-                  <p className="hint">No published plans yet.</p>
+                  <p className={hint}>No published plans yet.</p>
                 ) : null}
               </motion.section>
             ) : null}
 
             <motion.section
-              className="card"
+              className={card}
               aria-labelledby="invoices-heading"
               variants={reduce ? undefined : fadeUpSoft}
             >
-              <div className="panel-head">
-                <h2 id="invoices-heading" className="section-title">
+              <div className={panelHead}>
+                <h2 id="invoices-heading" className={sectionTitle}>
                   Invoices
                 </h2>
               </div>
               {invoices.length === 0 ? (
-                <p className="hint">No invoices yet.</p>
+                <p className={hint}>No invoices yet.</p>
               ) : (
-                <ul className="invoice-list">
+                <ul className="m-0 grid list-none p-0">
                   {invoices.map((invoice) => {
                     const downloadable = canDownloadInvoice(invoice);
                     const downloading = downloadingId === invoice.id;
                     return (
-                      <li key={invoice.id} className="invoice-row">
-                        <div className="invoice-copy">
-                          <div className="invoice-label">
+                      <li
+                        key={invoice.id}
+                        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-b border-ink/8 py-3 first:pt-0 last:border-b-0 last:pb-0 nav:grid-cols-[minmax(0,1fr)_auto_auto_auto]"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-bold tracking-[-0.01em]">
                             {invoice.description || "Momentum plan"}
                           </div>
-                          <div className="invoice-date mono">
+                          <div className={cn(mono, "mt-[3px] text-[0.72rem] text-ink-50")}>
                             {formatPrettyIso(invoice.paidAt)}
                           </div>
                         </div>
-                        <span className="mono invoice-amount">
+                        <span className={cn(mono, "font-bold max-nav:col-start-1")}>
                           {formatCents(invoice.amountCents, invoice.currency)}
                         </span>
-                        <span className={paymentStatusChip(invoice.status)}>
+                        <span
+                          className={cn(
+                            paymentStatusChip(invoice.status),
+                            "max-nav:col-start-2 max-nav:row-span-2 max-nav:self-center",
+                          )}
+                        >
                           {paymentStatusLabel(invoice.status)}
                         </span>
                         <button
                           type="button"
-                          className="btn btn-ghost btn-sm invoice-download"
+                          className={cn(
+                            btn,
+                            btnGhost,
+                            btnSm,
+                            "shrink-0 whitespace-nowrap max-nav:col-span-full max-nav:w-full",
+                          )}
                           disabled={!downloadable || downloading}
                           aria-busy={downloading}
                           title={
@@ -520,21 +560,21 @@ function SubscriptionBody() {
               onClose={() => setCancelOpen(false)}
               title={`Cancel ${subscription?.plan.name ?? "plan"}?`}
             >
-              <p className="hint" style={{ marginTop: 10, lineHeight: 1.55 }}>
+              <p className={cn(hint, "mt-2.5 leading-[1.55]")}>
                 You keep access until {renewsOn}. After that the year chain stays
                 on Free until you upgrade again.
               </p>
-              <div className="settings-actions" style={{ marginTop: 22 }}>
+              <div className={cn(settingsActions, "mt-[22px]")}>
                 <button
                   type="button"
-                  className="btn btn-ghost"
+                  className={cn(btn, btnGhost)}
                   onClick={() => setCancelOpen(false)}
                 >
                   Keep plan
                 </button>
                 <button
                   type="button"
-                  className="btn btn-danger"
+                  className={cn(btn, btnDanger)}
                   disabled={busy}
                   onClick={() => void confirmCancel()}
                 >

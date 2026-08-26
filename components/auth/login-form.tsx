@@ -10,7 +10,18 @@ import {
   LoginCelebration,
 } from "@/components/auth/login-celebration";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
-import { AuthFormItem, AuthShell } from "@/components/auth/auth-shell";
+import {
+  AuthFormItem,
+  AuthShell,
+  authAlert,
+  authBrandDesktop,
+  authDivider,
+  authFields,
+  authFoot,
+  authFootLink,
+  authHeading,
+  authInlineLink,
+} from "@/components/auth/auth-shell";
 import { PasswordInput } from "@/components/auth/password-input";
 import { useToast } from "@/components/auth/toast";
 import { BrandLink } from "@/components/home/brand-mark";
@@ -19,6 +30,21 @@ import { Switch } from "@/components/ui/switch";
 import { ApiError } from "@/lib/api/errors";
 import { useAuth } from "@/lib/auth/context";
 import { DEMO_LOGINS, showDemoLogins } from "@/lib/auth/demo-logins";
+import { cn } from "@/lib/utils";
+import {
+  btn,
+  btnBlock,
+  btnGhost,
+  btnLg,
+  btnPrimary,
+  field,
+  hint,
+  hintErr,
+  input,
+  label,
+  mono,
+  muted,
+} from "@/lib/ui";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -149,20 +175,24 @@ export function LoginForm({ nextPath = null }: { nextPath?: string | null }) {
         ),
       }}
     >
-      <AuthFormItem className="auth-form-brand-desktop">
+      <AuthFormItem className={authBrandDesktop}>
         <BrandLink size="md" />
       </AuthFormItem>
 
-      <AuthFormItem className="auth-heading">
+      <AuthFormItem className={authHeading}>
         <h1>Welcome back</h1>
-        <p className="muted">Pick up where the chain left off.</p>
+        <p className={cn(muted, "mt-2 dark:text-ink-70")}>
+          Pick up where the chain left off.
+        </p>
       </AuthFormItem>
 
       {showDemoLogins() ? (
         <AuthFormItem>
-          <div className="auth-demo-logins">
-            <p className="auth-demo-label mono">Quick demo access</p>
-            <div className="auth-demo-grid">
+          <div className="grid gap-[var(--space-2)]">
+            <p className={cn(mono, "m-0 text-[0.72rem] tracking-[0.12em] text-ink-50 uppercase")}>
+              Quick demo access
+            </p>
+            <div className="grid grid-cols-2 gap-[var(--gap)] max-nav:grid-cols-1">
               {DEMO_LOGINS.map((demo) => {
                 const isAdmin = demo.role === "admin";
                 const pending = demoPending === demo.role;
@@ -170,15 +200,19 @@ export function LoginForm({ nextPath = null }: { nextPath?: string | null }) {
                   <button
                     key={demo.role}
                     type="button"
-                    className={
-                      isAdmin
-                        ? "btn btn-ghost btn-block auth-demo-btn auth-demo-btn-admin"
-                        : "btn btn-ghost btn-block auth-demo-btn"
-                    }
+                    className={cn(
+                      btn,
+                      btnGhost,
+                      btnBlock,
+                      "grid min-h-auto justify-items-start gap-1 px-3.5 py-3 text-left text-[0.84rem]",
+                      "dark:border-[rgba(221,216,207,0.12)] dark:bg-[color-mix(in_srgb,var(--paper-white)_75%,transparent)] dark:shadow-paper-sm dark:enabled:hover:border-[#8ba4c9]/32 dark:enabled:hover:bg-paper-white",
+                      isAdmin &&
+                        "bg-[color-mix(in_srgb,var(--blue-soft)_72%,var(--paper-white))] dark:border-[#8ba4c9]/28 dark:bg-[color-mix(in_srgb,var(--blue-soft)_85%,var(--paper-raised))]",
+                    )}
                     disabled={isBusy}
                     onClick={() => void onDemoLogin(demo.role)}
                   >
-                    <span className="auth-demo-btn-top">
+                    <span className="inline-flex items-center gap-2 font-bold">
                       {pending ? (
                         <Loader2 className="animate-spin" size={18} />
                       ) : isAdmin ? (
@@ -188,13 +222,17 @@ export function LoginForm({ nextPath = null }: { nextPath?: string | null }) {
                       )}
                       <span>{demo.label}</span>
                     </span>
-                    <span className="auth-demo-creds mono">{demo.email}</span>
-                    <span className="auth-demo-creds mono">{demo.password}</span>
+                    <span className={cn(mono, "text-[0.68rem] leading-[1.35] break-all text-ink-50")}>
+                      {demo.email}
+                    </span>
+                    <span className={cn(mono, "text-[0.68rem] leading-[1.35] break-all text-ink-50")}>
+                      {demo.password}
+                    </span>
                   </button>
                 );
               })}
             </div>
-            <p className="auth-demo-note mono">
+            <p className={cn(mono, "m-0 text-[0.68rem] leading-[1.45] tracking-[0.04em] text-ink-50 [&_code]:text-[0.66rem]")}>
               Run <code>npm run db:seed</code> in momentum-backend if login fails.
             </p>
           </div>
@@ -203,22 +241,22 @@ export function LoginForm({ nextPath = null }: { nextPath?: string | null }) {
 
       {showDemoLogins() ? (
         <AuthFormItem>
-          <div className="divider mono">or sign in with email</div>
+          <div className={authDivider}>or sign in with email</div>
         </AuthFormItem>
       ) : null}
 
       <AuthFormItem>
-        <form className="auth-fields" onSubmit={onSubmit} noValidate>
+        <form className={authFields} onSubmit={onSubmit} noValidate>
           {formError ? (
-            <p role="alert" className="auth-alert">
+            <p role="alert" className={authAlert}>
               {formError}
             </p>
           ) : null}
 
-          <label className="field">
-            <span className="label">Email</span>
+          <label className={field}>
+            <span className={label}>Email</span>
             <input
-              className="input"
+              className={input}
               type="email"
               name="email"
               autoComplete="email"
@@ -228,16 +266,16 @@ export function LoginForm({ nextPath = null }: { nextPath?: string | null }) {
               disabled={isBusy}
             />
             {fieldErrors.email ? (
-              <span className="hint hint-err">{fieldErrors.email}</span>
+              <span className={cn(hint, hintErr)}>{fieldErrors.email}</span>
             ) : null}
           </label>
 
-          <div className="field">
-            <div className="label-row">
-              <label htmlFor="password" className="label">
+          <div className={field}>
+            <div className="mb-[7px] flex items-baseline justify-between gap-3">
+              <label htmlFor="password" className={cn(label, "mb-0")}>
                 Password
               </label>
-              <Link href="/forgot-password" className="auth-inline-link mono">
+              <Link href="/forgot-password" className={authInlineLink}>
                 Forgot it?
               </Link>
             </div>
@@ -251,11 +289,11 @@ export function LoginForm({ nextPath = null }: { nextPath?: string | null }) {
               disabled={isBusy}
             />
             {fieldErrors.password ? (
-              <span className="hint hint-err">{fieldErrors.password}</span>
+              <span className={cn(hint, hintErr)}>{fieldErrors.password}</span>
             ) : null}
           </div>
 
-          <div className="auth-switch flex items-center space-x-2">
+          <div className="mt-0.5 flex items-center space-x-2 [&_[data-slot=label]]:cursor-pointer [&_[data-slot=label]]:text-[0.92rem] [&_[data-slot=label]]:font-semibold">
             <Switch
               id="keep-signed-in"
               checked={keepSignedIn}
@@ -267,7 +305,7 @@ export function LoginForm({ nextPath = null }: { nextPath?: string | null }) {
 
           <button
             type="submit"
-            className="btn btn-primary btn-block btn-lg"
+            className={cn(btn, btnPrimary, btnBlock, btnLg)}
             disabled={isBusy || !canSubmit}
           >
             {pending ? (
@@ -283,7 +321,7 @@ export function LoginForm({ nextPath = null }: { nextPath?: string | null }) {
       </AuthFormItem>
 
       <AuthFormItem>
-        <div className="divider mono">or</div>
+        <div className={authDivider}>or</div>
       </AuthFormItem>
 
       <AuthFormItem>
@@ -297,9 +335,9 @@ export function LoginForm({ nextPath = null }: { nextPath?: string | null }) {
       </AuthFormItem>
 
       <AuthFormItem>
-        <p className="auth-foot mono">
+        <p className={authFoot}>
           No account yet?{" "}
-          <Link href="/register" className="auth-foot-link">
+          <Link href="/register" className={authFootLink}>
             Create one
           </Link>
         </p>

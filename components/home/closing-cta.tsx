@@ -4,22 +4,40 @@ import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
 import { BrandLink } from "@/components/home/brand-mark";
+import { DemoLink } from "@/components/home/demo-link";
 import { InkButton } from "@/components/home/ink-button";
 import { MotionItem, MotionSection, easeOut } from "@/components/home/motion";
+import { cn } from "@/lib/utils";
+import {
+  btn,
+  btnFlame,
+  btnGhost,
+  btnLg,
+  btnSm,
+  eyebrow,
+  hint,
+  hintErr,
+  input,
+  lede,
+  mono,
+  muted,
+  row,
+  section,
+  wrap,
+} from "@/lib/ui";
 
 export function ClosingCta() {
   const reduce = useReducedMotion();
 
   return (
-    <MotionSection className="section">
-      <div className="wrap">
+    <MotionSection className={section}>
+      <div className={wrap}>
         <MotionItem
-          className="cta-band"
+          className="rounded-lg border border-[var(--stroke)] bg-[var(--cta-band-bg)] px-[var(--space-page)] py-[var(--space-5)] text-center text-[var(--cta-band-fg)] shadow-lift"
           hoverLift
-          style={{ boxShadow: "var(--shadow-lift)" }}
         >
           <motion.p
-            className="eyebrow flame"
+            className={cn(eyebrow, "text-flame")}
             animate={
               reduce
                 ? undefined
@@ -33,15 +51,20 @@ export function ClosingCta() {
           >
             Begin
           </motion.p>
-          <h2>
+          <h2 className="mt-[var(--space-2)] text-[var(--cta-band-fg)]">
             The first square is the hard one.
           </h2>
-          <p className="lede">
+          <p
+            className={cn(
+              lede,
+              "mx-auto mt-[var(--space-2)] text-[color-mix(in_srgb,var(--cta-band-fg)_72%,transparent)]",
+            )}
+          >
             After that, it’s just another day in the chain. Start a free logbook,
             or look around the demo first.
           </p>
           <motion.div
-            className="row"
+            className={cn(row, "mt-[var(--space-4)] flex-wrap justify-center")}
             initial={reduce ? false : { opacity: 0, y: 10 }}
             whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -50,9 +73,9 @@ export function ClosingCta() {
             <InkButton href="/register" variant="flame" size="lg">
               Create your account
             </InkButton>
-            <InkButton href="#demo" variant="ghost" size="lg">
+            <DemoLink className={cn(btn, btnGhost, btnLg)}>
               Look around first
-            </InkButton>
+            </DemoLink>
           </motion.div>
         </MotionItem>
       </div>
@@ -72,6 +95,14 @@ const WEEK = [
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const NEWSLETTER_KEY = "momentum.newsletter";
+
+const SQ_LEVEL: Record<string, string> = {
+  l1: "bg-l1",
+  l2: "bg-l2",
+  l3: "bg-l3",
+  l4: "bg-l4",
+  today: "border-flame bg-flame shadow-paper-sm",
+};
 
 function NewsletterSubscribe() {
   const [email, setEmail] = useState("");
@@ -96,9 +127,9 @@ function NewsletterSubscribe() {
 
   if (subscribed) {
     return (
-      <div className="footer-news">
-        <p className="eyebrow">Subscribed</p>
-        <p className="footer-news-lede">
+      <div>
+        <p className={eyebrow}>Subscribed</p>
+        <p className="mt-[var(--space-2)] max-w-[34ch] text-[0.95rem] leading-normal text-ink-70">
           You’re on the list. We’ll write when it counts — no streaks, no spam.
         </p>
       </div>
@@ -106,18 +137,22 @@ function NewsletterSubscribe() {
   }
 
   return (
-    <div className="footer-news">
-      <p className="eyebrow">Newsletter</p>
-      <p className="footer-news-lede">
+    <div>
+      <p className={eyebrow}>Newsletter</p>
+      <p className="mt-[var(--space-2)] max-w-[34ch] text-[0.95rem] leading-normal text-ink-70">
         A short note when the logbook changes. No streaks. No spam.
       </p>
-      <form className="footer-news-form" onSubmit={onSubmit} noValidate>
+      <form
+        className="mt-3.5 flex max-w-[260px] items-stretch gap-1.5 max-[640px]:max-w-full max-[640px]:flex-col max-[640px]:items-stretch"
+        onSubmit={onSubmit}
+        noValidate
+      >
         <label className="sr-only" htmlFor="footer-newsletter-email">
           Email
         </label>
         <input
           id="footer-newsletter-email"
-          className="input"
+          className={cn(input, "h-9 min-w-0 flex-1 px-2.5 py-1.5 text-[0.82rem]")}
           type="email"
           name="email"
           autoComplete="email"
@@ -130,12 +165,15 @@ function NewsletterSubscribe() {
           aria-invalid={Boolean(error)}
           aria-describedby={error ? "footer-newsletter-error" : undefined}
         />
-        <button className="btn btn-flame btn-sm" type="submit">
+        <button
+          className={cn(btn, btnFlame, btnSm, "h-9 shrink-0 px-3 text-[0.78rem] max-[640px]:w-full")}
+          type="submit"
+        >
           Subscribe
         </button>
       </form>
       {error ? (
-        <span id="footer-newsletter-error" className="hint hint-err">
+        <span id="footer-newsletter-error" className={cn(hint, hintErr)}>
           {error}
         </span>
       ) : null}
@@ -148,17 +186,17 @@ export function SiteFooter() {
 
   return (
     <motion.footer
-      className="footer"
+      className="border-t border-[var(--stroke)] bg-paper-raised py-[var(--space-6)] pb-[var(--space-4)]"
       initial={reduce ? false : { opacity: 0, y: 16 }}
       whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.55, ease: easeOut }}
     >
-      <div className="wrap">
-        <div className="footer-grid">
-          <div className="footer-brand">
+      <div className={wrap}>
+        <div className="grid grid-cols-1 items-start gap-[var(--space-5)] wide:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.95fr)] wide:gap-x-[var(--space-6)] max-wide:gap-9">
+          <div>
             <BrandLink size="lg" />
-            <p className="footer-lede">
+            <p className="mt-[var(--space-2)] max-w-[38ch] text-[1.05rem] leading-normal text-ink-70">
               A logbook for the days you showed up. One square at a time —
               no dashboards, no guilt, just the chain.
             </p>
@@ -167,12 +205,15 @@ export function SiteFooter() {
             <NewsletterSubscribe />
         </div>
 
-        <div className="footer-week">
-          <div className="footer-days" aria-hidden>
+        <div className="mt-[var(--space-5)] flex items-end justify-between gap-[var(--space-3)] border-t border-[var(--divider)] pt-[var(--space-4)] max-wide:flex-col max-wide:items-start max-wide:gap-4">
+          <div className="flex gap-2" aria-hidden>
             {WEEK.map((cell, i) => (
-              <div className="footer-day" key={`${cell.day}-${i}`}>
+              <div className="flex flex-col items-center gap-2" key={`${cell.day}-${i}`}>
                 <motion.span
-                  className={`footer-sq ${cell.level}`}
+                  className={cn(
+                    "block size-[26px] rounded-[3px] border border-ink-12 bg-l0 max-[640px]:size-[22px]",
+                    SQ_LEVEL[cell.level],
+                  )}
                   initial={reduce ? false : { scale: 0.5, opacity: 0 }}
                   whileInView={reduce ? undefined : { scale: 1, opacity: 1 }}
                   viewport={{ once: true }}
@@ -182,17 +223,31 @@ export function SiteFooter() {
                     delay: reduce ? 0 : 0.04 * i,
                   }}
                 />
-                <span className="footer-day-label mono">{cell.day}</span>
+                <span className={cn(mono, "text-[0.62rem] tracking-[0.14em] text-ink-50 uppercase")}>
+                  {cell.day}
+                </span>
               </div>
             ))}
           </div>
-          <p className="footer-week-cap muted mono">
+          <p
+            className={cn(
+              muted,
+              mono,
+              "m-0 grid min-w-0 gap-1 text-right text-[clamp(0.6rem,0.2rem+1.1vw,0.68rem)] leading-[1.45] tracking-[0.08em] uppercase max-wide:text-left max-wide:tracking-[0.06em] max-[640px]:[&_span]:whitespace-normal [&_span]:block [&_span]:whitespace-nowrap",
+            )}
+          >
             <span>This week, in squares.</span>
             <span>The last one is today.</span>
           </p>
         </div>
 
-        <div className="footer-meta mono muted">
+        <div
+          className={cn(
+            muted,
+            mono,
+            "mt-[var(--space-4)] flex items-center justify-between gap-[var(--space-2)] text-[0.65rem] tracking-[0.1em] uppercase max-[640px]:flex-col max-[640px]:items-start max-[640px]:gap-2 [&_p]:m-0",
+          )}
+        >
           <p>© {new Date().getFullYear()} Momentum — show up, mark the square.</p>
           <p>365 squares / year</p>
         </div>

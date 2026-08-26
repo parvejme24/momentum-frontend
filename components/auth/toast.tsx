@@ -37,16 +37,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ pushToast }}>
       {children}
-      <div className="toasts" aria-live="polite">
+      <div
+        className="fixed right-5 bottom-5 z-90 grid gap-2.5 max-[640px]:right-4 max-[640px]:bottom-[90px] max-[640px]:left-4"
+        aria-live="polite"
+      >
         <AnimatePresence>
           {toasts.map((toast) => (
             <motion.div
               key={toast.id}
-              className="toast"
+              className="flex items-center gap-2.5 rounded-md bg-ink px-[18px] py-[13px] text-[0.9rem] font-semibold text-paper shadow-paper [&_b]:text-flame"
               initial={reduce ? false : { opacity: 0, y: 14, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={reduce ? undefined : { opacity: 0, y: 10 }}
-              transition={{ duration: 0.28, ease: easeOut }}
+              transition={{ duration: 0.42, ease: easeOut }}
             >
               {toast.message}
             </motion.div>

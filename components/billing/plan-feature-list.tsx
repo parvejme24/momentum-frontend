@@ -6,6 +6,7 @@ import {
   featureLabel,
   normalizePackageFeature,
 } from "@/lib/pricing/features";
+import { cn } from "@/lib/utils";
 
 function FeatureInactiveIcon({
   className,
@@ -18,9 +19,7 @@ function FeatureInactiveIcon({
     <X
       size={16}
       strokeWidth={2.6}
-      className={["plan-feature-icon", "plan-feature-icon-inactive", className]
-        .filter(Boolean)
-        .join(" ")}
+      className={cn("mt-px shrink-0 text-flame", className)}
       aria-hidden={labelled ? undefined : true}
       aria-label={labelled}
     />
@@ -38,9 +37,7 @@ function FeatureActiveIcon({
     <Check
       size={16}
       strokeWidth={2.6}
-      className={["plan-feature-icon", "plan-feature-icon-active", className]
-        .filter(Boolean)
-        .join(" ")}
+      className={cn("mt-px shrink-0 text-blue", className)}
       aria-hidden={labelled ? undefined : true}
       aria-label={labelled}
     />
@@ -54,10 +51,15 @@ type PlanFeatureListProps = {
 
 export function PlanFeatureList({
   features,
-  className = "subscription-features",
+  className,
 }: PlanFeatureListProps) {
   return (
-    <ul className={className}>
+    <ul
+      className={cn(
+        "m-0 grid flex-1 list-none gap-2 p-0 text-[0.88rem] leading-[1.45] text-ink-70",
+        className,
+      )}
+    >
       {features.map((feature, index) => {
         const normalized = normalizePackageFeature(feature);
         const label = featureLabel(feature);
@@ -67,16 +69,15 @@ export function PlanFeatureList({
         return (
           <li
             key={`${label}-${index}`}
-            className={
-              normalized.isActive
-                ? "plan-feature-row plan-feature-row-active"
-                : "plan-feature-row plan-feature-row-inactive"
-            }
+            className={cn(
+              "flex items-start gap-2",
+              normalized.isActive ? "text-ink-70" : "text-flame",
+            )}
           >
             {normalized.isActive ? (
-              <FeatureActiveIcon />
+              <FeatureActiveIcon className="mt-0.5" />
             ) : (
-              <FeatureInactiveIcon />
+              <FeatureInactiveIcon className="mt-0.5" />
             )}
             <span>{label}</span>
           </li>
@@ -96,7 +97,7 @@ export function CompareFeatureCell({ feature }: CompareFeatureCellProps) {
   if (!normalized?.isActive) {
     return (
       <FeatureInactiveIcon
-        className="pricing-compare-icon"
+        className="inline-block align-[-2px]"
         labelled="Not included"
       />
     );
@@ -105,7 +106,10 @@ export function CompareFeatureCell({ feature }: CompareFeatureCellProps) {
   const detail = compareCellText(normalized);
   if (detail === "✓") {
     return (
-      <FeatureActiveIcon className="pricing-compare-icon" labelled="Included" />
+      <FeatureActiveIcon
+        className="inline-block align-[-2px]"
+        labelled="Included"
+      />
     );
   }
 

@@ -1,4 +1,6 @@
 import { ApiError } from "@/lib/api/errors";
+import { hint, hintErr } from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 export function QueryError({
   error,
@@ -9,7 +11,7 @@ export function QueryError({
 }) {
   if (!error) return null;
   return (
-    <p className="hint hint-err">
+    <p className={cn(hint, hintErr)}>
       {error instanceof ApiError ? error.message : fallback}
     </p>
   );

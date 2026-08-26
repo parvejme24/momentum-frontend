@@ -3,9 +3,10 @@
 import { useMemo, useState } from "react";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
-import { MiniHeatmap } from "@/components/habits/mini-heatmap";
+import { HabitMiniHeatmap } from "@/components/habits/habit-mini-heatmap";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
-import { RateBars } from "@/components/stats/rate-bars";
+import { ConsistencyTrendChart } from "@/components/stats/consistency-trend-chart";
+import { WeekdayRateChart } from "@/components/stats/weekday-rate-chart";
 import {
   RANGE_TABS,
   WEEKDAY_LABELS,
@@ -24,17 +25,53 @@ import {
   overviewSummary,
   weekdayRatesInOrder,
 } from "@/lib/stats/map";
-
-function consistencyLabels(count: number) {
-  return Array.from({ length: count }, (_, i) => {
-    if (i === 0) return "12w";
-    if (i === count - 1) return "Now";
-    return "";
-  });
-}
+import {
+  card,
+  cardHover,
+  chip,
+  chipBlue,
+  chipFlame,
+  eyebrow,
+  hint,
+  hintErr,
+  mono,
+  pageHead,
+  panelHead,
+  sectionTitle,
+  stat,
+  statK,
+  statN,
+  statV,
+  tabBar,
+  tabs,
+} from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 function asStatsRange(range: RangeKey): StatsRange {
   return range;
+}
+
+const HEAT_SWATCH =
+  "block size-3 rounded-[2px] border border-[rgba(20,26,46,0.07)]";
+
+const HABIT_GLYPH =
+  "grid size-11 shrink-0 place-items-center overflow-hidden rounded-md border border-ink/9 text-[1.15rem]";
+
+function HeatLegend() {
+  return (
+    <div
+      className="flex items-center gap-1.5 font-mono text-[0.68rem] text-ink-50"
+      aria-hidden
+    >
+      <span>Less</span>
+      <i className={cn(HEAT_SWATCH, "bg-l0")} />
+      <i className={cn(HEAT_SWATCH, "bg-l1")} />
+      <i className={cn(HEAT_SWATCH, "bg-l2")} />
+      <i className={cn(HEAT_SWATCH, "bg-l3")} />
+      <i className={cn(HEAT_SWATCH, "bg-l4")} />
+      <span>More</span>
+    </div>
+  );
 }
 
 export function StatsPage() {
@@ -103,24 +140,26 @@ export function StatsPage() {
         variants={reduce ? undefined : staggerContainer}
       >
         <motion.header
-          className="page-head stats-head"
+          className={cn(pageHead, "block")}
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <p className="eyebrow">
-            {data
-              ? `Since ${formatPrettyIso(data.range.from)}`
-              : "Stats"}
+          <p className={cn(eyebrow, "mb-2")}>
+            {data ? `Since ${formatPrettyIso(data.range.from)}` : "Stats"}
           </p>
-          <div className="stats-title-row">
-            <h1>Stats</h1>
-            <div className="tab-bar" role="tablist" aria-label="Date range">
+          <div className="flex items-baseline justify-between gap-6 max-nav:flex-wrap">
+            <h1 className="mb-0">Stats</h1>
+            <div
+              className={cn(tabBar, "shrink-0 justify-end max-nav:ml-auto")}
+              role="tablist"
+              aria-label="Date range"
+            >
               {RANGE_TABS.map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   role="tab"
                   aria-selected={range === tab.id}
-                  className={range === tab.id ? "tab active" : "tab"}
+                  className={tabs(range === tab.id)}
                   onClick={() => setRange(tab.id)}
                 >
                   {tab.label}
@@ -131,7 +170,7 @@ export function StatsPage() {
         </motion.header>
 
         {statsQuery.error ? (
-          <p className="hint hint-err">
+          <p className={cn(hint, hintErr)}>
             {statsQuery.error instanceof ApiError
               ? statsQuery.error.message
               : "Could not load stats"}
@@ -139,133 +178,150 @@ export function StatsPage() {
         ) : null}
 
         <motion.section
-          className="grid-4 stats-summary"
+          className="mb-[22px] grid grid-cols-2 gap-6 wide:grid-cols-4"
           aria-label="Summary"
           variants={reduce ? undefined : fadeUpSoft}
         >
           {summary.map((tile) => (
-            <article key={tile.key} className="stat card-hover">
-              <div className="stat-k">{tile.key}</div>
-              <div className={tile.flame ? "stat-v flame" : "stat-v"}>
+            <article key={tile.key} className={cn(stat, cardHover)}>
+              <div className={statK}>{tile.key}</div>
+              <div className={cn(statV, tile.flame && "text-flame")}>
                 {tile.value}
               </div>
-              <div className="stat-n">{tile.note}</div>
+              <div className={statN}>{tile.note}</div>
             </article>
           ))}
         </motion.section>
 
         <motion.section
-          className="grid-2 stats-charts"
+          className="mt-[22px] grid grid-cols-1 items-stretch gap-6 nav:grid-cols-2"
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <article className="card">
-            <div className="panel-head">
+          <article className={cn(card, "flex h-full min-h-0 min-w-0 flex-col")}>
+            <div className={cn(panelHead, "mb-3.5")}>
               <div>
-                <h2 className="section-title">Consistency</h2>
-                <p className="hint" style={{ marginTop: 4 }}>
-                  All habits, last 12 weeks
-                </p>
+                <h2 className={sectionTitle}>Consistency</h2>
+                <p className={cn(hint, "mt-1")}>All habits, last 12 weeks</p>
               </div>
+            </div>
+            <div className="min-w-0">
+              {weeks.length > 0 ? (
+                <ConsistencyTrendChart
+                  rates={weeks}
+                  ariaLabel="Consistency over the last 12 weeks"
+                  animateKey={range}
+                />
+              ) : (
+                <p className={cn(hint, "m-0 flex h-[220px] w-full items-center")}>
+                  Weekly completion appears after you log days.
+                </p>
+              )}
+            </div>
+            <div className="mt-0 flex min-h-[2.75rem] flex-wrap content-center items-center gap-2 overflow-visible border-t border-ink/8 pt-3 dark:border-ink/8">
               {delta !== 0 ? (
-                <span className="chip chip-blue">
+                <span className={cn(chip, chipBlue)}>
                   {delta > 0 ? `↗ up ${delta}` : `↘ down ${Math.abs(delta)}`} points
                 </span>
-              ) : null}
+              ) : (
+                <span className="block min-h-[1.75rem] w-full" aria-hidden />
+              )}
             </div>
-            {weeks.length > 0 ? (
-              <RateBars
-                rates={weeks}
-                labels={consistencyLabels(weeks.length)}
-                ariaLabel="Consistency over the last 12 weeks"
-                animateKey={range}
-              />
-            ) : (
-              <p className="hint">Weekly completion appears after you log days.</p>
-            )}
           </article>
 
-          <article className="card">
-            <div className="panel-head">
+          <article className={cn(card, "flex h-full min-h-0 min-w-0 flex-col")}>
+            <div className={cn(panelHead, "mb-0 pb-3")}>
               <div>
-                <h2 className="section-title">Your week</h2>
-                <p className="hint" style={{ marginTop: 4 }}>
-                  Completion rate by weekday
-                </p>
+                <h2 className={sectionTitle}>Your week</h2>
+                <p className={cn(hint, "mt-1")}>Completion rate by weekday</p>
               </div>
             </div>
-            {weekdays.some((rate) => rate > 0) ? (
-              <>
-                <RateBars
+            <div className="min-w-0">
+              {weekdays.some((rate) => rate > 0) ? (
+                <WeekdayRateChart
                   rates={weekdays}
                   labels={WEEKDAY_LABELS}
                   ariaLabel="Completion rate by weekday"
-                  hotThreshold={0.8}
                   animateKey={range}
+                  strongestIndex={strongestIndex}
+                  weakestIndex={weakestIndex}
                 />
-                <div className="stats-week-foot">
+              ) : (
+                <p className={cn(hint, "m-0 flex h-[220px] w-full items-center")}>
+                  Weekday rates fill in as you log days.
+                </p>
+              )}
+            </div>
+            <div className="mt-0 flex min-h-[2.75rem] flex-wrap content-center items-center gap-2 overflow-visible border-t border-ink/8 pt-3">
+              {weekdays.some((rate) => rate > 0) ? (
+                <>
                   {strongestDay ? (
-                    <span className="chip chip-blue">Strongest — {strongestDay}</span>
+                    <span className={cn(chip, chipBlue)}>Strongest — {strongestDay}</span>
                   ) : null}
                   {weakestDay ? (
-                    <span className="chip chip-flame">Weakest — {weakestDay}</span>
+                    <span className={cn(chip, chipFlame)}>Weakest — {weakestDay}</span>
                   ) : null}
-                </div>
-              </>
-            ) : (
-              <p className="hint">Weekday rates fill in as you log days.</p>
-            )}
+                </>
+              ) : (
+                <span className="block min-h-[1.75rem] w-full" aria-hidden />
+              )}
+            </div>
           </article>
         </motion.section>
 
         <motion.section
-          className="card stats-compare"
+          className={cn(card, "mt-[22px]")}
           aria-labelledby="compare-heading"
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <div className="panel-head">
+          <div className={cn(panelHead, "max-nav:flex-col max-nav:items-start")}>
             <div>
-              <h2 id="compare-heading" className="section-title">
+              <h2 id="compare-heading" className={sectionTitle}>
                 Every habit, side by side
               </h2>
-              <p className="hint" style={{ marginTop: 4 }}>
-                Same range · same scale for all
-              </p>
+              <p className={cn(hint, "mt-1")}>Same range · same scale for all</p>
             </div>
-            <div className="heat-legend" aria-hidden>
-              <span>Less</span>
-              <i style={{ background: "var(--l0)" }} />
-              <i style={{ background: "var(--l1)" }} />
-              <i style={{ background: "var(--l2)" }} />
-              <i style={{ background: "var(--l3)" }} />
-              <i style={{ background: "var(--l4)" }} />
-              <span>More</span>
-            </div>
+            <HeatLegend />
           </div>
 
           {compare.length === 0 ? (
-            <p className="hint">Create a habit to compare chains.</p>
+            <p className={hint}>Create a habit to compare chains.</p>
           ) : (
-            <div className="stats-compare-list">
+            <div className="grid grid-cols-1 gap-4 wide:grid-cols-2">
               {compare.map((habit) => (
-                <div key={habit.id} className="stats-compare-row">
-                  <div className="stats-compare-meta">
+                <div
+                  key={habit.id}
+                  className="flex min-w-0 flex-col gap-3 rounded-md border border-ink/9 bg-paper-white p-4 shadow-paper-sm dark:bg-paper-raised"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
                     <div
-                      className="habit-glyph"
+                      className={HABIT_GLYPH}
                       style={{ background: habit.tint }}
                       aria-hidden
                     >
                       {habit.emoji}
                     </div>
-                    <div className="habit-title">{habit.title}</div>
-                    <span className="mono stats-compare-rate">{habit.rate}%</span>
+                    <div className="min-w-0 flex-1 text-[1.02rem] font-bold tracking-[-0.01em]">
+                      {habit.title}
+                    </div>
+                    <span
+                      className={cn(
+                        mono,
+                        "shrink-0 text-[0.92rem] font-bold tracking-[-0.03em] text-ink-70",
+                      )}
+                    >
+                      {habit.rate}%
+                    </span>
                   </div>
-                  <MiniHeatmap
-                    seed={habit.heatSeed}
-                    fillRate={habit.fillRate}
-                    activeWeekdays={habit.activeWeekdays}
-                    label={habit.title}
-                    weeks={26}
-                  />
+                  <div className="w-full min-w-0">
+                    <HabitMiniHeatmap
+                      habitId={habit.id}
+                      seed={habit.heatSeed}
+                      fillRate={habit.fillRate}
+                      activeWeekdays={habit.activeWeekdays}
+                      label={habit.title}
+                      weeks={26}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -273,58 +329,88 @@ export function StatsPage() {
         </motion.section>
 
         <motion.section
-          className="grid-2 stats-bottom"
+          className="mt-[22px] grid grid-cols-1 items-stretch gap-6 nav:grid-cols-2"
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <article className="card">
-            <div className="panel-head">
-              <h2 className="section-title">Milestones</h2>
+          <article className={cn(card, "flex h-full min-h-0 flex-col self-stretch")}>
+            <div className={cn(panelHead, "mb-3.5 shrink-0")}>
+              <h2 className={sectionTitle}>Milestones</h2>
             </div>
-            {milestones.length === 0 ? (
-              <p className="hint">Streaks will land here as chains grow.</p>
-            ) : (
-              <ul className="milestone-list">
-                {milestones.map((item) => (
-                  <li key={item.id} className="milestone-row">
-                    <div
-                      className="habit-glyph"
-                      style={{ background: item.tint }}
-                      aria-hidden
+            <div className="flex min-h-0 flex-1 flex-col">
+              {milestones.length === 0 ? (
+                <p className={cn(hint, "m-0 flex flex-1 items-center")}>
+                  Streaks will land here as chains grow.
+                </p>
+              ) : (
+                <ul className="m-0 grid flex-1 list-none p-0">
+                  {milestones.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-start gap-3 border-b border-ink/8 py-3.5 first:pt-0 last:border-b-0 last:pb-0"
                     >
-                      {item.emoji}
-                    </div>
-                    <div className="milestone-copy">
-                      <div className="habit-title">{item.title}</div>
-                      <p className="hint" style={{ marginTop: 2 }}>
-                        {item.detail}
-                      </p>
-                    </div>
-                    <span className="mono milestone-when">{item.when}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+                      <div
+                        className={HABIT_GLYPH}
+                        style={{ background: item.tint }}
+                        aria-hidden
+                      >
+                        {item.emoji}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[1.02rem] font-bold tracking-[-0.01em]">
+                          {item.title}
+                        </div>
+                        <p className={cn(hint, "mt-0.5")}>{item.detail}</p>
+                      </div>
+                      <span
+                        className={cn(
+                          mono,
+                          "shrink-0 text-[0.72rem] font-semibold whitespace-nowrap text-ink-50",
+                        )}
+                      >
+                        {item.when}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </article>
 
-          <article className="card">
-            <div className="panel-head">
-              <h2 className="section-title">What the numbers say</h2>
+          <article className={cn(card, "flex h-full min-h-0 flex-col self-stretch")}>
+            <div className={cn(panelHead, "mb-3.5 shrink-0")}>
+              <h2 className={sectionTitle}>What the numbers say</h2>
             </div>
-            {insights.length === 0 ? (
-              <p className="hint">Log a few days to get a read.</p>
-            ) : (
-              <div className="insight-list">
-                {insights.map((insight) => (
-                  <div
-                    key={insight.id}
-                    className={`insight insight-${insight.accent}`}
-                  >
-                    <h3 className="insight-title">{insight.title}</h3>
-                    <p className="insight-body">{insight.body}</p>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="flex min-h-0 flex-1 flex-col">
+              {insights.length === 0 ? (
+                <p className={cn(hint, "m-0 flex flex-1 items-center")}>
+                  Log a few days to get a read.
+                </p>
+              ) : (
+                <div className="grid flex-1 gap-3">
+                  {insights.map((insight) => (
+                    <div
+                      key={insight.id}
+                      className={cn(
+                        "rounded-md border border-ink/9 border-l-[5px] bg-paper-white px-4 py-3.5",
+                        insight.accent === "flame" &&
+                          "border-l-flame bg-flame-soft",
+                        insight.accent === "blue" &&
+                          "border-l-blue bg-blue-soft",
+                        insight.accent === "quiet" &&
+                          "border-l-ink bg-[color-mix(in_srgb,var(--rule)_55%,var(--paper-white))]",
+                      )}
+                    >
+                      <h3 className="m-0 font-heading text-[1.02rem] font-extrabold tracking-[-0.02em]">
+                        {insight.title}
+                      </h3>
+                      <p className="mt-2 text-[0.88rem] leading-[1.5] text-ink-70">
+                        {insight.body}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </article>
         </motion.section>
       </motion.div>

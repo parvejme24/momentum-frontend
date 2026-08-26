@@ -4,10 +4,33 @@ import { useState } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
-import { AuthFormItem, AuthShell } from "@/components/auth/auth-shell";
+import {
+  AuthFormItem,
+  AuthShell,
+  authAlert,
+  authBrandDesktop,
+  authFields,
+  authFoot,
+  authFootLink,
+  authHeading,
+  authSuccess,
+} from "@/components/auth/auth-shell";
 import { BrandLink } from "@/components/home/brand-mark";
 import { ApiError } from "@/lib/api/errors";
 import { useAuth } from "@/lib/auth/context";
+import { cn } from "@/lib/utils";
+import {
+  btn,
+  btnBlock,
+  btnLg,
+  btnPrimary,
+  field,
+  hint,
+  hintErr,
+  input,
+  label,
+  muted,
+} from "@/lib/ui";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -61,28 +84,28 @@ export function ForgotPasswordForm() {
         footer: <p>One inbox. One link. Back to the log.</p>,
       }}
     >
-      <AuthFormItem className="auth-form-brand-desktop">
+      <AuthFormItem className={authBrandDesktop}>
         <BrandLink size="md" />
       </AuthFormItem>
 
       {sentTo ? (
         <>
-          <AuthFormItem className="auth-heading">
+          <AuthFormItem className={authHeading}>
             <h1>Check your inbox</h1>
-            <p className="muted">
+            <p className={cn(muted, "mt-2 dark:text-ink-70")}>
               If an account exists for <strong>{sentTo}</strong>, we sent a
               reset link. It may take a minute to arrive.
             </p>
           </AuthFormItem>
 
           <AuthFormItem>
-            <div className="auth-fields">
-              <p className="auth-success" role="status">
+            <div className={authFields}>
+              <p className={authSuccess} role="status">
                 Didn’t get it? Check spam, or try again with the same address.
               </p>
               <button
                 type="button"
-                className="btn btn-primary btn-block btn-lg"
+                className={cn(btn, btnPrimary, btnBlock, btnLg)}
                 onClick={() => {
                   setSentTo(null);
                   setFormError(null);
@@ -95,9 +118,9 @@ export function ForgotPasswordForm() {
           </AuthFormItem>
 
           <AuthFormItem>
-            <p className="auth-foot mono">
+            <p className={authFoot}>
               Remembered it?{" "}
-              <Link href="/login" className="auth-foot-link">
+              <Link href="/login" className={authFootLink}>
                 Sign in
               </Link>
             </p>
@@ -105,25 +128,25 @@ export function ForgotPasswordForm() {
         </>
       ) : (
         <>
-          <AuthFormItem className="auth-heading">
+          <AuthFormItem className={authHeading}>
             <h1>Forgot password</h1>
-            <p className="muted">
+            <p className={cn(muted, "mt-2 dark:text-ink-70")}>
               Enter the email on your account and we’ll send a reset link.
             </p>
           </AuthFormItem>
 
           <AuthFormItem>
-            <form className="auth-fields" onSubmit={onSubmit} noValidate>
+            <form className={authFields} onSubmit={onSubmit} noValidate>
               {formError ? (
-                <p role="alert" className="auth-alert">
+                <p role="alert" className={authAlert}>
                   {formError}
                 </p>
               ) : null}
 
-              <label className="field">
-                <span className="label">Email</span>
+              <label className={field}>
+                <span className={label}>Email</span>
                 <input
-                  className="input"
+                  className={input}
                   type="email"
                   name="email"
                   autoComplete="email"
@@ -134,13 +157,13 @@ export function ForgotPasswordForm() {
                   disabled={pending}
                 />
                 {fieldErrors.email ? (
-                  <span className="hint hint-err">{fieldErrors.email}</span>
+                  <span className={cn(hint, hintErr)}>{fieldErrors.email}</span>
                 ) : null}
               </label>
 
               <button
                 type="submit"
-                className="btn btn-primary btn-block btn-lg"
+                className={cn(btn, btnPrimary, btnBlock, btnLg)}
                 disabled={pending || !canSubmit}
               >
                 {pending ? (
@@ -156,9 +179,9 @@ export function ForgotPasswordForm() {
           </AuthFormItem>
 
           <AuthFormItem>
-            <p className="auth-foot mono">
+            <p className={authFoot}>
               Remembered it?{" "}
-              <Link href="/login" className="auth-foot-link">
+              <Link href="/login" className={authFootLink}>
                 Sign in
               </Link>
             </p>

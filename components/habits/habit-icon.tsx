@@ -3,6 +3,7 @@
 import { Check } from "lucide-react";
 
 import { isHabitEmoji, normalizeHabitIcon } from "@/lib/habits/icon";
+import { cn } from "@/lib/utils";
 
 type HabitIconProps = {
   icon?: string | null;
@@ -13,19 +14,32 @@ type HabitIconProps = {
 
 export function HabitIcon({
   icon,
-  className = "habit-icon",
+  className,
   glyphClassName,
   size = 18,
 }: HabitIconProps) {
   const normalized = normalizeHabitIcon(icon);
 
   return (
-    <span className={className} aria-hidden>
+    <span
+      className={cn(
+        "inline-flex items-center justify-center",
+        className,
+      )}
+      aria-hidden
+    >
       {isHabitEmoji(normalized) ? (
-        <span className={glyphClassName ?? "habit-icon-emoji"}>{normalized}</span>
+        <span
+          className={cn(
+            "block text-[1.05rem] leading-none",
+            glyphClassName,
+          )}
+        >
+          {normalized}
+        </span>
       ) : (
         <Check
-          className={glyphClassName ?? "habit-icon-fallback"}
+          className={cn("shrink-0 text-ink", glyphClassName)}
           size={size}
           strokeWidth={2.4}
         />

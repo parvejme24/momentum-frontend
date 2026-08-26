@@ -33,7 +33,7 @@ export function openCheckoutWindow(planId: string) {
   );
 }
 
-/** Public payment return — must stay outside auth middleware. */
+/** Public payment return — must stay outside the auth proxy. */
 export const PAYMENT_RETURN_PATH = "/payment/return";
 
 /** Clean URL after payment return handling finishes. */

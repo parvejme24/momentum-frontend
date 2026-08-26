@@ -12,6 +12,8 @@ import { easeOut } from "@/components/home/motion";
 import { buildAccountMenuLinks } from "@/lib/app/navigation";
 import { useAuth } from "@/lib/auth/context";
 import { isAdmin } from "@/lib/auth/role";
+import { cn } from "@/lib/utils";
+import { avatar, btnIcon, mono } from "@/lib/ui";
 
 type MenuLink = {
   href: string;
@@ -23,6 +25,9 @@ function initialFromName(name: string) {
   const trimmed = name.trim();
   return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
 }
+
+const menuLink =
+  "flex w-full cursor-pointer items-center gap-2.5 rounded-[calc(var(--radius)-2px)] border-0 bg-transparent px-2.5 py-[9px] text-left font-sans text-[0.9rem] font-semibold text-ink hover:bg-blue-soft focus-visible:bg-blue-soft focus-visible:outline-none";
 
 export function AccountMenu() {
   const { user, logout } = useAuth();
@@ -78,10 +83,13 @@ export function AccountMenu() {
   if (!user) return null;
 
   return (
-    <div className="account-menu" ref={rootRef}>
+    <div className="relative" ref={rootRef}>
       <button
         type="button"
-        className="btn-icon account-menu-trigger"
+        className={cn(
+          btnIcon,
+          "overflow-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-flame",
+        )}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
@@ -90,9 +98,19 @@ export function AccountMenu() {
       >
         {user.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img className="avatar" src={user.avatarUrl} alt="" />
+          <img
+            className="size-full rounded-[inherit] border-0 object-cover"
+            src={user.avatarUrl}
+            alt=""
+          />
         ) : (
-          <span className="avatar" aria-hidden>
+          <span
+            className={cn(
+              avatar,
+              "size-full rounded-[inherit] border-0 text-base dark:border-[rgba(212,165,116,0.35)] dark:bg-[linear-gradient(145deg,var(--flame),#b8895a)] dark:text-[#0f1117]",
+            )}
+            aria-hidden
+          >
             {initial}
           </span>
         )}
@@ -104,16 +122,18 @@ export function AccountMenu() {
             id={menuId}
             role="menu"
             aria-label="Account"
-            className="account-menu-panel"
+            className="absolute top-[calc(100%+10px)] right-0 z-70 min-w-[228px] rounded-md border border-[var(--stroke)] bg-paper-white p-2 shadow-paper-sm"
             initial={reduce ? false : { opacity: 0, y: 8, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? undefined : { opacity: 0, y: 6, scale: 0.98 }}
-            transition={{ duration: 0.18, ease: easeOut }}
+            transition={{ duration: 0.36, ease: easeOut }}
           >
-            <div className="account-menu-who">
-              <div className="account-menu-name">{name}</div>
+            <div className="mx-0.5 mb-1.5 border-b border-[var(--divider)] px-2.5 pt-2 pb-3">
+              <div className="font-bold tracking-[-0.01em]">{name}</div>
               {email ? (
-                <div className="account-menu-email mono">{email}</div>
+                <div className={cn(mono, "mt-0.5 truncate text-[0.72rem] text-ink-50")}>
+                  {email}
+                </div>
               ) : null}
             </div>
 
@@ -124,7 +144,7 @@ export function AccountMenu() {
                   key={item.href}
                   href={item.href}
                   role="menuitem"
-                  className="account-menu-link"
+                  className={menuLink}
                   onClick={() => setOpen(false)}
                 >
                   <Icon size={16} strokeWidth={2.2} aria-hidden />
@@ -136,7 +156,10 @@ export function AccountMenu() {
             <button
               type="button"
               role="menuitem"
-              className="account-menu-link account-menu-signout"
+              className={cn(
+                menuLink,
+                "mt-1 text-ink-70 hover:bg-flame-soft focus-visible:bg-flame-soft",
+              )}
               onClick={() => void onSignOut()}
               disabled={signingOut}
             >

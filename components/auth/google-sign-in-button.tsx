@@ -8,6 +8,8 @@ import { useToast } from "@/components/auth/toast";
 import { ApiError } from "@/lib/api/errors";
 import { useAuth } from "@/lib/auth/context";
 import { getGoogleClientId } from "@/lib/auth/google";
+import { cn } from "@/lib/utils";
+import { btnBlock } from "@/lib/ui";
 
 type GoogleCredentialResponse = {
   credential: string;
@@ -51,7 +53,7 @@ function isGoogleScriptReady(): boolean {
 function GoogleMark() {
   return (
     <svg
-      className="btn-google-icon"
+      className="block shrink-0"
       viewBox="0 0 24 24"
       width={20}
       height={20}
@@ -214,18 +216,22 @@ export function GoogleSignInButton({
         />
       ) : null}
 
-      <div ref={hiddenTargetRef} className="google-signin-hidden" aria-hidden />
+      <div ref={hiddenTargetRef} className="sr-only" aria-hidden />
 
       <button
         type="button"
-        className="btn-google btn-block"
+        className={cn(
+          btnBlock,
+          "flex min-h-12 cursor-pointer items-center justify-center rounded-md border border-[var(--stroke)] bg-paper-white px-[22px] py-3 font-sans text-[0.94rem] leading-[1.2] font-semibold text-ink shadow-paper-sm transition-[transform,box-shadow,background,border-color] duration-fast ease-smooth enabled:hover:-translate-y-0.5 enabled:hover:bg-paper-raised enabled:hover:shadow-hover enabled:active:translate-y-0 enabled:active:shadow-press disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-paper-sm",
+          "dark:border-[rgba(221,216,207,0.12)] dark:bg-paper-raised dark:shadow-paper-sm dark:enabled:hover:border-[#8ba4c9]/35 dark:enabled:hover:bg-paper-white dark:enabled:hover:-translate-y-0.5 dark:enabled:hover:shadow-paper dark:enabled:active:translate-y-0 dark:enabled:active:shadow-paper-sm",
+        )}
         disabled={disabled || pending}
         aria-busy={pending}
         onClick={triggerGoogleSignIn}
       >
-        <span className="btn-google-content">
+        <span className="inline-flex items-center justify-center gap-2.5">
           {pending ? (
-            <Loader2 className="btn-google-spinner animate-spin" size={18} />
+            <Loader2 className="shrink-0 animate-spin text-ink-70" size={18} />
           ) : (
             <GoogleMark />
           )}

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 
 import { easeOut } from "@/components/home/motion";
+import { cn } from "@/lib/utils";
 
 export function RateBars({
   rates,
@@ -35,14 +36,24 @@ export function RateBars({
   }, [animateKey, inView, reduce]);
 
   return (
-    <div ref={ref} className="bars" aria-label={ariaLabel}>
+    <div
+      ref={ref}
+      className="flex h-[170px] items-stretch gap-[clamp(6px,1.4vw,14px)]"
+      aria-label={ariaLabel}
+    >
       {rates.map((rate, i) => {
         const hot = rate >= hotThreshold;
         return (
-          <div key={`${animateKey ?? "bars"}-${i}`} className="bar-col">
-            <div className="bar-track">
+          <div
+            key={`${animateKey ?? "bars"}-${i}`}
+            className="grid min-w-0 flex-1 grid-rows-[minmax(0,1fr)_auto] gap-2"
+          >
+            <div className="flex min-h-0 w-full items-end">
               <motion.div
-                className={hot ? "bar hot" : "bar"}
+                className={cn(
+                  "min-h-0 w-full self-end rounded-t-[4px] border border-b-0 border-ink/9 bg-blue-soft",
+                  hot && "bg-blue",
+                )}
                 initial={false}
                 animate={{
                   height: grown ? `${Math.round(rate * 100)}%` : "0%",
@@ -58,7 +69,9 @@ export function RateBars({
                 }
               />
             </div>
-            <span className="bar-label">{labels[i] ?? ""}</span>
+            <span className="flex min-h-[1.1rem] items-start justify-center text-center font-mono text-[0.68rem] text-ink-50">
+              {labels[i] ?? ""}
+            </span>
           </div>
         );
       })}

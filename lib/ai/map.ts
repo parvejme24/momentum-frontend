@@ -13,6 +13,8 @@ import type {
   AiSuggestion,
 } from "@/lib/api/types";
 import type { CreateHabitRequest } from "@/lib/api/types";
+import { chip, chipBlue, chipFlame, chipQuiet } from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 export function suggestionAccent(
   category: AiSuggestion["category"],
@@ -194,7 +196,7 @@ export function aiPromptStatusLabel(status: string) {
 }
 
 export function aiPromptStatusChip(status: string) {
-  if (status === "published") return "chip chip-blue";
-  if (status === "archived") return "chip chip-quiet";
-  return "chip chip-flame";
+  if (status === "published") return cn(chip, chipBlue);
+  if (status === "archived") return cn(chip, chipQuiet);
+  return cn(chip, chipFlame);
 }

@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { motion, useReducedMotion } from "framer-motion";
 
 import { easeOut } from "@/components/home/motion";
+import { cn } from "@/lib/utils";
+import { mono } from "@/lib/ui";
 
 const CONFETTI_COLORS = [
   "#2b4ce0",
@@ -134,20 +136,27 @@ export function LoginCelebration({
   if (!active || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="login-celebration" aria-live="polite" aria-atomic="true">
+    <div className="pointer-events-none fixed inset-0 z-[120]" aria-live="polite" aria-atomic="true">
       {!reduce ? (
-        <canvas ref={canvasRef} className="login-celebration-canvas" aria-hidden />
+        <canvas ref={canvasRef} className="absolute inset-0 size-full" aria-hidden />
       ) : null}
-      <div className="login-celebration-anchor">
+      <div className="fixed top-[clamp(18px,4vh,52px)] right-0 left-0 z-1 box-border flex justify-center px-[var(--space-3)]">
         <motion.div
-          className="login-celebration-card"
+          className={cn(
+            "relative z-1 w-[min(92vw,420px)] shrink-0 rounded-lg border border-[var(--stroke)] bg-paper-white px-[26px] py-[22px] text-center text-ink shadow-lift",
+            "dark:bg-[linear-gradient(165deg,color-mix(in_srgb,var(--paper-white)_90%,var(--blue-soft)),var(--paper-raised))] dark:shadow-lift",
+          )}
           initial={reduce ? false : { opacity: 0, y: -36, scale: 0.94 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.48, ease: easeOut }}
         >
-          <p className="login-celebration-eyebrow mono">Signed in</p>
-          <h2 className="login-celebration-title">{title}</h2>
-          <p className="login-celebration-sub">{subtitle}</p>
+          <p className={cn(mono, "m-0 text-[0.72rem] tracking-[0.14em] text-flame uppercase")}>
+            Signed in
+          </p>
+          <h2 className="mt-2 font-heading text-[clamp(1.65rem,4vw,2rem)] font-extrabold tracking-[-0.04em]">
+            {title}
+          </h2>
+          <p className="mt-2 text-[0.95rem] text-ink-70">{subtitle}</p>
         </motion.div>
       </div>
     </div>,

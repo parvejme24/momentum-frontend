@@ -1,33 +1,101 @@
-import { ICON_OPTIONS } from "@/components/habits/schedule-utils";
+import {
+  HABIT_ICON_OPTIONS,
+  type HabitIcon,
+} from "@/lib/habits/icon-options";
 
-const ICON_ALIASES: Record<string, string> = {
-  check: ICON_OPTIONS[0],
-  tick: ICON_OPTIONS[0],
-  checkmark: ICON_OPTIONS[0],
-  book: ICON_OPTIONS[0],
-  read: ICON_OPTIONS[0],
-  reading: ICON_OPTIONS[0],
-  fitness: ICON_OPTIONS[1],
-  gym: ICON_OPTIONS[1],
-  workout: ICON_OPTIONS[1],
-  water: ICON_OPTIONS[2],
-  hydrate: ICON_OPTIONS[2],
-  meditate: ICON_OPTIONS[3],
-  meditation: ICON_OPTIONS[3],
-  yoga: ICON_OPTIONS[3],
-  write: ICON_OPTIONS[4],
-  journal: ICON_OPTIONS[4],
-  speak: ICON_OPTIONS[5],
-  talk: ICON_OPTIONS[5],
-  quit: ICON_OPTIONS[6],
-  stop: ICON_OPTIONS[6],
+const DEFAULT_ICON = HABIT_ICON_OPTIONS[0];
+
+const ICON_ALIASES: Record<string, HabitIcon> = {
+  check: "✅",
+  tick: "✅",
+  checkmark: "✅",
+  book: "📖",
+  read: "📖",
+  reading: "📖",
+  study: "📚",
+  learn: "🧠",
+  fitness: "🏋️",
+  gym: "🏋️",
+  workout: "🏋️",
+  water: "💧",
+  hydrate: "💧",
+  meditate: "🧘",
+  meditation: "🧘",
+  yoga: "🧘",
+  write: "✍️",
+  journal: "📓",
+  speak: "🗣️",
+  talk: "🗣️",
+  quit: "🚫",
+  stop: "🚫",
+  run: "🏃",
+  running: "🏃",
+  walk: "🚶",
+  walking: "🚶",
+  sleep: "🛏️",
+  bed: "🛏️",
+  eat: "🍎",
+  apple: "🍎",
+  healthy: "🥗",
+  food: "🍽️",
+  focus: "🎯",
+  target: "🎯",
+  goal: "🎯",
+  medicine: "💊",
+  pill: "💊",
+  vitamins: "💊",
+  clean: "🧹",
+  cleaning: "🧹",
+  music: "🎸",
+  guitar: "🎸",
+  phone: "📱",
+  screen: "📵",
+  smoke: "🚭",
+  smoking: "🚭",
+  strength: "💪",
+  muscle: "💪",
+  cycle: "🚴",
+  bike: "🚴",
+  cycling: "🚴",
+  plan: "📝",
+  note: "📝",
+  list: "📋",
+  art: "🎨",
+  creative: "🎨",
+  paint: "🖌️",
+  nature: "🌿",
+  plant: "🪴",
+  wake: "⏰",
+  alarm: "⏰",
+  meal: "🥗",
+  salad: "🥗",
+  rest: "💤",
+  nap: "😴",
+  sun: "☀️",
+  morning: "🌅",
+  coffee: "☕",
+  tea: "🍵",
+  swim: "🏊",
+  code: "💻",
+  coding: "🧑‍💻",
+  work: "💼",
+  money: "💰",
+  save: "🏦",
+  dog: "🐕",
+  cat: "🐈",
+  game: "🎮",
+  tv: "📺",
+  shop: "🛒",
+  home: "🏠",
+  shower: "🚿",
+  teeth: "🪥",
 };
 
 /** True when the value is safe to render as emoji text (not a plain word). */
 export function isHabitEmoji(value: string): boolean {
   const trimmed = value.trim();
   if (!trimmed) return false;
-  if (ICON_OPTIONS.includes(trimmed as (typeof ICON_OPTIONS)[number])) {
+  if (HABIT_ICON_OPTIONS.includes(trimmed as HabitIcon)) {
     return true;
   }
   return !/^[a-z0-9_-]+$/i.test(trimmed);
@@ -36,9 +104,9 @@ export function isHabitEmoji(value: string): boolean {
 /** Map AI / API icon strings to a bounded emoji from our set. */
 export function normalizeHabitIcon(icon: string | undefined | null): string {
   const trimmed = icon?.trim();
-  if (!trimmed) return ICON_OPTIONS[0];
+  if (!trimmed) return DEFAULT_ICON;
 
-  if (ICON_OPTIONS.includes(trimmed as (typeof ICON_OPTIONS)[number])) {
+  if (HABIT_ICON_OPTIONS.includes(trimmed as HabitIcon)) {
     return trimmed;
   }
 
@@ -47,5 +115,7 @@ export function normalizeHabitIcon(icon: string | undefined | null): string {
 
   if (isHabitEmoji(trimmed)) return trimmed;
 
-  return ICON_OPTIONS[0];
+  return DEFAULT_ICON;
 }
+
+export { HABIT_ICON_OPTIONS as ICON_OPTIONS };

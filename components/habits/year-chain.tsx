@@ -3,6 +3,8 @@
 import { useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
+import { cn } from "@/lib/utils";
+
 const WEEKS = 52;
 const DAYS = 7;
 const TOTAL = WEEKS * DAYS;
@@ -129,7 +131,6 @@ function buildYearChain(
     let skip = false;
 
     if (roll > fillRate) {
-      // Empty days: some are intentional skips (hatched), rest are blank.
       skip = roll > fillRate + (1 - fillRate) * 0.45;
       level = 0;
     } else if (roll > fillRate * 0.72) {
@@ -163,7 +164,6 @@ function buildYearChain(
     };
   });
 
-  // Current streak of ~47 solid days ending today.
   for (let i = TOTAL - 47; i < TOTAL; i++) {
     if (cells[i].off) continue;
     cells[i].skip = false;
@@ -171,7 +171,6 @@ function buildYearChain(
     cells[i].title = `${formatCellDate(cells[i].date)} · strong`;
   }
 
-  // A break just before the current streak.
   const breakIdx = TOTAL - 48;
   if (!cells[breakIdx].off) {
     cells[breakIdx].skip = true;
@@ -179,7 +178,6 @@ function buildYearChain(
     cells[breakIdx].title = `${formatCellDate(cells[breakIdx].date)} · skipped`;
   }
 
-  // Longest streak stretch (~61 days) earlier in the year.
   const longestStart = 120;
   for (let i = longestStart; i < longestStart + 61; i++) {
     if (cells[i]?.off) continue;
@@ -194,13 +192,21 @@ function buildYearChain(
   return cells;
 }
 
+const CHAIN_CELL =
+  "relative size-[15px] rounded-[2px] border border-[rgba(20,26,46,0.07)] bg-l0 transition-[transform,border-color,box-shadow] duration-fast ease-smooth hover:z-[2] hover:scale-[1.35] hover:border-[color-mix(in_srgb,var(--blue)_35%,transparent)] hover:shadow-paper-sm dark:hover:border-[#8ba4c9]/55 dark:hover:shadow-[2px_2px_0_rgba(139,164,201,0.35)]";
+
 function cellClass(cell: ChainCell) {
-  const parts = ["cell"];
-  if (cell.off) parts.push("off");
-  else if (cell.skip) parts.push("skip");
-  else if (cell.level > 0) parts.push(`l${cell.level}`);
-  if (cell.today) parts.push("today");
-  return parts.join(" ");
+  return cn(
+    CHAIN_CELL,
+    cell.off && "opacity-25",
+    cell.skip &&
+      "bg-[repeating-linear-gradient(45deg,var(--rule)_0_2px,transparent_2px_4px)]",
+    !cell.off && !cell.skip && cell.level === 1 && "bg-l1",
+    !cell.off && !cell.skip && cell.level === 2 && "bg-l2",
+    !cell.off && !cell.skip && cell.level === 3 && "bg-l3",
+    !cell.off && !cell.skip && cell.level === 4 && "bg-l4",
+    cell.today && "border-2 border-flame",
+  );
 }
 
 export function YearChain({
@@ -234,16 +240,16 @@ export function YearChain({
   }, [cells]);
 
   return (
-    <div className="heat-scroll habit-year-scroll">
+    <div className="mt-1 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
       <div
-        className="chain chain-motion"
+        className="flex w-max flex-row gap-1"
         role="img"
         aria-label={`Year heatmap for ${label}, last 364 days`}
       >
         {columns.map((col, wi) => (
           <motion.div
             key={wi}
-            className="chain-col"
+            className="flex flex-col gap-1"
             initial={reduce ? false : "hidden"}
             whileInView="show"
             viewport={{ once: true, amount: 0.15 }}

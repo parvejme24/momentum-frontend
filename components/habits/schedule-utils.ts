@@ -6,7 +6,7 @@ export type ScheduleMode =
 
 export type HabitType = "building" | "quitting";
 
-export const ICON_OPTIONS = ["📖", "🏋️", "💧", "🧘", "✍️", "🗣️", "🚫"] as const;
+export { HABIT_ICON_OPTIONS as ICON_OPTIONS } from "@/lib/habits/icon-options";
 
 export const COLOR_OPTIONS = [
   { id: "blue", label: "Blue", tint: "var(--blue-soft)" },

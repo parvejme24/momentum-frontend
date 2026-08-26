@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
 import { useToast } from "@/components/auth/toast";
@@ -21,21 +21,95 @@ import {
   type ScheduleMode,
 } from "@/components/habits/schedule-utils";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
+import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ApiError } from "@/lib/api/errors";
 import { createHabitReminder } from "@/lib/api/reminders";
 import { useAuth } from "@/lib/auth/context";
-import { useCreateHabit } from "@/lib/habits/hooks";
-import { toCreateHabitRequest } from "@/lib/habits/map";
+import { useCreateHabit, useHabit, useUpdateHabit } from "@/lib/habits/hooks";
+import { habitToFormValues, toCreateHabitRequest } from "@/lib/habits/map";
 import { AI_HABIT_PREFILL_KEY, type AiHabitIdeaPrefill } from "@/lib/ai/map";
+import {
+  backLink,
+  btn,
+  btnGhost,
+  btnLg,
+  btnPrimary,
+  card,
+  chip,
+  chipQuiet,
+  eyebrow,
+  field,
+  fieldRow,
+  hint,
+  hintErr,
+  input,
+  label,
+  labelReq,
+  lede,
+  mono,
+  pageHead,
+  panelHead,
+  sectionTitle,
+  textarea,
+} from "@/lib/ui";
+import { cn } from "@/lib/utils";
+
+const SCHEDULE_OPTIONS = [
+  ["daily", "Every day", "Due all seven days"],
+  ["weekdays", "Certain weekdays", "Pick exact days"],
+  ["times_per_week", "A number of times a week", "Any days — the week is what counts"],
+  ["interval", "Every few days", "Fixed gap from start date"],
+] as const satisfies ReadonlyArray<[ScheduleMode, string, string]>;
+
+const OPT =
+  "flex cursor-pointer items-start gap-3 rounded-md border border-ink/9 bg-paper-white px-4 py-3.5 transition-[transform,box-shadow,background,border-color] duration-normal ease-smooth hover:-translate-y-0.5 hover:shadow-paper-sm dark:bg-paper-raised";
+
+const OPT_CHECKED =
+  "border-blue bg-blue-soft shadow-paper-sm dark:border-[#8ba4c9]/40 dark:shadow-[var(--shadow-sm),var(--shadow-glow)]";
+
+const OPT_DOT =
+  "mt-[3px] size-[18px] shrink-0 rounded-full border border-ink/9 bg-solid-white";
+
+const SELECT = cn(input, "cursor-pointer appearance-none pr-[38px]");
+
+
+const SWATCH =
+  "size-9 cursor-pointer rounded-md border border-ink/9 transition-[transform,box-shadow] duration-normal ease-smooth hover:-translate-y-[3px] dark:border-ink/14";
+
+const SWATCH_SELECTED =
+  "shadow-[0_0_0_2px_var(--paper),0_0_0_3px_color-mix(in_srgb,var(--blue)_45%,transparent)] dark:shadow-[0_0_0_3px_var(--paper),0_0_0_5px_rgba(139,164,201,0.55)]";
+
+const COLOR_SWATCH: Record<ColorId, string> = {
+  blue: "bg-blue-soft",
+  flame: "bg-flame-soft",
+  purple: "bg-[#efe8fb]",
+  green: "bg-[#e8f5ee]",
+  gold: "bg-[#fff4db]",
+};
+
+const FIELD_IN_ROW =
+  "m-0 flex min-w-0 flex-col gap-[7px] [&_.font-mono]:mb-0 [&_.font-mono]:min-h-[calc(0.7rem*1.35*2)] [&_.font-mono]:leading-[1.35]";
 
 export function NewHabitForm() {
+  return <HabitForm />;
+}
+
+export function EditHabitForm({ habitId }: { habitId: string }) {
+  return <HabitForm habitId={habitId} />;
+}
+
+function HabitForm({ habitId }: { habitId?: string }) {
+  const isEdit = Boolean(habitId);
   const reduce = useReducedMotion();
   const router = useRouter();
   const { pushToast } = useToast();
   const { user } = useAuth();
   const create = useCreateHabit();
+  const update = useUpdateHabit();
+  const habitQuery = useHabit(habitId ?? "");
 
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
@@ -53,6 +127,7 @@ export function NewHabitForm() {
   const [reminderTime, setReminderTime] = useState("21:30");
   const [nameError, setNameError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [hydrated, setHydrated] = useState(!isEdit);
 
   const timezone =
     user?.timezone ||
@@ -69,6 +144,12 @@ export function NewHabitForm() {
     }),
     [scheduleMode, weekdays, timesPerWeek, intervalDays, startDate],
   );
+
+  const formValid = useMemo(() => {
+    if (!name.trim()) return false;
+    if (scheduleMode === "weekdays" && weekdays.length === 0) return false;
+    return true;
+  }, [name, scheduleMode, weekdays]);
 
   function toggleWeekday(value: number) {
     setWeekdays((prev) =>
@@ -92,6 +173,25 @@ export function NewHabitForm() {
   }
 
   useEffect(() => {
+    if (!isEdit || !habitQuery.data || hydrated) return;
+    const values = habitToFormValues(habitQuery.data);
+    setName(values.name);
+    setNote(values.note);
+    setIcon(values.icon);
+    setColorId(values.colorId);
+    setHabitType(values.habitType);
+    setScheduleMode(values.scheduleMode);
+    setWeekdays(values.weekdays);
+    setTimesPerWeek(values.timesPerWeek);
+    setIntervalDays(values.intervalDays);
+    setStartDate(values.startDate);
+    setMeasureTarget(values.measureTarget);
+    setMeasureUnit(values.measureUnit);
+    setHydrated(true);
+  }, [isEdit, habitQuery.data, hydrated]);
+
+  useEffect(() => {
+    if (isEdit) return;
     const raw = sessionStorage.getItem(AI_HABIT_PREFILL_KEY);
     if (!raw) return;
     try {
@@ -118,18 +218,25 @@ export function NewHabitForm() {
     setNameError(null);
     setPending(true);
     try {
-      const habit = await create.mutateAsync(
-        toCreateHabitRequest({
-          title: trimmed,
-          note,
-          icon,
-          colorId,
-          habitType,
-          schedule,
-          measureTarget,
-          measureUnit,
-        }),
-      );
+      const body = toCreateHabitRequest({
+        title: trimmed,
+        note,
+        icon,
+        colorId,
+        habitType,
+        schedule,
+        measureTarget,
+        measureUnit,
+      });
+
+      if (isEdit && habitId) {
+        await update.mutateAsync({ id: habitId, body });
+        pushToast("Habit updated");
+        router.push(`/habits/${habitId}`);
+        return;
+      }
+
+      const habit = await create.mutateAsync(body);
       if (reminderEnabled) {
         const daysOfWeek =
           scheduleMode === "weekdays" && weekdays.length > 0
@@ -155,7 +262,11 @@ export function NewHabitForm() {
       router.push("/habits");
     } catch (error) {
       const message =
-        error instanceof ApiError ? error.message : "Could not create habit";
+        error instanceof ApiError
+          ? error.message
+          : isEdit
+            ? "Could not update habit"
+            : "Could not create habit";
       const fields = error instanceof ApiError ? error.fieldErrors() : {};
       setNameError(fields.title ?? fields.startDate ?? message);
       pushToast(message);
@@ -164,56 +275,83 @@ export function NewHabitForm() {
     }
   }
 
+  if (isEdit && habitQuery.isLoading) {
+    return (
+      <div className="min-w-0">
+        <p className={hint}>Loading habit…</p>
+      </div>
+    );
+  }
+
+  if (isEdit && (habitQuery.error || !habitQuery.data)) {
+    return (
+      <div className="min-w-0">
+        <Link href="/habits" className={cn(backLink, mono)}>
+          ← All habits
+        </Link>
+        <p className={cn(hint, hintErr, "mt-4")}>
+          {habitQuery.error instanceof ApiError
+            ? habitQuery.error.message
+            : "Could not load this habit"}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <MotionConfig reducedMotion="user">
       <motion.div
-        className="new-habit-page"
+        className="min-w-0"
         initial={reduce ? false : "hidden"}
         animate="show"
         variants={reduce ? undefined : staggerContainer}
       >
-        <div className="new-habit-intro">
+        <div>
           <motion.div variants={reduce ? undefined : fadeUpSoft}>
-            <Link href="/habits" className="back-link mono">
-              ← All habits
+            <Link
+              href={isEdit && habitId ? `/habits/${habitId}` : "/habits"}
+              className={cn(backLink, mono)}
+            >
+              {isEdit ? "← Habit detail" : "← All habits"}
             </Link>
           </motion.div>
 
           <motion.header
-            className="page-head"
+            className={cn(pageHead, "mb-[22px]")}
             variants={reduce ? undefined : fadeUpSoft}
           >
-            <p className="eyebrow">New habit</p>
-            <h1>What are you building?</h1>
-            <p className="lede" style={{ marginTop: 12 }}>
-              Name it the way you&apos;d say it out loud. Edits apply from today
-              forward — history stays intact.
+            <p className={cn(eyebrow, "mb-2")}>{isEdit ? "Edit habit" : "New habit"}</p>
+            <h1 className="mt-4">{isEdit ? "Update this habit" : "What are you building?"}</h1>
+            <p className={cn(lede, "mt-3")}>
+              {isEdit
+                ? "Changes apply from today forward — your history stays intact."
+                : "Name it the way you'd say it out loud. Edits apply from today forward — history stays intact."}
             </p>
           </motion.header>
         </div>
 
-        <div className="new-habit-layout">
-          <form className="new-habit-stack" onSubmit={onSubmit} noValidate>
+        <div className="grid grid-cols-1 items-start gap-[clamp(24px,3vw,36px)] wide:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]">
+          <form className="grid min-w-0 gap-[18px]" onSubmit={onSubmit} noValidate>
             <motion.section
-              className="card form-section"
+              className={card}
               aria-labelledby="basics-heading"
               variants={reduce ? undefined : fadeUpSoft}
             >
-              <div className="panel-head">
-                <h2 id="basics-heading" className="section-title">
+              <div className={panelHead}>
+                <h2 id="basics-heading" className={sectionTitle}>
                   Basics
                 </h2>
               </div>
 
-              <label className="field">
-                <span className="label-row">
-                  <span className="label">Habit name</span>
-                  <span className="label-req" aria-hidden>
+              <label className={cn(field, "not-first:mt-0")}>
+                <span className={label}>
+                  Habit name
+                  <span className={labelReq} aria-hidden>
                     *
                   </span>
                 </span>
                 <input
-                  className="input"
+                  className={input}
                   type="text"
                   name="name"
                   placeholder="Read 30 pages"
@@ -229,14 +367,14 @@ export function NewHabitForm() {
                   autoFocus
                 />
                 {nameError ? (
-                  <span className="hint hint-err">{nameError}</span>
+                  <span className={cn(hint, hintErr)}>{nameError}</span>
                 ) : null}
               </label>
 
-              <label className="field">
-                <span className="label">Note to yourself</span>
+              <label className={field}>
+                <span className={label}>Note to yourself</span>
                 <textarea
-                  className="textarea"
+                  className={textarea}
                   name="note"
                   placeholder="Deep work reading, no phone in the room."
                   value={note}
@@ -245,13 +383,20 @@ export function NewHabitForm() {
                 />
               </label>
 
-              <fieldset className="field">
-                <legend className="label">Icon</legend>
-                <div className="swatches icon-swatches">
+              <fieldset className={cn(field, "min-w-0 border-0 p-0")}>
+                <legend className={label}>Icon</legend>
+                <p className={cn(hint, "-mt-1 mb-2.5 text-[0.78rem]")}>
+                  {ICON_OPTIONS.length} icons · scroll for more
+                </p>
+                <div className="m-[-2px] grid max-h-[11.5rem] grid-cols-[repeat(auto-fill,minmax(36px,1fr))] gap-2 overflow-x-hidden overflow-y-auto p-[2px_6px_2px_2px]">
                   {ICON_OPTIONS.map((emoji) => (
                     <label
                       key={emoji}
-                      className={icon === emoji ? "is-selected" : undefined}
+                      className={cn(
+                        SWATCH,
+                        "m-0 grid place-items-center bg-paper-white text-[1.15rem]",
+                        icon === emoji && SWATCH_SELECTED,
+                      )}
                     >
                       <input
                         type="radio"
@@ -260,6 +405,7 @@ export function NewHabitForm() {
                         checked={icon === emoji}
                         onChange={() => setIcon(emoji)}
                         disabled={pending}
+                        className="sr-only"
                       />
                       <span aria-hidden>{emoji}</span>
                     </label>
@@ -267,13 +413,17 @@ export function NewHabitForm() {
                 </div>
               </fieldset>
 
-              <fieldset className="field">
-                <legend className="label">Colour</legend>
-                <div className="swatches color-swatches">
+              <fieldset className={cn(field, "min-w-0 border-0 p-0")}>
+                <legend className={label}>Colour</legend>
+                <div className="flex flex-wrap gap-2">
                   {COLOR_OPTIONS.map((color) => (
                     <label
                       key={color.id}
-                      className={`color-swatch color-${color.id}${colorId === color.id ? " is-selected" : ""}`}
+                      className={cn(
+                        SWATCH,
+                        COLOR_SWATCH[color.id],
+                        colorId === color.id && SWATCH_SELECTED,
+                      )}
                       title={color.label}
                     >
                       <input
@@ -283,6 +433,7 @@ export function NewHabitForm() {
                         checked={colorId === color.id}
                         onChange={() => setColorId(color.id)}
                         disabled={pending}
+                        className="sr-only"
                       />
                       <span className="sr-only">{color.label}</span>
                     </label>
@@ -290,9 +441,9 @@ export function NewHabitForm() {
                 </div>
               </fieldset>
 
-              <fieldset className="field">
-                <legend className="label">Type</legend>
-                <div className="opt-list">
+              <fieldset className={cn(field, "min-w-0 border-0 p-0")}>
+                <legend className={label}>Type</legend>
+                <div className="grid gap-2.5">
                   <label>
                     <input
                       type="radio"
@@ -301,12 +452,24 @@ export function NewHabitForm() {
                       checked={habitType === "building"}
                       onChange={() => setHabitType("building")}
                       disabled={pending}
+                      className="sr-only"
                     />
-                    <span className="opt">
-                      <span className="opt-dot" aria-hidden />
-                      <span>
-                        <span className="opt-t">Building</span>
-                        <span className="opt-d">A thing I want to do</span>
+                    <span
+                      className={cn(OPT, habitType === "building" && OPT_CHECKED)}
+                    >
+                      <span
+                        className={cn(
+                          OPT_DOT,
+                          habitType === "building" &&
+                            "bg-blue shadow-[inset_0_0_0_3px_#fff]",
+                        )}
+                        aria-hidden
+                      />
+                      <span className="flex min-w-0 flex-col gap-1">
+                        <span className="leading-[1.25] font-bold">Building</span>
+                        <span className="text-[0.84rem] leading-[1.35] text-ink-50">
+                          A thing I want to do
+                        </span>
                       </span>
                     </span>
                   </label>
@@ -318,12 +481,24 @@ export function NewHabitForm() {
                       checked={habitType === "quitting"}
                       onChange={() => setHabitType("quitting")}
                       disabled={pending}
+                      className="sr-only"
                     />
-                    <span className="opt">
-                      <span className="opt-dot" aria-hidden />
-                      <span>
-                        <span className="opt-t">Quitting</span>
-                        <span className="opt-d">A thing I want to stop</span>
+                    <span
+                      className={cn(OPT, habitType === "quitting" && OPT_CHECKED)}
+                    >
+                      <span
+                        className={cn(
+                          OPT_DOT,
+                          habitType === "quitting" &&
+                            "bg-blue shadow-[inset_0_0_0_3px_#fff]",
+                        )}
+                        aria-hidden
+                      />
+                      <span className="flex min-w-0 flex-col gap-1">
+                        <span className="leading-[1.25] font-bold">Quitting</span>
+                        <span className="text-[0.84rem] leading-[1.35] text-ink-50">
+                          A thing I want to stop
+                        </span>
                       </span>
                     </span>
                   </label>
@@ -332,165 +507,215 @@ export function NewHabitForm() {
             </motion.section>
 
             <motion.section
-              className="card form-section"
+              className={card}
               aria-labelledby="schedule-heading"
               variants={reduce ? undefined : fadeUpSoft}
             >
-              <div className="panel-head">
+              <div className={panelHead}>
                 <div>
-                  <h2 id="schedule-heading" className="section-title">
+                  <h2 id="schedule-heading" className={sectionTitle}>
                     Schedule
                   </h2>
-                  <p className="hint" style={{ marginTop: 6 }}>
+                  <p className={cn(hint, "mt-1.5")}>
                     Days you aren&apos;t due never break your streak
                   </p>
                 </div>
               </div>
 
-              <fieldset className="field">
-                <legend className="label">When is it due?</legend>
-                <div className="opt-list">
-                  {(
-                    [
-                      ["daily", "Every day", "Due all seven days"],
-                      ["weekdays", "Certain weekdays", "Pick exact days"],
-                      [
-                        "times_per_week",
-                        "A number of times a week",
-                        "Any days — the week is what counts",
-                      ],
-                      [
-                        "interval",
-                        "Every few days",
-                        "Fixed gap from start date",
-                      ],
-                    ] as const
-                  ).map(([mode, title, desc]) => (
-                    <label key={mode}>
-                      <input
-                        type="radio"
-                        name="scheduleMode"
-                        value={mode}
-                        checked={scheduleMode === mode}
-                        onChange={() => setScheduleMode(mode)}
-                        disabled={pending}
-                      />
-                      <span className="opt">
-                        <span className="opt-dot" aria-hidden />
-                        <span>
-                          <span className="opt-t">{title}</span>
-                          <span className="opt-d">{desc}</span>
-                        </span>
-                      </span>
-                    </label>
-                  ))}
+              <fieldset className={cn(field, "not-first:mt-0 min-w-0 border-0 p-0")}>
+                <legend className={label}>When is it due?</legend>
+                <div className="grid gap-3">
+                  {SCHEDULE_OPTIONS.map(([mode, title, desc]) => {
+                    const selected = scheduleMode === mode;
+                    return (
+                      <div key={mode}>
+                        <label className="block cursor-pointer">
+                          <input
+                            type="radio"
+                            name="scheduleMode"
+                            value={mode}
+                            checked={selected}
+                            onChange={() => setScheduleMode(mode)}
+                            disabled={pending}
+                            className="sr-only"
+                          />
+                          <span
+                            className={cn(
+                              OPT,
+                              selected && OPT_CHECKED,
+                              selected && "rounded-b-none border-b-transparent",
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                OPT_DOT,
+                                selected && "bg-blue shadow-[inset_0_0_0_3px_#fff]",
+                              )}
+                              aria-hidden
+                            />
+                            <span className="flex min-w-0 flex-col gap-1">
+                              <span className="leading-[1.25] font-bold">{title}</span>
+                              <span className="text-[0.84rem] leading-[1.35] text-ink-50">
+                                {desc}
+                              </span>
+                            </span>
+                          </span>
+                        </label>
+
+                        {selected ? (
+                          <div
+                            className={cn(
+                              "rounded-b-md border border-t-0 border-blue bg-[color-mix(in_srgb,var(--blue-soft)_55%,var(--paper-white))] px-4 pt-3.5 pb-4 shadow-paper-sm dark:border-[#8ba4c9]/40 dark:bg-[color-mix(in_srgb,var(--blue-soft)_35%,var(--paper-raised))]",
+                            )}
+                          >
+                            {mode === "daily" ? (
+                              <p className={cn(hint, "mb-3.5 leading-[1.5]")}>
+                                Due every calendar day — weekends count too.
+                              </p>
+                            ) : null}
+
+                            {mode === "weekdays" ? (
+                              <div className="mb-3.5">
+                                <span className={cn(label, "mb-2")}>Weekdays</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {WEEKDAY_OPTIONS.map((day) => (
+                                    <span key={day.value} className="relative">
+                                      <input
+                                        id={`weekday-${day.value}`}
+                                        type="checkbox"
+                                        checked={weekdays.includes(day.value)}
+                                        onChange={() => toggleWeekday(day.value)}
+                                        disabled={pending}
+                                        className="peer sr-only"
+                                      />
+                                      <label
+                                        htmlFor={`weekday-${day.value}`}
+                                        className="grid size-[46px] cursor-pointer place-items-center rounded-md border border-ink/9 bg-paper-white font-mono text-[0.74rem] font-bold transition-[transform,background,color,box-shadow] duration-normal ease-smooth hover:-translate-y-[3px] peer-checked:bg-blue peer-checked:text-solid-white peer-checked:shadow-[var(--focus-ring)] peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-flame"
+                                      >
+                                        {day.label}
+                                      </label>
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null}
+
+                            {mode === "times_per_week" ? (
+                              <label className={cn(field, "m-0")}>
+                                <span className={label}>Times per week</span>
+                                <div className="relative">
+                                  <select
+                                    className={cn(SELECT, "min-h-[2.875rem] shadow-[inset_0_1px_2px_rgba(20,26,46,0.05)]")}
+                                    value={timesPerWeek}
+                                    onChange={(e) =>
+                                      setTimesPerWeek(Number(e.target.value))
+                                    }
+                                    disabled={pending}
+                                  >
+                                    {Array.from({ length: 7 }, (_, i) => i + 1).map(
+                                      (n) => (
+                                        <option key={n} value={n}>
+                                          {n}× per week
+                                        </option>
+                                      ),
+                                    )}
+                                  </select>
+                                  <ChevronDown
+                                    size={14}
+                                    strokeWidth={2.4}
+                                    aria-hidden
+                                    className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-ink"
+                                  />
+                                </div>
+                                <span className={hint}>
+                                  Weekly streaks count completions, not which
+                                  days you pick.
+                                </span>
+                              </label>
+                            ) : null}
+
+                            {mode === "interval" ? (
+                              <div className={cn(fieldRow, "items-end")}>
+                                <label className={cn(field, FIELD_IN_ROW)}>
+                                  <span className={label}>Every</span>
+                                  <div className="flex items-center gap-2.5">
+                                    <input
+                                      className={cn(
+                                        input,
+                                        "m-0 w-[5.75rem] shrink-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+                                      )}
+                                      type="number"
+                                      min={2}
+                                      max={30}
+                                      value={intervalDays}
+                                      onChange={(e) =>
+                                        setIntervalDays(
+                                          Math.min(
+                                            30,
+                                            Math.max(
+                                              2,
+                                              Number(e.target.value) || 2,
+                                            ),
+                                          ),
+                                        )
+                                      }
+                                      disabled={pending}
+                                    />
+                                    <span className="p-0 font-semibold text-ink-70">
+                                      days
+                                    </span>
+                                  </div>
+                                </label>
+                                <div className={cn(field, FIELD_IN_ROW)}>
+                                  <span className={label}>Start from</span>
+                                  <DatePicker
+                                    value={startDate}
+                                    onChange={setStartDate}
+                                    disabled={pending}
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className={cn(field, "m-0")}>
+                                <span className={label}>Start from</span>
+                                <DatePicker
+                                  value={startDate}
+                                  onChange={setStartDate}
+                                  disabled={pending}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
               </fieldset>
-
-              {scheduleMode === "weekdays" ? (
-                <fieldset className="field">
-                  <legend className="label">Weekdays</legend>
-                  <div className="day-picker">
-                    {WEEKDAY_OPTIONS.map((day) => (
-                      <span key={day.value}>
-                        <input
-                          id={`weekday-${day.value}`}
-                          type="checkbox"
-                          checked={weekdays.includes(day.value)}
-                          onChange={() => toggleWeekday(day.value)}
-                          disabled={pending}
-                        />
-                        <label htmlFor={`weekday-${day.value}`}>
-                          {day.label}
-                        </label>
-                      </span>
-                    ))}
-                  </div>
-                </fieldset>
-              ) : null}
-
-              {scheduleMode === "times_per_week" ? (
-                <label className="field">
-                  <span className="label">Times per week</span>
-                  <select
-                    className="select"
-                    value={timesPerWeek}
-                    onChange={(e) =>
-                      setTimesPerWeek(Number(e.target.value))
-                    }
-                    disabled={pending}
-                  >
-                    {Array.from({ length: 7 }, (_, i) => i + 1).map((n) => (
-                      <option key={n} value={n}>
-                        {n}× per week
-                      </option>
-                    ))}
-                  </select>
-                  <span className="hint">
-                    Weekly streaks count completions, not which days you pick.
-                  </span>
-                </label>
-              ) : null}
-
-              {scheduleMode === "interval" ? (
-                <div className="field-row">
-                  <label className="field">
-                    <span className="label">Every</span>
-                    <input
-                      className="input"
-                      type="number"
-                      min={2}
-                      max={30}
-                      value={intervalDays}
-                      onChange={(e) =>
-                        setIntervalDays(
-                          Math.min(
-                            30,
-                            Math.max(2, Number(e.target.value) || 2),
-                          ),
-                        )
-                      }
-                      disabled={pending}
-                    />
-                  </label>
-                  <div className="field interval-suffix">
-                    <span className="label">&nbsp;</span>
-                    <span className="interval-days-label">days</span>
-                  </div>
-                </div>
-              ) : null}
-
-              <label className="field">
-                <span className="label">Start from</span>
-                <input
-                  className="input"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  disabled={pending}
-                />
-              </label>
             </motion.section>
 
             <motion.section
-              className="card form-section"
+              className={card}
               aria-labelledby="measure-heading"
               variants={reduce ? undefined : fadeUpSoft}
             >
-              <div className="panel-head">
-                <h2 id="measure-heading" className="section-title">
+              <div className={panelHead}>
+                <h2 id="measure-heading" className={sectionTitle}>
                   Measure it
                 </h2>
-                <span className="chip chip-quiet">Optional</span>
+                <span className={cn(chip, chipQuiet)}>Optional</span>
               </div>
-              <p className="hint" style={{ marginTop: -8, marginBottom: 16 }}>
+              <p className={cn(hint, "-mt-2 mb-4")}>
                 Track an amount instead of a plain tick
               </p>
-              <div className="field-row">
-                <label className="field">
-                  <span className="label">Daily target</span>
+              <div className={fieldRow}>
+                <label className={cn(field, FIELD_IN_ROW)}>
+                  <span className={label}>Daily target</span>
                   <input
-                    className="input"
+                    className={cn(
+                      input,
+                      "m-0 min-h-[2.875rem] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+                    )}
                     type="number"
                     min={0}
                     placeholder="30"
@@ -499,10 +724,10 @@ export function NewHabitForm() {
                     disabled={pending}
                   />
                 </label>
-                <label className="field">
-                  <span className="label">Unit</span>
+                <label className={cn(field, FIELD_IN_ROW)}>
+                  <span className={label}>Unit</span>
                   <input
-                    className="input"
+                    className={cn(input, "m-0 min-h-[2.875rem]")}
                     type="text"
                     placeholder="pages, minutes, litres"
                     value={measureUnit}
@@ -513,65 +738,67 @@ export function NewHabitForm() {
               </div>
             </motion.section>
 
-            <motion.section
-              className="card form-section"
-              aria-labelledby="reminder-heading"
-              variants={reduce ? undefined : fadeUpSoft}
-            >
-              <div className="panel-head">
-                <h2 id="reminder-heading" className="section-title">
-                  Reminder
-                </h2>
-                <div className="reminder-toggle">
-                  <Switch
-                    id="reminder-enabled"
-                    checked={reminderEnabled}
-                    onCheckedChange={setReminderEnabled}
-                    disabled={pending}
-                  />
-                  <Label htmlFor="reminder-enabled" className="sr-only">
-                    Enable reminder
-                  </Label>
+            {!isEdit ? (
+              <motion.section
+                className={card}
+                aria-labelledby="reminder-heading"
+                variants={reduce ? undefined : fadeUpSoft}
+              >
+                <div className={panelHead}>
+                  <h2 id="reminder-heading" className={sectionTitle}>
+                    Reminder
+                  </h2>
+                  <div className="flex items-center">
+                    <Switch
+                      id="reminder-enabled"
+                      checked={reminderEnabled}
+                      onCheckedChange={setReminderEnabled}
+                      disabled={pending}
+                    />
+                    <Label htmlFor="reminder-enabled" className="sr-only">
+                      Enable reminder
+                    </Label>
+                  </div>
                 </div>
-              </div>
 
-              <label className="field">
-                <span className="label">Time</span>
-                <input
-                  className="input"
-                  type="time"
-                  value={reminderTime}
-                  onChange={(e) => setReminderTime(e.target.value)}
-                  disabled={pending || !reminderEnabled}
-                />
-                <span className="hint mono">
-                  Sent in {timezone}. Reminders follow timezone changes in
-                  Settings.
-                </span>
-              </label>
-            </motion.section>
+                <label className={cn(field, "not-first:mt-0")}>
+                  <span className={label}>Time</span>
+                  <TimePicker
+                    value={reminderTime}
+                    onChange={setReminderTime}
+                    disabled={pending || !reminderEnabled}
+                  />
+                  <span className={cn(hint, mono)}>
+                    Sent in {timezone}. Reminders follow timezone changes in
+                    Settings.
+                  </span>
+                </label>
+              </motion.section>
+            ) : null}
 
             <motion.div
-              className="form-actions"
+              className="flex flex-wrap gap-3 pt-1 [&_a]:min-w-0 [&_button]:min-w-0"
               variants={reduce ? undefined : fadeUpSoft}
             >
               <button
                 type="submit"
-                className="btn btn-primary btn-lg"
-                disabled={pending}
+                className={cn(btn, btnPrimary, btnLg)}
+                disabled={pending || !formValid}
               >
                 {pending ? (
                   <>
                     <Loader2 className="animate-spin" size={18} />
-                    Creating…
+                    {isEdit ? "Saving…" : "Creating…"}
                   </>
+                ) : isEdit ? (
+                  "Save changes"
                 ) : (
                   "Create habit"
                 )}
               </button>
               <Link
-                href="/habits"
-                className="btn btn-ghost btn-lg"
+                href={isEdit && habitId ? `/habits/${habitId}` : "/habits"}
+                className={cn(btn, btnGhost, btnLg)}
                 aria-disabled={pending}
               >
                 Cancel
@@ -580,11 +807,15 @@ export function NewHabitForm() {
           </form>
 
           <motion.aside
-            className="new-habit-preview-col"
+            className="grid min-w-0 gap-[18px] wide:sticky wide:top-[26px] [&>*]:mt-0"
             variants={reduce ? undefined : fadeUpSoft}
           >
-            <AiCreateHabitPanel onApply={(prefill) => applyAiIdea(prefill)} />
-            <AiHabitIdeasPanel onApply={(prefill) => applyAiIdea(prefill)} />
+            {!isEdit ? (
+              <>
+                <AiCreateHabitPanel onApply={(prefill) => applyAiIdea(prefill)} />
+                <AiHabitIdeasPanel onApply={(prefill) => applyAiIdea(prefill)} />
+              </>
+            ) : null}
             <HabitPreview
               name={name}
               icon={icon}

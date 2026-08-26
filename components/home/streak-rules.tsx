@@ -3,6 +3,8 @@
 import { motion, useReducedMotion } from "framer-motion";
 
 import { MotionItem, MotionSection } from "@/components/home/motion";
+import { cn } from "@/lib/utils";
+import { eyebrow, muted, row, section, wrap } from "@/lib/ui";
 
 type Cell = "on" | "na" | "miss" | "empty";
 
@@ -34,36 +36,41 @@ const RULES: {
 ];
 
 function cellClass(cell: Cell): string {
-  if (cell === "on") return "on";
-  if (cell === "na") return "na";
-  if (cell === "miss") return "miss";
-  return "";
+  return cn(
+    "block aspect-square rounded-[2px] border border-[rgba(20,26,46,0.08)] bg-l0",
+    cell === "on" && "bg-l4",
+    cell === "na" &&
+      "bg-[repeating-linear-gradient(45deg,var(--rule)_0_2px,transparent_2px_4px)]",
+    cell === "miss" && "border-flame bg-flame-soft",
+  );
 }
+
+const legendSwatch =
+  "block size-3 rounded-[2px] border border-[rgba(20,26,46,0.07)]";
 
 export function StreakRules() {
   const reduce = useReducedMotion();
 
   return (
-    <MotionSection id="rules" className="section">
-      <div className="wrap">
+    <MotionSection id="rules" className={section}>
+      <div className={wrap}>
         <MotionItem>
-          <p className="eyebrow" style={{ color: "var(--overprint)" }}>
+          <p className={cn(eyebrow, "text-overprint")}>
             Streak rules
           </p>
-          <h2>Clear rules. No soft counting.</h2>
+          <h2 className="mt-[var(--space-2)]">Clear rules. No soft counting.</h2>
         </MotionItem>
 
-        <div className="section-stack" style={{ display: "grid", gap: 12 }}>
+        <div className="mt-[var(--space-5)] grid gap-3">
           {RULES.map((rule) => (
             <MotionItem
               key={rule.title}
               as="article"
-              className="rule-card"
+              className="grid grid-cols-[78px_1fr] items-start gap-[18px] rounded-lg border border-[var(--stroke)] bg-paper-raised p-5 shadow-paper-sm max-[640px]:grid-cols-1"
               hoverLift
-              style={{ boxShadow: "var(--shadow-sm)" }}
             >
               <motion.div
-                className="rule-demo"
+                className="grid max-[640px]:max-w-[90px] grid-cols-4 gap-[3px]"
                 aria-hidden
                 initial="hidden"
                 whileInView="show"
@@ -101,7 +108,7 @@ export function StreakRules() {
               </motion.div>
               <div>
                 <h3>{rule.title}</h3>
-                <p className="muted" style={{ marginTop: 8, fontSize: "0.92rem" }}>
+                <p className={cn(muted, "mt-2 text-[0.92rem]")}>
                   {rule.body}
                 </p>
               </div>
@@ -110,26 +117,21 @@ export function StreakRules() {
         </div>
 
         <MotionItem>
-          <div className="heat-legend" style={{ marginTop: 20, gap: 14 }}>
-            <span className="row" style={{ gap: 6 }}>
-              <i style={{ background: "var(--l4)" }} /> On
+          <div className="mt-5 flex items-center gap-3.5 font-mono text-[0.68rem] text-ink-50">
+            <span className={cn(row, "gap-1.5")}>
+              <i className={cn(legendSwatch, "bg-l4")} /> On
             </span>
-            <span className="row" style={{ gap: 6 }}>
+            <span className={cn(row, "gap-1.5")}>
               <i
-                style={{
-                  background:
-                    "repeating-linear-gradient(45deg, var(--rule) 0 2px, transparent 2px 4px)",
-                }}
+                className={cn(
+                  legendSwatch,
+                  "bg-[repeating-linear-gradient(45deg,var(--rule)_0_2px,transparent_2px_4px)]",
+                )}
               />{" "}
               Rest
             </span>
-            <span className="row" style={{ gap: 6 }}>
-              <i
-                style={{
-                  background: "var(--flame-soft)",
-                  borderColor: "var(--flame)",
-                }}
-              />{" "}
+            <span className={cn(row, "gap-1.5")}>
+              <i className={cn(legendSwatch, "border-flame bg-flame-soft")} />{" "}
               Miss
             </span>
           </div>

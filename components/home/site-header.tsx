@@ -12,6 +12,8 @@ import { InkButton } from "@/components/home/ink-button";
 import { easeOut } from "@/components/home/motion";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/lib/auth/context";
+import { cn } from "@/lib/utils";
+import { btnBlock, btnIcon, wrap } from "@/lib/ui";
 
 const NAV = [
   { href: "/", label: "Home", index: "01" },
@@ -23,6 +25,9 @@ function isHeaderActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
+
+const navLink =
+  "relative cursor-pointer py-1 text-[0.92rem] font-semibold text-ink-70 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:bg-flame after:transition-[width] after:duration-normal after:ease-smooth hover:text-ink hover:after:w-full aria-[current=page]:text-blue aria-[current=page]:after:w-full aria-[current=page]:after:bg-blue";
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
@@ -53,18 +58,18 @@ export function SiteHeader() {
   }, [open]);
 
   return (
-    <header className="topbar">
-      <div className="wrap">
+    <header className="sticky top-0 z-50 border-b border-[var(--stroke)] bg-topbar backdrop-blur-[10px] dark:backdrop-blur-[14px]">
+      <div className={cn(wrap, "flex h-[70px] items-center justify-between gap-5")}>
         <BrandLink size="lg" />
 
-        <nav className="topnav" aria-label="Primary">
+        <nav className="hidden items-center gap-[26px] nav:flex" aria-label="Primary">
           {NAV.map((item) => {
             const active = isHeaderActive(pathname, item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={active ? "is-current" : undefined}
+                className={navLink}
                 aria-current={active ? "page" : undefined}
               >
                 {item.label}
@@ -73,9 +78,9 @@ export function SiteHeader() {
           })}
         </nav>
 
-        <div className="topbar-actions">
+        <div className="flex items-center gap-2.5">
           <ThemeToggle />
-          <div className="topbar-cta">
+          <div className="hidden items-center gap-2 nav:flex">
             {isLoading || signedIn ? null : (
               <>
                 <InkButton href="/login" variant="ghost" size="sm">
@@ -91,7 +96,7 @@ export function SiteHeader() {
 
           <button
             type="button"
-            className="btn-icon topbar-menu"
+            className={cn(btnIcon, "inline-flex nav:hidden")}
             aria-expanded={open}
             aria-controls="mobile-nav"
             aria-label={open ? "Close menu" : "Open menu"}
@@ -106,7 +111,7 @@ export function SiteHeader() {
         {open ? (
           <motion.div
             key="mobile-nav-root"
-            className="mobile-nav"
+            className="fixed inset-0 top-[70px] z-60"
             id="mobile-nav"
             initial={reduce ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -115,13 +120,13 @@ export function SiteHeader() {
           >
             <button
               type="button"
-              className="mobile-nav-backdrop"
+              className="absolute inset-0 cursor-pointer border-0 bg-backdrop p-0"
               aria-label="Close menu"
               onClick={() => setOpen(false)}
             />
 
             <motion.div
-              className="mobile-nav-sheet"
+              className="relative z-1 w-full border-b border-[var(--stroke)] bg-paper bg-[size:24px_24px] bg-[position:-1px_-1px] bg-[image:linear-gradient(var(--grid)_1px,transparent_1px),linear-gradient(90deg,var(--grid)_1px,transparent_1px)] px-4 pt-4 pb-5 shadow-paper"
               role="dialog"
               aria-modal="true"
               aria-label="Menu"
@@ -130,14 +135,18 @@ export function SiteHeader() {
               exit={reduce ? undefined : { y: -8, opacity: 0 }}
               transition={{ duration: 0.22, ease: easeOut }}
             >
-              <nav className="mobile-nav-list" aria-label="Mobile">
+              <nav className="grid gap-2" aria-label="Mobile">
                 {NAV.map((item, i) => {
                   const active = isHeaderActive(pathname, item.href);
                   return (
                     <motion.a
                       key={item.href}
                       href={item.href}
-                      className={active ? "mobile-nav-link is-current" : "mobile-nav-link"}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-3 rounded-md border border-[var(--stroke)] bg-paper-white px-3.5 py-3.5 shadow-paper-sm transition-[transform,box-shadow] duration-fast ease-smooth hover:-translate-y-0.5 hover:shadow-hover focus-visible:-translate-y-0.5 focus-visible:shadow-hover",
+                        active &&
+                          "border-[color-mix(in_srgb,var(--blue)_45%,transparent)] shadow-[var(--focus-ring)]",
+                      )}
                       aria-current={active ? "page" : undefined}
                       onClick={() => setOpen(false)}
                       initial={reduce ? false : { opacity: 0, y: 8 }}
@@ -148,19 +157,28 @@ export function SiteHeader() {
                         delay: reduce ? 0 : 0.04 + i * 0.04,
                       }}
                     >
-                      <span className="mobile-nav-index mono">{item.index}</span>
-                      <span className="mobile-nav-label">{item.label}</span>
+                      <span className="min-w-6 font-mono text-[0.72rem] font-bold tracking-[0.08em] text-flame">
+                        {item.index}
+                      </span>
+                      <span
+                        className={cn(
+                          "font-heading text-[1.05rem] font-extrabold tracking-[-0.03em] text-ink",
+                          active && "text-blue",
+                        )}
+                      >
+                        {item.label}
+                      </span>
                     </motion.a>
                   );
                 })}
               </nav>
 
               {signedIn ? null : (
-                <div className="mobile-nav-actions">
-                  <InkButton href="/login" variant="ghost" className="btn-block">
+                <div className="mt-3.5 grid gap-2.5 border-t border-[var(--divider)] pt-3.5">
+                  <InkButton href="/login" variant="ghost" className={btnBlock}>
                     Sign in
                   </InkButton>
-                  <InkButton href="/register" className="btn-block">
+                  <InkButton href="/register" className={btnBlock}>
                     Start free
                   </InkButton>
                 </div>

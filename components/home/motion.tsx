@@ -7,23 +7,25 @@ import {
   type Variants,
 } from "framer-motion";
 
-export const easeOut = [0.16, 1, 0.3, 1] as const;
+/** Smooth deceleration — used for page enters and hovers. */
+export const easeSmooth = [0.22, 1, 0.36, 1] as const;
+export const easeOut = easeSmooth;
 
 export const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 28 },
+  hidden: { opacity: 0, y: 20 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.55, ease: easeOut },
+    transition: { duration: 0.62, ease: easeSmooth },
   },
 };
 
 export const fadeUpSoft: Variants = {
-  hidden: { opacity: 0, y: 18 },
+  hidden: { opacity: 0, y: 10 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.45, ease: easeOut },
+    transition: { duration: 0.48, ease: easeSmooth },
   },
 };
 
@@ -31,9 +33,19 @@ export const staggerContainer: Variants = {
   hidden: {},
   show: {
     transition: {
-      staggerChildren: 0.07,
-      delayChildren: 0.06,
+      staggerChildren: 0.06,
+      delayChildren: 0.05,
     },
+  },
+};
+
+/** Smooth page enter for app shell content. */
+export const pageEnter: Variants = {
+  hidden: { opacity: 0, y: 8 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.45, ease: easeSmooth },
   },
 };
 
@@ -85,16 +97,19 @@ export function MotionItem({
         reduce || !hoverLift
           ? undefined
           : {
-              x: -3,
-              y: -3,
-              boxShadow: "7px 7px 0 var(--ink)",
-              transition: { duration: 0.18, ease: easeOut },
+              y: -4,
+              x: -2,
+              transition: { duration: 0.38, ease: easeSmooth },
             }
       }
       whileTap={
         reduce || !hoverLift
           ? undefined
-          : { x: 1, y: 1, boxShadow: "2px 2px 0 var(--ink)" }
+          : {
+              y: -1,
+              x: 0,
+              transition: { duration: 0.18, ease: easeSmooth },
+            }
       }
       {...rest}
     >

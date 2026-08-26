@@ -8,7 +8,11 @@ export function PageSpinner({
   label?: string;
 }) {
   return (
-    <div className="page-spinner" role="status" aria-label={label}>
+    <div
+      className="pointer-events-none fixed inset-0 z-40 grid place-items-center text-blue"
+      role="status"
+      aria-label={label}
+    >
       <Loader2 className="animate-spin" size={28} strokeWidth={2.2} aria-hidden />
     </div>
   );

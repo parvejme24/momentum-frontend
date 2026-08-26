@@ -5,10 +5,22 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-import { AuthFormItem, AuthShell } from "@/components/auth/auth-shell";
+import {
+  AuthFormItem,
+  AuthShell,
+  authAlert,
+  authBrandDesktop,
+  authFields,
+  authFoot,
+  authFootLink,
+  authHeading,
+  authSuccess,
+} from "@/components/auth/auth-shell";
 import { BrandLink } from "@/components/home/brand-mark";
 import { ApiError } from "@/lib/api/errors";
 import { useAuth } from "@/lib/auth/context";
+import { cn } from "@/lib/utils";
+import { btn, btnBlock, btnLg, btnPrimary, muted } from "@/lib/ui";
 
 type Status = "missing" | "pending" | "ok" | "error";
 
@@ -90,44 +102,44 @@ export function VerifyEmailForm() {
         footer: <p>The squares wait. This takes a second.</p>,
       }}
     >
-      <AuthFormItem className="auth-form-brand-desktop">
+      <AuthFormItem className={authBrandDesktop}>
         <BrandLink size="md" />
       </AuthFormItem>
 
-      <AuthFormItem className="auth-heading">
+      <AuthFormItem className={authHeading}>
         <h1>{heading}</h1>
-        <p className="muted">{body}</p>
+        <p className={cn(muted, "mt-2 dark:text-ink-70")}>{body}</p>
       </AuthFormItem>
 
       <AuthFormItem>
-        <div className="auth-fields">
+        <div className={authFields}>
           {status === "pending" ? (
-            <p className="auth-success" role="status">
+            <p className={authSuccess} role="status">
               <Loader2 className="animate-spin" size={18} />
               Confirming your email…
             </p>
           ) : null}
 
           {status === "ok" ? (
-            <p className="auth-success" role="status">
+            <p className={authSuccess} role="status">
               You’re verified. Welcome back to the log.
             </p>
           ) : null}
 
           {status === "missing" ? (
-            <p className="auth-alert" role="alert">
+            <p className={authAlert} role="alert">
               This page needs a verification token from your email.
             </p>
           ) : null}
 
           {status === "error" && message ? (
-            <p className="auth-alert" role="alert">
+            <p className={authAlert} role="alert">
               {message}
             </p>
           ) : null}
 
           {resent ? (
-            <p className="auth-success" role="status">
+            <p className={authSuccess} role="status">
               A new verification email is on its way.
             </p>
           ) : null}
@@ -135,14 +147,14 @@ export function VerifyEmailForm() {
           {status === "ok" ? (
             <Link
               href={user ? "/dashboard" : "/login"}
-              className="btn btn-primary btn-block btn-lg"
+              className={cn(btn, btnPrimary, btnBlock, btnLg)}
             >
               {user ? "Continue" : "Sign in"}
             </Link>
           ) : status === "pending" ? null : user ? (
             <button
               type="button"
-              className="btn btn-primary btn-block btn-lg"
+              className={cn(btn, btnPrimary, btnBlock, btnLg)}
               onClick={() => void onResend()}
               disabled={resending || resent}
             >
@@ -158,7 +170,7 @@ export function VerifyEmailForm() {
               )}
             </button>
           ) : (
-            <Link href="/login" className="btn btn-primary btn-block btn-lg">
+            <Link href="/login" className={cn(btn, btnPrimary, btnBlock, btnLg)}>
               Sign in to resend
             </Link>
           )}
@@ -166,8 +178,8 @@ export function VerifyEmailForm() {
       </AuthFormItem>
 
       <AuthFormItem>
-        <p className="auth-foot mono">
-          <Link href="/login" className="auth-foot-link">
+        <p className={authFoot}>
+          <Link href="/login" className={authFootLink}>
             Back to sign in
           </Link>
         </p>

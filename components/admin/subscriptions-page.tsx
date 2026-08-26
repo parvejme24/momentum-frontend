@@ -2,13 +2,24 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { CreditCard, User } from "lucide-react";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
 import { RoleGate } from "@/components/app/role-gate";
 import { useToast } from "@/components/auth/toast";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
-import { ConfirmSheet } from "@/components/settings/confirm-sheet";
 import { AdminListPageSkeleton } from "@/components/ui/page-skeletons";
+import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Pager } from "@/components/ui/pager";
 import { QueryError } from "@/components/ui/query-error";
 import {
@@ -21,7 +32,6 @@ import {
 } from "@/lib/admin/hooks";
 import {
   mutationErrorMessage,
-  subscriptionStatusChip,
   subscriptionStatusLabel,
 } from "@/lib/admin/map";
 import type { SubscriptionStatus } from "@/lib/api/types";
@@ -29,6 +39,8 @@ import { isAdmin } from "@/lib/auth/role";
 import { useAuth } from "@/lib/auth/context";
 import { formatPrettyIso } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
+import { btn, btnGhost, btnPrimary, btnSm, dialogBtn } from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 const STATUS_TABS: Array<{ id: SubscriptionStatus | "all"; label: string }> = [
   { id: "all", label: "All" },
@@ -38,6 +50,35 @@ const STATUS_TABS: Array<{ id: SubscriptionStatus | "all"; label: string }> = [
   { id: "canceled", label: "Canceled" },
   { id: "expired", label: "Expired" },
 ];
+
+const TABLE_GRID =
+  "grid items-center gap-x-4 gap-y-2 [grid-template-columns:minmax(0,1.6fr)_minmax(0,1.1fr)_minmax(6.5rem,0.85fr)_minmax(0,0.95fr)_auto] max-[900px]:grid-cols-1";
+
+const CHIP_BASE =
+  "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[0.68rem] font-semibold uppercase tracking-[0.07em]";
+
+function tabClass(active: boolean) {
+  return cn(
+    "cursor-pointer rounded-full border px-4 py-2 text-[0.88rem] font-semibold transition-all",
+    active
+      ? "border-ink bg-ink text-paper"
+      : "border-foreground/10 bg-muted/30 text-muted-foreground hover:-translate-y-px hover:border-foreground/20 hover:bg-card hover:text-foreground",
+  );
+}
+
+function planChipClass() {
+  return cn(CHIP_BASE, "border-foreground/10 text-muted-foreground");
+}
+
+function subscriptionStatusChipClass(status: SubscriptionStatus) {
+  if (status === "active") {
+    return cn(CHIP_BASE, "border-blue bg-blue-soft text-blue-deep");
+  }
+  if (status === "trialing" || status === "past_due") {
+    return cn(CHIP_BASE, "border-flame bg-flame-soft text-[#a8280c]");
+  }
+  return cn(CHIP_BASE, "border-foreground/10 text-muted-foreground");
+}
 
 export function SubscriptionsPage() {
   const reduce = useReducedMotion();
@@ -71,6 +112,26 @@ export function SubscriptionsPage() {
   const rows = subsQuery.data?.subscriptions ?? [];
   const people = usersQuery.data?.users ?? [];
   const plans = plansQuery.data ?? [];
+
+  const personOptions = useMemo(
+    () =>
+      people.map((item) => ({
+        value: item.id,
+        label: item.name,
+        hint: item.email,
+      })),
+    [people],
+  );
+
+  const planOptions = useMemo(
+    () =>
+      plans.map((item) => ({
+        value: item.id,
+        label: item.name,
+        hint: formatCents(item.priceCents, item.currency),
+      })),
+    [plans],
+  );
 
   async function create() {
     if (!userId || !planId) {
@@ -120,7 +181,7 @@ export function SubscriptionsPage() {
     >
       <MotionConfig reducedMotion="user">
         <motion.div
-          className="users-page"
+          className="min-w-0"
           initial={reduce ? false : "hidden"}
           animate="show"
           variants={reduce ? undefined : staggerContainer}
@@ -129,40 +190,44 @@ export function SubscriptionsPage() {
             <AdminListPageSkeleton rows={8} tabs={6} withSearch={false} withAction />
           ) : (
             <>
-          <motion.header
-            className="page-head row-between"
-            variants={reduce ? undefined : fadeUpSoft}
-          >
-            <div>
-              <p className="eyebrow">{subsQuery.data?.total ?? 0} plans in play</p>
-              <h1>Subscriptions</h1>
-              <p className="lede" style={{ marginTop: 10, maxWidth: "46ch" }}>
-                Assign a plan, cancel, or record a renewal without leaving the admin desk.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={() => setCreateOpen(true)}
-            >
-              New subscription
-            </button>
-          </motion.header>
+              <motion.header
+                className="mb-4 flex flex-wrap items-center justify-between gap-4"
+                variants={reduce ? undefined : fadeUpSoft}
+              >
+                <div>
+                  <p className="mb-2 font-mono text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-blue">
+                    {subsQuery.data?.total ?? 0} plans in play
+                  </p>
+                  <h1 className="mb-1.5 font-heading text-2xl font-bold tracking-tight">
+                    Subscriptions
+                  </h1>
+                  <p className="mt-2.5 max-w-[46ch] text-[clamp(1rem,1.6vw,1.18rem)] text-muted-foreground">
+                    Assign a plan, cancel, or record a renewal without leaving the admin desk.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className={cn(btn, btnPrimary, "min-h-12 min-w-[13.5rem] px-7")}
+                  onClick={() => setCreateOpen(true)}
+                >
+                  New subscription
+                </button>
+              </motion.header>
 
               <QueryError error={subsQuery.error} />
 
               <motion.div
-                className="users-toolbar"
+                className="mb-[18px] flex flex-wrap items-end justify-between gap-4"
                 variants={reduce ? undefined : fadeUpSoft}
               >
-                <div className="tab-bar" role="tablist" aria-label="Subscription filters">
+                <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Subscription filters">
                   {STATUS_TABS.map((tab) => (
                     <button
                       key={tab.id}
                       type="button"
                       role="tab"
                       aria-selected={status === tab.id}
-                      className={status === tab.id ? "tab active" : "tab"}
+                      className={tabClass(status === tab.id)}
                       onClick={() => {
                         setStatus(tab.id);
                         setPage(1);
@@ -174,138 +239,160 @@ export function SubscriptionsPage() {
                 </div>
               </motion.div>
 
-              <motion.section
-                className="card users-table-card"
-                variants={reduce ? undefined : fadeUpSoft}
-              >
-                <div className="users-table-head admin-sub-head mono" aria-hidden>
-                  <span>Person</span>
-                  <span>Plan</span>
-                  <span>Status</span>
-                  <span>Period</span>
-                  <span />
-                </div>
-                <ul className="users-list">
-                  {rows.map((item) => (
-                    <li key={item.id} className="users-row admin-sub-row">
-                      <div className="users-person-copy">
-                        <Link href={`/users/${item.user.id}`} className="users-name">
-                          {item.user.name}
-                        </Link>
-                        <div className="users-email mono">{item.user.email}</div>
-                      </div>
-                      <span className="chip chip-quiet">
-                        {item.plan.name} · {formatCents(item.plan.priceCents, item.plan.currency)}
-                      </span>
-                      <span className={subscriptionStatusChip(item.status)}>
-                        {subscriptionStatusLabel(item.status)}
-                      </span>
-                      <span className="mono users-active">
-                        {item.currentPeriodEnd
-                          ? formatPrettyIso(item.currentPeriodEnd)
-                          : "Open"}
-                      </span>
-                      <div className="users-actions">
-                        {item.status === "active" || item.status === "trialing" || item.status === "past_due" ? (
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            disabled={cancelSub.isPending}
-                            onClick={() => void cancel(item.id)}
-                          >
-                            Cancel
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            disabled={renewSub.isPending}
-                            onClick={() => void renew(item.id)}
-                          >
-                            Renew
-                          </button>
+              <motion.section variants={reduce ? undefined : fadeUpSoft}>
+                <Card className="gap-0 overflow-hidden p-0">
+                  <div
+                    className={cn(
+                      TABLE_GRID,
+                      "border-b border-ink/9 px-5 py-3.5 font-mono text-[0.66rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground max-[900px]:hidden",
+                    )}
+                    aria-hidden
+                  >
+                    <span>Person</span>
+                    <span>Plan</span>
+                    <span className="justify-self-center text-center">Status</span>
+                    <span>Period</span>
+                    <span />
+                  </div>
+                  <ul className="m-0 list-none p-0">
+                    {rows.map((item) => (
+                      <li
+                        key={item.id}
+                        className={cn(
+                          TABLE_GRID,
+                          "border-b border-ink/9 px-5 py-4 last:border-b-0",
                         )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                {rows.length === 0 ? (
-                  <p className="hint" style={{ marginTop: 8 }}>
-                    No subscriptions match this filter.
-                  </p>
-                ) : null}
-                <Pager
-                  page={subsQuery.data?.page ?? page}
-                  pageCount={subsQuery.data?.pageCount ?? 0}
-                  onPage={setPage}
-                />
+                      >
+                        <div className="min-w-0">
+                          <Link
+                            href={`/users/${item.user.id}`}
+                            className="font-bold tracking-tight hover:underline"
+                          >
+                            {item.user.name}
+                          </Link>
+                          <div className="mt-0.5 font-mono text-[0.72rem] text-muted-foreground">
+                            {item.user.email}
+                          </div>
+                        </div>
+                        <span className={cn(planChipClass(), "max-w-full justify-self-start")}>
+                          {item.plan.name} · {formatCents(item.plan.priceCents, item.plan.currency)}
+                        </span>
+                        <span
+                          className={cn(
+                            subscriptionStatusChipClass(item.status),
+                            "max-w-full justify-self-center whitespace-nowrap",
+                          )}
+                        >
+                          {subscriptionStatusLabel(item.status)}
+                        </span>
+                        <span className="font-mono text-[0.92rem] tabular-nums text-ink-70">
+                          {item.currentPeriodEnd
+                            ? formatPrettyIso(item.currentPeriodEnd)
+                            : "Open"}
+                        </span>
+                        <div className="flex items-center justify-end gap-2">
+                          {item.status === "active" ||
+                          item.status === "trialing" ||
+                          item.status === "past_due" ? (
+                            <button
+                              type="button"
+                              className={cn(btn, btnGhost, btnSm, "min-h-9 px-3.5")}
+                              disabled={cancelSub.isPending}
+                              onClick={() => void cancel(item.id)}
+                            >
+                              Cancel
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className={cn(btn, btnGhost, btnSm, "min-h-9 px-3.5")}
+                              disabled={renewSub.isPending}
+                              onClick={() => void renew(item.id)}
+                            >
+                              Renew
+                            </button>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  {rows.length === 0 ? (
+                    <p className="px-5 py-4 text-[0.8rem] text-muted-foreground">
+                      No subscriptions match this filter.
+                    </p>
+                  ) : null}
+                  <div className="px-5 pb-5">
+                    <Pager
+                      page={subsQuery.data?.page ?? page}
+                      pageCount={subsQuery.data?.pageCount ?? 0}
+                      onPage={setPage}
+                    />
+                  </div>
+                </Card>
               </motion.section>
             </>
           )}
 
-          <ConfirmSheet
-            open={createOpen}
-            onClose={() => setCreateOpen(false)}
-            title="Assign a plan"
-          >
-            <label className="field" style={{ marginTop: 16 }}>
-              <span className="label">Person</span>
-              <select
-                className="select"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-              >
-                <option value="">Choose account</option>
-                {people.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name} · {item.email}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span className="label">Plan</span>
-              <select
-                className="select"
-                value={planId}
-                onChange={(e) => setPlanId(e.target.value)}
-              >
-                <option value="">Choose plan</option>
-                {plans.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name} · {formatCents(item.priceCents, item.currency)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span className="label">Seats</span>
-              <input
-                className="input"
-                type="number"
-                min={1}
-                value={seats}
-                onChange={(e) => setSeats(e.target.value)}
-              />
-            </label>
-            <div className="settings-actions" style={{ marginTop: 22 }}>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setCreateOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={createSub.isPending}
-                onClick={() => void create()}
-              >
-                Create
-              </button>
-            </div>
-          </ConfirmSheet>
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Assign a plan</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label>Person</Label>
+                  <DropdownSelect
+                    value={userId}
+                    onChange={setUserId}
+                    placeholder="Choose account"
+                    aria-label="Person"
+                    icon={User}
+                    options={personOptions}
+                    disabled={usersQuery.isLoading}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Plan</Label>
+                  <DropdownSelect
+                    value={planId}
+                    onChange={setPlanId}
+                    placeholder="Choose plan"
+                    aria-label="Plan"
+                    icon={CreditCard}
+                    options={planOptions}
+                    disabled={plansQuery.isLoading}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="subscription-seats">Seats</Label>
+                  <Input
+                    id="subscription-seats"
+                    type="number"
+                    min={1}
+                    value={seats}
+                    onChange={(e) => setSeats(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <button
+                  type="button"
+                  className={cn(dialogBtn, btnGhost)}
+                  onClick={() => setCreateOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={cn(dialogBtn, btnPrimary)}
+                  disabled={createSub.isPending}
+                  onClick={() => void create()}
+                >
+                  Create
+                </button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </motion.div>
       </MotionConfig>
     </RoleGate>

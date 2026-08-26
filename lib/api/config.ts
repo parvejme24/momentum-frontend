@@ -20,7 +20,7 @@
  *   /v1/admin/pricing
  *   /v1/admin/notifications
  *
- * Env vars are the origin only (e.g. http://localhost:4000).
+ * Env vars are the origin only (e.g. https://momentum-backend-czgu.onrender.com).
  * Trailing /v1 or /api/v1 from older env files is stripped.
  */
 export const API_PREFIX = {
@@ -45,6 +45,10 @@ export const API_PREFIX = {
   adminNotifications: "/v1/admin/notifications",
 } as const;
 
+/** Production API on Render — used when env is unset. */
+export const DEFAULT_API_ORIGIN =
+  "https://momentum-backend-czgu.onrender.com";
+
 export function normalizeApiOrigin(raw: string): string {
   return raw.replace(/\/$/, "").replace(/\/(api\/)?v1$/i, "");
 }
@@ -52,13 +56,15 @@ export function normalizeApiOrigin(raw: string): string {
 export function getApiOrigin(): string {
   const raw =
     process.env.BACKEND_URL?.trim() ||
-    process.env.NEXT_PUBLIC_API_URL?.trim();
-
-  if (!raw) {
-    throw new Error("BACKEND_URL or NEXT_PUBLIC_API_URL is not configured");
-  }
+    process.env.NEXT_PUBLIC_API_URL?.trim() ||
+    DEFAULT_API_ORIGIN;
 
   return normalizeApiOrigin(raw);
+}
+
+/** @deprecated Use same-origin `/v1/*` from the browser client instead. */
+export function getBrowserApiBase(): string {
+  return "";
 }
 
 /** @deprecated Use getApiOrigin() */

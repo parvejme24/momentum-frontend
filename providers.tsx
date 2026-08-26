@@ -15,13 +15,16 @@ function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 30_000,
+        // Prefer cached UI — feels instant while background refresh stays quiet.
+        staleTime: 60_000,
+        gcTime: 10 * 60_000,
         retry: (count, err) =>
           err instanceof ApiError &&
           ["UNAUTHORIZED", "TOKEN_EXPIRED", "NOT_FOUND"].includes(err.code)
             ? false
-            : count < 2,
-        refetchOnWindowFocus: true,
+            : count < 1,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: true,
       },
       mutations: {
         retry: false,

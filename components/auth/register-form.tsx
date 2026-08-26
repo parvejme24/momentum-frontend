@@ -6,7 +6,18 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
-import { AuthFormItem, AuthShell } from "@/components/auth/auth-shell";
+import {
+  AuthFormItem,
+  AuthShell,
+  authAlert,
+  authBrandDesktop,
+  authChecklist,
+  authDivider,
+  authFields,
+  authFoot,
+  authFootLink,
+  authHeading,
+} from "@/components/auth/auth-shell";
 import { PasswordInput } from "@/components/auth/password-input";
 import {
   PasswordStrengthMeter,
@@ -16,6 +27,21 @@ import { useToast } from "@/components/auth/toast";
 import { BrandLink } from "@/components/home/brand-mark";
 import { ApiError } from "@/lib/api/errors";
 import { useAuth } from "@/lib/auth/context";
+import { cn } from "@/lib/utils";
+import {
+  btn,
+  btnBlock,
+  btnLg,
+  btnPrimary,
+  field,
+  hint,
+  hintErr,
+  input,
+  label,
+  mono,
+  muted,
+  select,
+} from "@/lib/ui";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -141,7 +167,7 @@ export function RegisterForm() {
         headline: "One square. Then another.",
         body: "Nothing to configure or buy. Add a habit, mark today, and let the grid do the rest.",
         footer: (
-          <ul className="auth-checklist">
+          <ul className={authChecklist}>
             <li>Free, and no card at signup</li>
             <li>Laptop and phone on one account</li>
             <li>Export everything, any time</li>
@@ -149,29 +175,29 @@ export function RegisterForm() {
         ),
       }}
     >
-      <AuthFormItem className="auth-form-brand-desktop">
+      <AuthFormItem className={authBrandDesktop}>
         <BrandLink size="md" />
       </AuthFormItem>
 
-      <AuthFormItem className="auth-heading">
+      <AuthFormItem className={authHeading}>
         <h1>Create your account</h1>
-        <p className="muted">
+        <p className={cn(muted, "mt-2 dark:text-ink-70")}>
           Takes about a minute, including your first habit.
         </p>
       </AuthFormItem>
 
       <AuthFormItem>
-        <form className="auth-fields" onSubmit={onSubmit} noValidate>
+        <form className={authFields} onSubmit={onSubmit} noValidate>
           {formError ? (
-            <p role="alert" className="auth-alert">
+            <p role="alert" className={authAlert}>
               {formError}
             </p>
           ) : null}
 
-          <label className="field">
-            <span className="label">Name</span>
+          <label className={field}>
+            <span className={label}>Name</span>
             <input
-              className="input"
+              className={input}
               type="text"
               name="name"
               autoComplete="name"
@@ -181,14 +207,14 @@ export function RegisterForm() {
               disabled={pending}
             />
             {fieldErrors.name ? (
-              <span className="hint hint-err">{fieldErrors.name}</span>
+              <span className={cn(hint, hintErr)}>{fieldErrors.name}</span>
             ) : null}
           </label>
 
-          <label className="field">
-            <span className="label">Email</span>
+          <label className={field}>
+            <span className={label}>Email</span>
             <input
-              className="input"
+              className={input}
               type="email"
               name="email"
               autoComplete="email"
@@ -198,13 +224,13 @@ export function RegisterForm() {
               disabled={pending}
             />
             {fieldErrors.email ? (
-              <span className="hint hint-err">{fieldErrors.email}</span>
+              <span className={cn(hint, hintErr)}>{fieldErrors.email}</span>
             ) : null}
           </label>
 
-          <div className="field">
+          <div className={field}>
             <label htmlFor="password">
-              <span className="label">Password</span>
+              <span className={label}>Password</span>
             </label>
             <PasswordInput
               id="password"
@@ -217,14 +243,14 @@ export function RegisterForm() {
             />
             <PasswordStrengthMeter password={password} />
             {fieldErrors.password ? (
-              <span className="hint hint-err">{fieldErrors.password}</span>
+              <span className={cn(hint, hintErr)}>{fieldErrors.password}</span>
             ) : null}
           </div>
 
-          <label className="field">
-            <span className="label">Timezone</span>
+          <label className={field}>
+            <span className={label}>Timezone</span>
             <select
-              className="select"
+              className={select}
               name="timezone"
               value={timezone}
               onChange={(e) => setTimezone(e.target.value)}
@@ -237,18 +263,18 @@ export function RegisterForm() {
                 </option>
               ))}
             </select>
-            <span className="hint">
+            <span className={hint}>
               Day rollover uses this zone, so late-night ticks still count for
               today.
             </span>
             {fieldErrors.timezone ? (
-              <span className="hint hint-err">{fieldErrors.timezone}</span>
+              <span className={cn(hint, hintErr)}>{fieldErrors.timezone}</span>
             ) : null}
           </label>
 
           <button
             type="submit"
-            className="btn btn-primary btn-block btn-lg"
+            className={cn(btn, btnPrimary, btnBlock, btnLg)}
             disabled={pending || !canSubmit}
           >
             {pending ? (
@@ -261,7 +287,7 @@ export function RegisterForm() {
             )}
           </button>
 
-          <p className="auth-legal mono">
+          <p className={cn(mono, "m-0 text-[0.68rem] leading-[1.45] tracking-[0.04em] text-ink-50")}>
             By creating an account you agree to keep the log honest — and to our
             terms when they land.
           </p>
@@ -269,7 +295,7 @@ export function RegisterForm() {
       </AuthFormItem>
 
       <AuthFormItem>
-        <div className="divider mono">or</div>
+        <div className={authDivider}>or</div>
       </AuthFormItem>
 
       <AuthFormItem>
@@ -286,9 +312,9 @@ export function RegisterForm() {
       </AuthFormItem>
 
       <AuthFormItem>
-        <p className="auth-foot mono">
+        <p className={authFoot}>
           Already tracking?{" "}
-          <Link href="/login" className="auth-foot-link">
+          <Link href="/login" className={authFootLink}>
             Sign in
           </Link>
         </p>

@@ -1,15 +1,40 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import {
+  Bell,
+  Camera,
+  Check,
+  CreditCard,
+  Download,
+  Globe,
+  Lock,
+  Mail,
+  Monitor,
+  Trash2,
+  User,
+  type LucideIcon,
+} from "lucide-react";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
 import customer from "@/data/customer.json";
 import { PasswordInput } from "@/components/auth/password-input";
 import { useToast } from "@/components/auth/toast";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
-import { ConfirmSheet } from "@/components/settings/confirm-sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { TimePicker } from "@/components/ui/time-picker";
 import { ApiError } from "@/lib/api/errors";
 import { getVapidPublicKey } from "@/lib/api/devices";
 import { useAuth } from "@/lib/auth/context";
@@ -25,8 +50,37 @@ import {
   subscriptionToPayload,
   unsubscribeFromPush,
 } from "@/lib/devices/push";
+import {
+  avatar,
+  btn,
+  btnBlock,
+  btnDanger,
+  btnGhost,
+  btnPrimary,
+  btnSm,
+  chip,
+  chipBlue,
+  dialogBtn,
+  hint,
+  hintErr,
+  mono,
+} from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 type WeekStart = "saturday" | "sunday" | "monday";
+
+const settingsCard =
+  "rounded-2xl bg-paper-white p-5 shadow-paper-sm dark:bg-paper-raised";
+
+const saveBtn = cn(dialogBtn, btnPrimary);
+const quietBtn = cn(dialogBtn, btnGhost);
+const fieldStack = "grid gap-2";
+
+const WEEK_STARTS: Array<{ value: WeekStart; label: string; note: string }> = [
+  { value: "saturday", label: "Saturday", note: "Weekend first" },
+  { value: "sunday", label: "Sunday", note: "US default" },
+  { value: "monday", label: "Monday", note: "Work week" },
+];
 
 const WEEK_START_TO_NUMBER: Record<WeekStart, number> = {
   sunday: 0,
@@ -48,9 +102,87 @@ const TIMEZONES = [
   "America/New_York",
 ];
 
+const TIMEZONE_OPTIONS = TIMEZONES.map((zone) => ({
+  value: zone,
+  label: zone.replaceAll("_", " "),
+}));
+
+const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+
+function fileToAvatarDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read photo"));
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => {
+        const size = 384;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Could not process photo"));
+          return;
+        }
+        const side = Math.min(image.width, image.height);
+        const sx = (image.width - side) / 2;
+        const sy = (image.height - side) / 2;
+        ctx.drawImage(image, sx, sy, side, side, 0, 0, size, size);
+        resolve(canvas.toDataURL("image/jpeg", 0.86));
+      };
+      image.onerror = () => reject(new Error("Could not process photo"));
+      image.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function initialFromName(name: string) {
   const trimmed = name.trim();
   return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
+}
+
+function SectionHead({
+  id,
+  title,
+  note,
+  icon: Icon,
+  tone = "blue",
+}: {
+  id: string;
+  title: string;
+  note?: string;
+  icon: LucideIcon;
+  tone?: "blue" | "danger";
+}) {
+  return (
+    <div className="mb-5 flex items-start gap-3.5">
+      <span
+        className={cn(
+          "grid size-10 shrink-0 place-items-center rounded-xl",
+          tone === "danger"
+            ? "bg-flame-soft text-danger-ink"
+            : "bg-blue-soft text-blue",
+        )}
+      >
+        <Icon size={18} strokeWidth={2.2} aria-hidden />
+      </span>
+      <div className="min-w-0 pt-0.5">
+        <h2
+          id={id}
+          className="m-0 font-heading text-lg font-semibold tracking-tight"
+        >
+          {title}
+        </h2>
+        {note ? (
+          <p className="mt-1 text-[0.88rem] leading-snug text-muted-foreground">
+            {note}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 export function SettingsPage() {
@@ -65,7 +197,7 @@ export function SettingsPage() {
   const defaultTimezone = user?.timezone || customer.profile.timezone;
 
   const [name, setName] = useState(defaultName);
-  const [email, setEmail] = useState(defaultEmail);
+  const [email] = useState(defaultEmail);
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>(
     {},
   );
@@ -94,6 +226,11 @@ export function SettingsPage() {
   const [weeklyEmail, setWeeklyEmail] = useState(customer.notifications.weeklyEmail);
   const [quietFrom, setQuietFrom] = useState(customer.notifications.quietFrom);
   const [quietTo, setQuietTo] = useState(customer.notifications.quietTo);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(
+    user?.avatarUrl ?? null,
+  );
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const devicesQuery = useDevices();
   const registerDevice = useRegisterDevice();
@@ -104,7 +241,12 @@ export function SettingsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState("");
 
   const avatarInitial = useMemo(() => initialFromName(name), [name]);
+  const avatarSrc = photoPreview || user?.avatarUrl || null;
   const canDelete = deleteConfirm.trim().toUpperCase() === "DELETE";
+
+  useEffect(() => {
+    if (user?.avatarUrl) setPhotoPreview(user.avatarUrl);
+  }, [user?.avatarUrl]);
 
   useEffect(() => {
     setCurrentDeviceId(getStoredDeviceId());
@@ -117,9 +259,6 @@ export function SettingsPage() {
     event.preventDefault();
     const next: Record<string, string> = {};
     if (!name.trim()) next.name = "Enter your name";
-    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      next.email = "Enter a valid email";
-    }
     setProfileErrors(next);
     if (Object.keys(next).length) return;
 
@@ -137,6 +276,34 @@ export function SettingsPage() {
       }
     } finally {
       setSavingProfile(false);
+    }
+  }
+
+  async function onPhotoPicked(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      pushToast("Choose a JPG or PNG photo");
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      pushToast("Photo must be 2 MB or smaller");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const dataUrl = await fileToAvatarDataUrl(file);
+      setPhotoPreview(dataUrl);
+      await updateMe({ avatarUrl: dataUrl });
+      pushToast("Photo updated");
+    } catch (err) {
+      pushToast(
+        err instanceof ApiError ? err.message : "Couldn’t update photo",
+      );
+    } finally {
+      setUploadingPhoto(false);
     }
   }
 
@@ -286,55 +453,81 @@ export function SettingsPage() {
   return (
     <MotionConfig reducedMotion="user">
       <motion.div
+        className="min-w-0"
         initial={reduce ? false : "hidden"}
         animate="show"
         variants={reduce ? undefined : staggerContainer}
       >
         <motion.header
-          className="page-head"
+          className="mb-6"
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <p className="eyebrow">Account</p>
-          <h1>Settings</h1>
+          <p className="mb-2 font-mono text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-blue">
+            Account
+          </p>
+          <h1 className="mb-1.5 font-heading text-2xl font-bold tracking-tight">
+            Settings
+          </h1>
+          <p className="mt-2.5 max-w-[46ch] text-[clamp(1rem,1.6vw,1.18rem)] text-muted-foreground">
+            Photo, password, reminders, and the rest of the account — all in one
+            place.
+          </p>
         </motion.header>
 
-        <div className="settings-layout">
-          <div className="settings-col">
+        <div className="grid grid-cols-1 items-start gap-4.5 nav:grid-cols-2">
+          <div className="grid min-w-0 gap-4.5">
             <motion.section
-              className="card"
+              className={settingsCard}
               aria-labelledby="profile-heading"
               variants={reduce ? undefined : fadeUpSoft}
             >
-              <div className="panel-head">
-                <h2 id="profile-heading" className="section-title">
-                  Profile
-                </h2>
-              </div>
+              <SectionHead id="profile-heading" title="Profile" icon={User} />
 
-              <form className="settings-stack" onSubmit={saveProfile} noValidate>
-                <div className="settings-avatar-row">
-                  <div className="avatar avatar-lg" aria-hidden>
-                    {avatarInitial}
+              <form className="grid gap-4" onSubmit={saveProfile} noValidate>
+                <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-paper-raised/80 px-3.5 py-3">
+                  <div
+                    className={cn(
+                      avatar,
+                      "size-18 overflow-hidden rounded-2xl text-[1.8rem] dark:border-transparent",
+                    )}
+                    aria-hidden
+                  >
+                    {avatarSrc ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatarSrc}
+                        alt=""
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      avatarInitial
+                    )}
                   </div>
-                  <div>
-                    <button type="button" className="btn btn-ghost btn-sm">
-                      Change photo
+                  <div className="min-w-0">
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                      onChange={(event) => void onPhotoPicked(event)}
+                    />
+                    <button
+                      type="button"
+                      className={cn(btn, btnGhost, btnSm, "min-h-9 px-3.5")}
+                      disabled={uploadingPhoto}
+                      onClick={() => photoInputRef.current?.click()}
+                    >
+                      <Camera size={15} strokeWidth={2.2} aria-hidden />
+                      {uploadingPhoto ? "Uploading…" : "Change photo"}
                     </button>
-                    <p className="hint mono" style={{ marginTop: 8 }}>
-                      JPG or PNG, up to 2 MB.
-                    </p>
+                    <p className={cn(hint, "mt-2")}>JPG or PNG, up to 2 MB.</p>
                   </div>
                 </div>
 
-                <label className="field">
-                  <span className="label-row">
-                    <span className="label">Name</span>
-                    <span className="label-req" aria-hidden>
-                      *
-                    </span>
-                  </span>
-                  <input
-                    className="input"
+                <div className={fieldStack}>
+                  <Label htmlFor="settings-name">Name</Label>
+                  <Input
+                    id="settings-name"
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -342,146 +535,136 @@ export function SettingsPage() {
                     required
                   />
                   {profileErrors.name ? (
-                    <span className="hint hint-err">{profileErrors.name}</span>
+                    <span className={cn(hint, hintErr)}>{profileErrors.name}</span>
                   ) : null}
-                </label>
+                </div>
 
-                <label className="field">
-                  <span className="label-row">
-                    <span className="label">Email</span>
-                    <span className="label-req" aria-hidden>
-                      *
-                    </span>
-                  </span>
-                  <input
-                    className="input"
+                <div className={fieldStack}>
+                  <Label htmlFor="settings-email">Email</Label>
+                  <Input
+                    id="settings-email"
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    aria-invalid={Boolean(profileErrors.email)}
-                    required
+                    disabled
+                    readOnly
+                    aria-readonly="true"
                   />
-                  {profileErrors.email ? (
-                    <span className="hint hint-err">{profileErrors.email}</span>
-                  ) : (
-                    <span className="hint">
-                      Used for sign-in and password resets
-                    </span>
-                  )}
+                  <span className={hint}>
+                    Used for sign-in. Email can’t be changed.
+                  </span>
                   {user?.emailVerified === false ? (
                     <button
                       type="button"
-                      className="btn btn-ghost btn-sm"
-                      style={{ marginTop: 8 }}
+                      className={cn(btn, btnGhost, btnSm, "mt-1 min-h-9 w-fit px-3.5")}
                       onClick={() => void sendVerification()}
                       disabled={resendingVerification}
                     >
+                      <Mail size={15} strokeWidth={2.2} aria-hidden />
                       {resendingVerification
                         ? "Sending…"
                         : "Resend verification email"}
                     </button>
                   ) : null}
-                </label>
+                </div>
 
-                <button type="submit" className="btn btn-primary" disabled={savingProfile}>
+                <button type="submit" className={saveBtn} disabled={savingProfile}>
                   {savingProfile ? "Saving…" : "Save changes"}
                 </button>
               </form>
             </motion.section>
 
             <motion.section
-              className="card"
+              className={settingsCard}
               aria-labelledby="time-heading"
               variants={reduce ? undefined : fadeUpSoft}
             >
-              <div className="panel-head">
-                <div>
-                  <h2 id="time-heading" className="section-title">
-                    Time and week
-                  </h2>
-                  <p className="hint" style={{ marginTop: 4 }}>
-                    Decides when your day starts and ends
-                  </p>
-                </div>
-              </div>
+              <SectionHead
+                id="time-heading"
+                title="Time and week"
+                note="When your day starts, and which day opens the week"
+                icon={Globe}
+              />
 
-              <form className="settings-stack" onSubmit={saveTime}>
-                <label className="field">
-                  <span className="label">Timezone</span>
-                  <select
-                    className="select"
+              <form className="grid gap-4" onSubmit={saveTime}>
+                <div className={fieldStack}>
+                  <Label>Timezone</Label>
+                  <DropdownSelect
                     value={timezone}
-                    onChange={(e) => setTimezone(e.target.value)}
-                  >
-                    {TIMEZONES.map((zone) => (
-                      <option key={zone} value={zone}>
-                        {zone}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="hint">
-                    Days already logged keep their original date; only new marks
-                    and reminders use the new zone.
+                    onChange={setTimezone}
+                    placeholder="Choose timezone"
+                    aria-label="Timezone"
+                    icon={Globe}
+                    options={TIMEZONE_OPTIONS}
+                  />
+                  <span className={hint}>
+                    Days already logged keep their original date.
                   </span>
-                </label>
+                </div>
 
-                <fieldset className="field">
-                  <legend className="label">Week starts on</legend>
-                  <div className="opt-list settings-week-opts">
-                    {(
-                      [
-                        ["saturday", "Saturday"],
-                        ["sunday", "Sunday"],
-                        ["monday", "Monday"],
-                      ] as const
-                    ).map(([value, label]) => (
-                      <label key={value}>
-                        <input
-                          type="radio"
-                          name="weekStartsOn"
-                          value={value}
-                          checked={weekStartsOn === value}
-                          onChange={() => setWeekStartsOn(value)}
-                        />
-                        <span className="opt">
-                          <span className="opt-dot" aria-hidden />
-                          <span className="opt-t">{label}</span>
-                        </span>
-                      </label>
-                    ))}
+                <fieldset className={fieldStack}>
+                  <Label>Week starts on</Label>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    {WEEK_STARTS.map((item) => {
+                      const selected = weekStartsOn === item.value;
+                      return (
+                        <label key={item.value} className="block cursor-pointer">
+                          <input
+                            type="radio"
+                            name="weekStartsOn"
+                            value={item.value}
+                            className="sr-only"
+                            checked={selected}
+                            onChange={() => setWeekStartsOn(item.value)}
+                          />
+                          <span
+                            className={cn(
+                              "flex min-h-18 flex-col justify-center gap-1 rounded-xl px-3.5 py-3 transition-colors",
+                              selected
+                                ? "bg-blue-soft text-blue-deep"
+                                : "bg-paper-raised text-ink hover:bg-paper-white",
+                            )}
+                          >
+                            <span className="flex items-center justify-between gap-2">
+                              <span className="font-semibold tracking-tight">
+                                {item.label}
+                              </span>
+                              {selected ? (
+                                <Check size={16} strokeWidth={2.4} aria-hidden />
+                              ) : null}
+                            </span>
+                            <span className="text-[0.75rem] text-muted-foreground">
+                              {item.note}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </fieldset>
 
-                <button type="submit" className="btn btn-primary" disabled={savingTime}>
+                <button type="submit" className={saveBtn} disabled={savingTime}>
                   {savingTime ? "Saving…" : "Save changes"}
                 </button>
               </form>
             </motion.section>
 
             <motion.section
-              className="card"
+              className={settingsCard}
               aria-labelledby="password-heading"
               variants={reduce ? undefined : fadeUpSoft}
             >
-              <div className="panel-head">
-                <h2 id="password-heading" className="section-title">
-                  Password
-                </h2>
-              </div>
+              <SectionHead
+                id="password-heading"
+                title="Password"
+                note="Changing it signs you out everywhere else"
+                icon={Lock}
+              />
 
-              <form
-                className="settings-stack"
-                onSubmit={updatePassword}
-                noValidate
-              >
-                <label className="field">
-                  <span className="label-row">
-                    <span className="label">Current password</span>
-                    <span className="label-req" aria-hidden>
-                      *
-                    </span>
-                  </span>
+              <form className="grid gap-4" onSubmit={updatePassword} noValidate>
+                <div className={fieldStack}>
+                  <Label htmlFor="settings-current-password">Current password</Label>
                   <PasswordInput
+                    id="settings-current-password"
                     name="currentPassword"
                     autoComplete="current-password"
                     value={currentPassword}
@@ -490,20 +673,16 @@ export function SettingsPage() {
                     required
                   />
                   {passwordErrors.currentPassword ? (
-                    <span className="hint hint-err">
+                    <span className={cn(hint, hintErr)}>
                       {passwordErrors.currentPassword}
                     </span>
                   ) : null}
-                </label>
+                </div>
 
-                <label className="field">
-                  <span className="label-row">
-                    <span className="label">New password</span>
-                    <span className="label-req" aria-hidden>
-                      *
-                    </span>
-                  </span>
+                <div className={fieldStack}>
+                  <Label htmlFor="settings-new-password">New password</Label>
                   <PasswordInput
+                    id="settings-new-password"
                     name="newPassword"
                     autoComplete="new-password"
                     value={newPassword}
@@ -512,47 +691,52 @@ export function SettingsPage() {
                     required
                   />
                   {passwordErrors.newPassword ? (
-                    <span className="hint hint-err">
+                    <span className={cn(hint, hintErr)}>
                       {passwordErrors.newPassword}
                     </span>
                   ) : (
-                    <span className="hint">
-                      Changing password signs you out everywhere else
-                    </span>
+                    <span className={hint}>At least 8 characters</span>
                   )}
-                </label>
+                </div>
 
-                <button type="submit" className="btn btn-primary" disabled={savingPassword}>
+                <button
+                  type="submit"
+                  className={saveBtn}
+                  disabled={savingPassword}
+                >
                   {savingPassword ? "Updating…" : "Update password"}
                 </button>
               </form>
             </motion.section>
           </div>
 
-          <div className="settings-col">
+          <div className="grid min-w-0 gap-4.5">
             <motion.section
-              className="card"
+              className={settingsCard}
               aria-labelledby="notifications-heading"
               variants={reduce ? undefined : fadeUpSoft}
             >
-              <div className="panel-head">
-                <div>
-                  <h2 id="notifications-heading" className="section-title">
-                    Notifications
-                  </h2>
-                  <p className="hint" style={{ marginTop: 4 }}>
-                    Per-habit times live on each habit
-                  </p>
-                </div>
-              </div>
+              <SectionHead
+                id="notifications-heading"
+                title="Notifications"
+                note="Per-habit times live on each habit"
+                icon={Bell}
+              />
 
-              <div className="settings-stack">
-                <div className="switch-row">
-                  <div>
-                    <div className="switch-row-title">Push in the browser</div>
-                    <p className="hint" style={{ marginTop: 2 }}>
-                      Habit reminders on this device
-                    </p>
+              <div className="grid gap-3">
+                <div className="flex items-center justify-between gap-4 rounded-2xl bg-paper-raised/80 px-4 py-3.5">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg bg-blue-soft text-blue">
+                      <Bell size={16} strokeWidth={2.2} aria-hidden />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="font-semibold tracking-tight">
+                        Push in the browser
+                      </div>
+                      <p className={cn(hint, "mt-0.5")}>
+                        Habit reminders on this device
+                      </p>
+                    </div>
                   </div>
                   <Switch
                     id="push-browser"
@@ -562,12 +746,19 @@ export function SettingsPage() {
                   />
                 </div>
 
-                <div className="switch-row">
-                  <div>
-                    <div className="switch-row-title">Weekly summary email</div>
-                    <p className="hint" style={{ marginTop: 2 }}>
-                      Sunday evening, one message
-                    </p>
+                <div className="flex items-center justify-between gap-4 rounded-2xl bg-paper-raised/80 px-4 py-3.5">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg bg-blue-soft text-blue">
+                      <Mail size={16} strokeWidth={2.2} aria-hidden />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="font-semibold tracking-tight">
+                        Weekly summary email
+                      </div>
+                      <p className={cn(hint, "mt-0.5")}>
+                        Sunday evening, one message
+                      </p>
+                    </div>
                   </div>
                   <Switch
                     id="weekly-email"
@@ -576,30 +767,26 @@ export function SettingsPage() {
                   />
                 </div>
 
-                <div className="quiet-hours">
-                  <span className="label">Quiet hours</span>
-                  <div className="quiet-hours-row">
-                    <label className="field">
-                      <span className="sr-only">From</span>
-                      <input
-                        className="input"
-                        type="time"
-                        value={quietFrom}
-                        onChange={(e) => setQuietFrom(e.target.value)}
-                      />
-                    </label>
-                    <span className="quiet-hours-to mono">to</span>
-                    <label className="field">
-                      <span className="sr-only">To</span>
-                      <input
-                        className="input"
-                        type="time"
-                        value={quietTo}
-                        onChange={(e) => setQuietTo(e.target.value)}
-                      />
-                    </label>
+                <div className="rounded-2xl bg-paper-raised/80 px-4 py-3.5">
+                  <Label>Quiet hours</Label>
+                  <div className="mt-2.5 grid grid-cols-1 items-center gap-2.5 sm:grid-cols-[1fr_auto_1fr]">
+                    <TimePicker
+                      id="quiet-from"
+                      value={quietFrom}
+                      onChange={setQuietFrom}
+                      placeholder="From"
+                    />
+                    <span className={cn(mono, "text-center text-[0.78rem] font-semibold text-muted-foreground")}>
+                      to
+                    </span>
+                    <TimePicker
+                      id="quiet-to"
+                      value={quietTo}
+                      onChange={setQuietTo}
+                      placeholder="To"
+                    />
                   </div>
-                  <p className="hint">
+                  <p className={cn(hint, "mt-2")}>
                     Nothing sent between these times; reminders in the window
                     are skipped, not delayed.
                   </p>
@@ -608,23 +795,19 @@ export function SettingsPage() {
             </motion.section>
 
             <motion.section
-              className="card"
+              className={settingsCard}
               aria-labelledby="devices-heading"
               variants={reduce ? undefined : fadeUpSoft}
             >
-              <div className="panel-head">
-                <div>
-                  <h2 id="devices-heading" className="section-title">
-                    Push devices
-                  </h2>
-                  <p className="hint" style={{ marginTop: 4 }}>
-                    Browsers registered for reminders
-                  </p>
-                </div>
-              </div>
+              <SectionHead
+                id="devices-heading"
+                title="Push devices"
+                note="Browsers registered for reminders"
+                icon={Monitor}
+              />
 
               {devicesQuery.error ? (
-                <p className="hint hint-err">
+                <p className={cn(hint, hintErr)}>
                   {devicesQuery.error instanceof ApiError
                     ? devicesQuery.error.message
                     : "Could not load devices"}
@@ -632,28 +815,38 @@ export function SettingsPage() {
               ) : null}
 
               {devices.length === 0 ? (
-                <p className="hint">No browsers registered yet.</p>
+                <p className={hint}>No browsers registered yet.</p>
               ) : (
-                <ul className="device-list">
+                <ul className="m-0 grid list-none gap-2 p-0">
                   {devices.map((device) => {
-                    const label = device.deviceName || "Web browser";
+                    const deviceLabel = device.deviceName || "Web browser";
                     const current = device.id === currentDeviceId;
                     return (
-                      <li key={device.id} className="device-row">
-                        <div className="device-copy">
-                          <div className="device-name">{label}</div>
-                          <div className="device-meta mono">
-                            Last seen {formatDateTime(device.lastSeenAt)}
+                      <li
+                        key={device.id}
+                        className="flex items-center justify-between gap-3 rounded-2xl bg-paper-raised/80 px-3.5 py-3 max-nav:flex-wrap"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-blue-soft text-blue">
+                            <Monitor size={16} strokeWidth={2.2} aria-hidden />
+                          </span>
+                          <div className="min-w-0">
+                            <div className="truncate font-semibold tracking-tight">
+                              {deviceLabel}
+                            </div>
+                            <div className={cn(mono, "mt-0.5 text-[0.72rem] text-muted-foreground")}>
+                              Last seen {formatDateTime(device.lastSeenAt)}
+                            </div>
                           </div>
                         </div>
                         {current ? (
-                          <span className="chip chip-blue">This browser</span>
+                          <span className={cn(chip, chipBlue)}>This browser</span>
                         ) : (
                           <button
                             type="button"
-                            className="btn btn-ghost btn-sm"
+                            className={cn(btn, btnGhost, btnSm, "min-h-9 px-3.5")}
                             disabled={removeDevice.isPending}
-                            onClick={() => void removePushDevice(device.id, label)}
+                            onClick={() => void removePushDevice(device.id, deviceLabel)}
                           >
                             Remove
                           </button>
@@ -665,8 +858,7 @@ export function SettingsPage() {
               )}
               <button
                 type="button"
-                className="btn btn-ghost btn-block"
-                style={{ marginTop: 16 }}
+                className={cn(quietBtn, btnBlock, "mt-4")}
                 disabled={signingOutAll}
                 onClick={() => void signOutEverywhere()}
               >
@@ -675,52 +867,45 @@ export function SettingsPage() {
             </motion.section>
 
             <motion.section
-              className="card"
+              className={settingsCard}
               aria-labelledby="billing-heading"
               variants={reduce ? undefined : fadeUpSoft}
             >
-              <div className="panel-head">
-                <h2 id="billing-heading" className="section-title">
-                  Subscription
-                </h2>
-              </div>
-              <p className="lede" style={{ maxWidth: "42ch" }}>
+              <SectionHead id="billing-heading" title="Subscription" icon={CreditCard} />
+              <p className="max-w-[42ch] text-[0.95rem] leading-relaxed text-muted-foreground">
                 {admin
                   ? "Complimentary Pro access for your personal habits — no renewal required."
                   : "Plan, renewal date, and invoices — keep the year chain without surprise charges."}
               </p>
-              <div className="settings-actions" style={{ marginTop: 16 }}>
-                <Link href="/subscription" className="btn btn-ghost">
-                  Manage subscription
-                </Link>
-              </div>
+              <Link
+                href="/subscription"
+                className={cn(quietBtn, "mt-4")}
+              >
+                Manage subscription
+              </Link>
             </motion.section>
 
             <motion.section
-              className="card"
+              className={settingsCard}
               aria-labelledby="data-heading"
               variants={reduce ? undefined : fadeUpSoft}
             >
-              <div className="panel-head">
-                <h2 id="data-heading" className="section-title">
-                  Your data
-                </h2>
-              </div>
-              <p className="lede" style={{ maxWidth: "42ch" }}>
+              <SectionHead id="data-heading" title="Your data" icon={Download} />
+              <p className="max-w-[42ch] text-[0.95rem] leading-relaxed text-muted-foreground">
                 Every habit and every logged day, in a file you can keep —
                 nothing locked in.
               </p>
-              <div className="settings-actions" style={{ marginTop: 16 }}>
+              <div className="mt-4 flex flex-wrap gap-2.5">
                 <button
                   type="button"
-                  className="btn btn-ghost"
+                  className={quietBtn}
                   onClick={() => exportData("JSON")}
                 >
                   Download JSON
                 </button>
                 <button
                   type="button"
-                  className="btn btn-ghost"
+                  className={quietBtn}
                   onClick={() => exportData("CSV")}
                 >
                   Download CSV
@@ -729,31 +914,30 @@ export function SettingsPage() {
             </motion.section>
 
             <motion.section
-              className="card card-danger"
+              className="rounded-2xl bg-flame-soft/70 p-5 dark:bg-[color-mix(in_srgb,#c97a6a_12%,var(--paper-raised))]"
               aria-labelledby="delete-heading"
               variants={reduce ? undefined : fadeUpSoft}
             >
-              <div className="panel-head">
-                <h2
-                  id="delete-heading"
-                  className="section-title danger-title"
-                >
-                  Delete account
-                </h2>
-              </div>
-              <p className="lede" style={{ maxWidth: "42ch" }}>
-                Removes account, all six habits, all 358 days — can&apos;t be
-                undone, no backup on our side.
+              <SectionHead
+                id="delete-heading"
+                title="Delete account"
+                note="This cannot be undone"
+                icon={Trash2}
+                tone="danger"
+              />
+              <p className="max-w-[42ch] text-[0.95rem] leading-relaxed text-muted-foreground">
+                Removes the account, habits, and logged days. Download your data
+                first if you want to keep it.
               </p>
               <button
                 type="button"
-                className="btn btn-danger"
-                style={{ marginTop: 16 }}
+                className={cn(dialogBtn, btnDanger, "mt-4")}
                 onClick={() => {
                   setDeleteConfirm("");
                   setDeleteOpen(true);
                 }}
               >
+                <Trash2 size={16} strokeWidth={2.2} aria-hidden />
                 Delete my account
               </button>
             </motion.section>
@@ -761,44 +945,50 @@ export function SettingsPage() {
         </div>
       </motion.div>
 
-      <ConfirmSheet
+      <Dialog
         open={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
-        title="Delete your account?"
+        onOpenChange={(open) => {
+          if (!open) setDeleteOpen(false);
+        }}
       >
-        <p className="lede" style={{ marginTop: 12 }}>
-          358 days of history goes with it — download data first if you want to
-          keep it.
-        </p>
-        <label className="field" style={{ marginTop: 18 }}>
-          <span className="label">Type DELETE to confirm</span>
-          <input
-            className="input"
-            type="text"
-            value={deleteConfirm}
-            onChange={(e) => setDeleteConfirm(e.target.value)}
-            autoComplete="off"
-            spellCheck={false}
-          />
-        </label>
-        <div className="settings-actions" style={{ marginTop: 20 }}>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={() => setDeleteOpen(false)}
-          >
-            Keep my account
-          </button>
-          <button
-            type="button"
-            className="btn btn-danger"
-            disabled={!canDelete}
-            onClick={confirmDelete}
-          >
-            Delete everything
-          </button>
-        </div>
-      </ConfirmSheet>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete your account?</DialogTitle>
+            <DialogDescription className="leading-relaxed">
+              History goes with it. Download your data first if you want to keep
+              it.
+            </DialogDescription>
+          </DialogHeader>
+          <div className={fieldStack}>
+            <Label htmlFor="delete-confirm">Type DELETE to confirm</Label>
+            <Input
+              id="delete-confirm"
+              type="text"
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              className={quietBtn}
+              onClick={() => setDeleteOpen(false)}
+            >
+              Keep my account
+            </button>
+            <button
+              type="button"
+              className={cn(dialogBtn, btnDanger)}
+              disabled={!canDelete}
+              onClick={confirmDelete}
+            >
+              Delete everything
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MotionConfig>
   );
 }

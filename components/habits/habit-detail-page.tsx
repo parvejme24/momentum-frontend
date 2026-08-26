@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Archive, Pencil } from "lucide-react";
+import { Archive, CalendarDays, Pencil } from "lucide-react";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
 import { useToast } from "@/components/auth/toast";
@@ -17,7 +17,20 @@ import {
 import { YearChain } from "@/components/habits/year-chain";
 import { AiHabitCoach } from "@/components/ai/ai-habit-coach";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
+import {
+  HABIT_BODY,
+  HABIT_DONE,
+  HABIT_GLYPH,
+  HABIT_META,
+  HABIT_ROW,
+  HABIT_TITLE,
+  MARK,
+  MARK_DONE,
+  MARK_IDLE,
+  MARK_SVG,
+} from "@/components/today/habit-row";
 import { ConfirmSheet } from "@/components/settings/confirm-sheet";
+import { TimePicker } from "@/components/ui/time-picker";
 import { RateBars } from "@/components/stats/rate-bars";
 import { Switch } from "@/components/ui/switch";
 import { HabitDetailSkeleton } from "@/components/ui/page-skeletons";
@@ -46,14 +59,45 @@ import {
   weekdayInsight,
 } from "@/lib/stats/map";
 import { useDeleteLog, useUpsertLog } from "@/lib/today/hooks";
+import {
+  backLink,
+  btn,
+  btnDanger,
+  btnGhost,
+  btnPrimary,
+  btnSm,
+  card,
+  cardHover,
+  chip,
+  chipBlue,
+  chipQuiet,
+  field,
+  hint,
+  label,
+  lede,
+  mono,
+  pageHead,
+  panelHead,
+  sectionTitle,
+  settingsActions,
+  stat,
+  statK,
+  statN,
+  statV,
+} from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 function formatTotal(n: number) {
   return n.toLocaleString("en-US");
 }
 
-function CheckIcon() {
+function CheckIcon({ done }: { done?: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      className={cn(MARK_SVG, done && "[stroke-dashoffset:0]")}
+    >
       <path d="M5 13l4 4L19 7" />
     </svg>
   );
@@ -66,6 +110,9 @@ function weekLabels(count: number) {
     return "";
   });
 }
+
+const HEAT_SWATCH =
+  "block size-3 rounded-[2px] border border-[rgba(20,26,46,0.07)]";
 
 function TodayMarkRow({
   detail,
@@ -100,24 +147,29 @@ function TodayMarkRow({
       : null;
 
   return (
-    <article className={done ? "habit done habit-detail-mark" : "habit habit-detail-mark"}>
+    <article className={cn(HABIT_ROW, done && HABIT_DONE)}>
       <div
-        className="habit-glyph"
+        className={cn(HABIT_GLYPH, done && "opacity-55")}
         style={{ background: detail.tint }}
         aria-hidden
       >
         {detail.emoji}
       </div>
-      <div className="habit-body">
-        <div className="habit-title">Marked for today</div>
-        <div className="habit-meta">
-          {quantity ? <span className="mono">{quantity}</span> : null}
+      <div className={HABIT_BODY}>
+        <div className={cn(HABIT_TITLE, done && "text-ink-50")}>Marked for today</div>
+        <div className={HABIT_META}>
+          {quantity ? <span className={mono}>{quantity}</span> : null}
           <span>{todayLabel}</span>
         </div>
       </div>
       <button
         type="button"
-        className={stamping ? "mark stamp" : "mark"}
+        className={cn(
+          MARK,
+          "size-[52px]",
+          done ? MARK_DONE : MARK_IDLE,
+          stamping && "animate-stamp motion-reduce:animate-none",
+        )}
         aria-pressed={done}
         aria-label={
           done
@@ -126,7 +178,7 @@ function TodayMarkRow({
         }
         onClick={handleMark}
       >
-        <CheckIcon />
+        <CheckIcon done={done} />
       </button>
     </article>
   );
@@ -145,17 +197,22 @@ function ReminderRow({
 
   return (
     <div
-      className={
-        paused || quiet
-          ? "habit-reminder-row habit-reminder-row-quiet"
-          : "habit-reminder-row"
-      }
+      className={cn(
+        "flex items-center justify-between gap-3.5 rounded-md border border-ink/9 bg-paper-white px-4 py-3.5",
+        (paused || quiet) && "border-ink-30 opacity-[0.72]",
+      )}
     >
-      <div className="habit-reminder-copy">
-        <div className={paused ? "habit-reminder-time muted mono" : "habit-reminder-time mono"}>
+      <div>
+        <div
+          className={cn(
+            mono,
+            "text-[1.02rem] font-bold tracking-[-0.03em]",
+            paused && "text-ink-50",
+          )}
+        >
           {reminder.time}
         </div>
-        <div className="habit-reminder-meta">
+        <div className="mt-[3px] text-[0.78rem] text-ink-50">
           {reminder.schedule}
           {reminder.timezone ? ` · ${reminder.timezone}` : null}
           {paused ? " · paused" : null}
@@ -171,18 +228,23 @@ function ReminderRow({
 }
 
 function RecentDayRow({ day }: { day: RecentDay }) {
-  const chipClass =
-    day.status === "done"
-      ? "chip chip-blue"
-      : "chip chip-quiet";
-
   return (
-    <li className="habit-log-row">
-      <span className="habit-log-date mono">{day.label}</span>
-      <span className="habit-log-qty mono">
+    <li className="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_auto] items-center gap-3 border-b border-ink/8 py-3 first:pt-0 last:border-b-0 last:pb-0 max-nav:grid-cols-[1fr_auto] max-nav:gap-x-3 max-nav:gap-y-2">
+      <span className={cn(mono, "text-[0.82rem] font-semibold text-ink-70")}>
+        {day.label}
+      </span>
+      <span className={cn(mono, "text-[0.82rem] font-semibold text-ink max-nav:col-start-1")}>
         {day.quantity ?? "—"}
       </span>
-      <span className={chipClass}>{statusLabel(day.status)}</span>
+      <span
+        className={cn(
+          chip,
+          day.status === "done" ? chipBlue : chipQuiet,
+          "max-nav:col-start-2 max-nav:row-span-2 max-nav:self-center",
+        )}
+      >
+        {statusLabel(day.status)}
+      </span>
     </li>
   );
 }
@@ -261,18 +323,18 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
 
   if (!base) {
     return (
-      <div className="page-head">
-        <Link href="/habits" className="back-link mono">
+      <div className={pageHead}>
+        <Link href="/habits" className={cn(backLink, mono)}>
           ← All habits
         </Link>
         <h1>Habit not found</h1>
-        <p className="lede" style={{ marginTop: 12 }}>
+        <p className={cn(lede, "mt-3")}>
           {habitQuery.error instanceof ApiError
             ? habitQuery.error.message
             : "This habit isn’t in your library."}
         </p>
-        <p style={{ marginTop: 24 }}>
-          <Link href="/habits" className="btn btn-primary">
+        <p className="mt-6">
+          <Link href="/habits" className={cn(btn, btnPrimary)}>
             Back to habits
           </Link>
         </p>
@@ -364,58 +426,67 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
   return (
     <MotionConfig reducedMotion="user">
       <motion.div
-        className="habit-detail-page"
+        className="min-w-0"
         initial={reduce ? false : "hidden"}
         animate="show"
         variants={reduce ? undefined : staggerContainer}
       >
         <motion.header
-          className="habit-detail-head"
+          className="mb-[22px]"
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <Link href="/habits" className="back-link mono">
+          <Link href="/habits" className={cn(backLink, mono, "mb-3.5")}>
             ← All habits
           </Link>
 
-          <div className="habit-detail-title-row">
+          <div className="flex flex-wrap items-start gap-4 max-nav:flex-col">
             <div
-              className="habit-detail-glyph"
+              className="grid size-16 shrink-0 place-items-center rounded-lg border border-ink/9 text-[1.7rem] shadow-paper-sm"
               style={{ background: base.tint }}
               aria-hidden
             >
               {base.emoji}
             </div>
 
-            <div className="habit-detail-title-copy">
-              <h1>{base.title}</h1>
-              <div className="habit-detail-chips">
-                <span className="chip chip-blue">{base.schedule}</span>
+            <div className="min-w-[min(100%,220px)] flex-1">
+              <h1 className="m-0 font-heading text-[clamp(1.7rem,4vw,2.35rem)] leading-[1.05] font-extrabold tracking-[-0.035em]">
+                {base.title}
+              </h1>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className={cn(chip, chipBlue)}>{base.schedule}</span>
                 {base.quantityLabel ? (
-                  <span className="chip chip-quiet">{base.quantityLabel}</span>
+                  <span className={cn(chip, chipQuiet)}>{base.quantityLabel}</span>
                 ) : null}
                 {reminders[0] ? (
-                  <span className="chip chip-quiet">{reminders[0].time}</span>
+                  <span className={cn(chip, chipQuiet)}>{reminders[0].time}</span>
                 ) : null}
               </div>
             </div>
 
-            <div className="habit-detail-actions">
+            <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2 max-wide:ml-0 max-nav:w-full">
+              <Link href="/dashboard" className={cn(btn, btnPrimary, btnSm, "inline-flex items-center gap-1.5")}>
+                <CalendarDays size={14} strokeWidth={2.2} aria-hidden />
+                Open in Today
+              </Link>
               <Link
-                href="/habits/new"
-                className="btn-icon"
-                aria-label="Edit habit"
-                title="Edit"
+                href={`/habits/${habitId}/edit`}
+                className={cn(btn, btnGhost, btnSm, "inline-flex items-center gap-1.5")}
               >
-                <Pencil size={18} strokeWidth={2.2} aria-hidden />
+                <Pencil size={14} strokeWidth={2.2} aria-hidden />
+                Edit
               </Link>
               <button
                 type="button"
-                className="btn-icon"
-                aria-label={base.archived ? "Restore habit" : "Archive habit"}
-                title={base.archived ? "Restore" : "Archive"}
+                className={cn(
+                  btn,
+                  btnGhost,
+                  btnSm,
+                  "inline-flex items-center gap-1.5 text-ink-70 hover:border-[color-mix(in_srgb,var(--flame)_45%,transparent)] hover:bg-flame-soft hover:text-danger-ink",
+                )}
                 onClick={() => setArchiveOpen(true)}
               >
-                <Archive size={18} strokeWidth={2.2} aria-hidden />
+                <Archive size={14} strokeWidth={2.2} aria-hidden />
+                {base.archived ? "Restore" : "Archive"}
               </button>
             </div>
           </div>
@@ -426,7 +497,7 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
         </motion.div>
 
         <motion.section
-          className="habit-detail-section"
+          className="mb-[22px]"
           aria-label="Today’s mark"
           variants={reduce ? undefined : fadeUpSoft}
         >
@@ -453,67 +524,70 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
         </motion.section>
 
         <motion.section
-          className="grid-4 habit-detail-stats"
+          className="mb-[22px] grid grid-cols-2 gap-6 wide:grid-cols-4"
           aria-label="Habit stats"
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <article className="stat card-hover">
-            <div className="stat-k">Current streak</div>
-            <div className="stat-v flame">
+          <article className={cn(stat, cardHover)}>
+            <div className={statK}>Current streak</div>
+            <div className={cn(statV, "text-flame")}>
               {stats?.streak.current ?? base.currentStreak}
             </div>
-            <div className="stat-n">days without a break</div>
+            <div className={statN}>days without a break</div>
           </article>
-          <article className="stat card-hover">
-            <div className="stat-k">Longest streak</div>
-            <div className="stat-v">{stats?.streak.longest ?? base.longestStreak}</div>
-            <div className="stat-n">
+          <article className={cn(stat, cardHover)}>
+            <div className={statK}>Longest streak</div>
+            <div className={statV}>{stats?.streak.longest ?? base.longestStreak}</div>
+            <div className={statN}>
               {stats
                 ? `${formatPrettyIso(stats.range.from, { day: "numeric", month: "short" })} → ${formatPrettyIso(stats.range.to, { day: "numeric", month: "short" })}`
                 : base.longestRange}
             </div>
           </article>
-          <article className="stat card-hover">
-            <div className="stat-k">Completion</div>
-            <div className="stat-v">
+          <article className={cn(stat, cardHover)}>
+            <div className={statK}>Completion</div>
+            <div className={statV}>
               {stats ? asPercent(stats.completion.rate) : base.completionRate}%
             </div>
-            <div className="stat-n">
+            <div className={statN}>
               {stats && stats.completion.due > 0
                 ? `${stats.completion.done} of ${stats.completion.due} days`
                 : "As you log days"}
             </div>
           </article>
-          <article className="stat card-hover">
-            <div className="stat-k">Total logged</div>
-            <div className="stat-v">
+          <article className={cn(stat, cardHover)}>
+            <div className={statK}>Total logged</div>
+            <div className={statV}>
               {formatTotal(stats?.totalValue ?? stats?.completion.done ?? 0)}
             </div>
-            <div className="stat-n">{base.totalLoggedUnit}</div>
+            <div className={statN}>{base.totalLoggedUnit}</div>
           </article>
         </motion.section>
 
         <motion.section
-          className="card habit-chain-card"
+          className={cn(card, "mb-[22px]")}
           aria-labelledby="chain-heading"
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <div className="panel-head habit-chain-head">
+          <div className={cn(panelHead, "items-end gap-3.5 max-nav:flex-col max-nav:items-start")}>
             <div>
-              <h2 id="chain-heading" className="section-title">
+              <h2 id="chain-heading" className={sectionTitle}>
                 The chain
               </h2>
-              <p className="hint" style={{ marginTop: 4 }}>
+              <p className={cn(hint, "mt-1")}>
                 Last 364 days · hover a square for the date
               </p>
             </div>
-            <div className="heat-legend" aria-hidden>
+            <div
+              className="flex items-center gap-1.5 font-mono text-[0.68rem] text-ink-50"
+              aria-hidden
+            >
               <span>Less</span>
-              <i style={{ background: "var(--l0)" }} />
-              <i style={{ background: "var(--l1)" }} />
-              <i style={{ background: "var(--l2)" }} />
-              <i style={{ background: "var(--l3)" }} />
-              <i style={{ background: "var(--l4)" }} />
+              <i className={cn(HEAT_SWATCH, "bg-l0")} />
+              <i className={cn(HEAT_SWATCH, "bg-l1")} />
+              <i className={cn(HEAT_SWATCH, "bg-l2")} />
+              <i className={cn(HEAT_SWATCH, "bg-l3")} />
+              <i className={cn(HEAT_SWATCH, "bg-l4")} />
               <span>More</span>
             </div>
           </div>
@@ -526,16 +600,14 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
         </motion.section>
 
         <motion.section
-          className="grid-2 habit-detail-charts"
+          className="mt-[22px] grid grid-cols-1 gap-6 nav:grid-cols-2"
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <article className="card">
-            <div className="panel-head">
+          <article className={card}>
+            <div className={panelHead}>
               <div>
-                <h2 className="section-title">Last 12 weeks</h2>
-                <p className="hint" style={{ marginTop: 4 }}>
-                  Weekly completion
-                </p>
+                <h2 className={sectionTitle}>Last 12 weeks</h2>
+                <p className={cn(hint, "mt-1")}>Weekly completion</p>
               </div>
             </div>
             {weekRates.length > 0 ? (
@@ -545,17 +617,15 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
                 ariaLabel="Last 12 weeks completion"
               />
             ) : (
-              <p className="hint">Weekly completion appears after you log days.</p>
+              <p className={hint}>Weekly completion appears after you log days.</p>
             )}
           </article>
 
-          <article className="card">
-            <div className="panel-head">
+          <article className={card}>
+            <div className={panelHead}>
               <div>
-                <h2 className="section-title">By weekday</h2>
-                <p className="hint" style={{ marginTop: 4 }}>
-                  Where the plan keeps failing
-                </p>
+                <h2 className={sectionTitle}>By weekday</h2>
+                <p className={cn(hint, "mt-1")}>Where the plan keeps failing</p>
               </div>
             </div>
             {weekdayRates.some((rate) => rate > 0) ? (
@@ -566,32 +636,34 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
                   ariaLabel="Completion by weekday"
                   hotThreshold={0.82}
                 />
-                <p className="habit-weekday-insight">{insight}</p>
+                <p className="mt-4 border-t border-ink/8 pt-3.5 text-[0.9rem] leading-[1.55] text-ink-70">
+                  {insight}
+                </p>
               </>
             ) : (
-              <p className="hint">{insight}</p>
+              <p className={hint}>{insight}</p>
             )}
           </article>
         </motion.section>
 
         <motion.section
-          className="grid-2 habit-detail-bottom"
+          className="mt-[22px] grid grid-cols-1 gap-6 nav:grid-cols-2"
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <article className="card">
-            <div className="panel-head">
-              <h2 className="section-title">Reminders</h2>
+          <article className={card}>
+            <div className={panelHead}>
+              <h2 className={sectionTitle}>Reminders</h2>
               <button
                 type="button"
-                className="btn btn-sm btn-ghost"
+                className={cn(btn, btnSm, btnGhost)}
                 onClick={() => setAddOpen(true)}
               >
                 + Add
               </button>
             </div>
-            <div className="habit-reminder-list">
+            <div className="grid gap-2.5">
               {reminders.length === 0 ? (
-                <p className="hint">No reminders set for this habit.</p>
+                <p className={hint}>No reminders set for this habit.</p>
               ) : (
                 reminders.map((reminder) => (
                   <ReminderRow
@@ -604,20 +676,20 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
               )}
             </div>
             {marked ? (
-              <p className="hint habit-reminder-note">
+              <p className={cn(hint, "mt-3")}>
                 Today is already marked — reminders stay quiet.
               </p>
             ) : null}
           </article>
 
-          <article className="card">
-            <div className="panel-head">
-              <h2 className="section-title">Recent days</h2>
+          <article className={card}>
+            <div className={panelHead}>
+              <h2 className={sectionTitle}>Recent days</h2>
             </div>
             {recentDays.length === 0 ? (
-              <p className="hint">No logs yet for this habit.</p>
+              <p className={hint}>No logs yet for this habit.</p>
             ) : (
-              <ul className="habit-log-list">
+              <ul className="m-0 grid list-none p-0">
                 {recentDays.map((day) => (
                   <RecentDayRow key={day.id} day={day} />
                 ))}
@@ -631,15 +703,15 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
           onClose={() => setArchiveOpen(false)}
           title={base.archived ? "Restore this habit?" : "Archive this habit?"}
         >
-          <p className="hint" style={{ marginTop: 10, lineHeight: 1.55 }}>
+          <p className={cn(hint, "mt-2.5 leading-[1.55]")}>
             {base.archived
               ? "It comes back to Today and Habits. History stays on file."
               : "It leaves the daily list right away. History stays on file — restore from Habits anytime."}
           </p>
-          <div className="settings-actions" style={{ marginTop: 22 }}>
+          <div className={cn(settingsActions, "mt-[22px]")}>
             <button
               type="button"
-              className="btn btn-ghost"
+              className={cn(btn, btnGhost)}
               onClick={() => setArchiveOpen(false)}
               disabled={archiving}
             >
@@ -647,7 +719,7 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
             </button>
             <button
               type="button"
-              className="btn btn-danger"
+              className={cn(btn, btnDanger)}
               onClick={() => void confirmArchive()}
               disabled={archiving}
             >
@@ -667,20 +739,20 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
           onClose={() => setAddOpen(false)}
           title="Add a reminder"
         >
-          <label className="field" style={{ marginTop: 14 }}>
-            <span className="label">Time</span>
-            <input
-              className="input"
-              type="time"
+          <div className={cn(field, "mt-3.5")}>
+            <span className={label}>Time</span>
+            <TimePicker
+              id="reminder-time"
               value={addTime}
-              onChange={(e) => setAddTime(e.target.value)}
+              onChange={setAddTime}
+              placeholder="Pick a time"
             />
-            <span className="hint">Sent in {user?.timezone || "your timezone"}.</span>
-          </label>
-          <div className="settings-actions" style={{ marginTop: 22 }}>
+            <span className={hint}>Sent in {user?.timezone || "your timezone"}.</span>
+          </div>
+          <div className={cn(settingsActions, "mt-[22px]")}>
             <button
               type="button"
-              className="btn btn-ghost"
+              className={cn(btn, btnGhost)}
               onClick={() => setAddOpen(false)}
               disabled={createReminder.isPending}
             >
@@ -688,7 +760,7 @@ export function HabitDetailPage({ habitId }: { habitId: string }) {
             </button>
             <button
               type="button"
-              className="btn btn-primary"
+              className={cn(btn, btnPrimary)}
               onClick={() => void confirmAddReminder()}
               disabled={createReminder.isPending}
             >

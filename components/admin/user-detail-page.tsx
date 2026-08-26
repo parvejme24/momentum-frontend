@@ -37,8 +37,40 @@ import { isAdmin } from "@/lib/auth/role";
 import { useAuth } from "@/lib/auth/context";
 import { formatPrettyIso } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
+import {
+  avatar,
+  btn,
+  btnDanger,
+  btnGhost,
+  btnPrimary,
+  card,
+  eyebrow,
+  field,
+  fieldRow,
+  hint,
+  inlineLink,
+  input,
+  label,
+  lede,
+  mono,
+  pageHead,
+  panelHead,
+  rowBetween,
+  sectionTitle,
+  select,
+  settingsActions,
+} from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 type ConfirmKind = "ban" | "unban" | "trash" | "restore" | "delete" | null;
+
+const FEED = "m-0 list-none p-0";
+const FEED_ITEM =
+  "flex items-center gap-3 border-b border-ink/8 py-3 last:border-b-0 last:pb-0 dark:border-[rgba(221,216,207,0.08)]";
+const FEED_COPY = "min-w-0 flex-1";
+const PERSON_NAME = "font-bold tracking-[-0.01em]";
+const PERSON_META = cn(mono, "mt-0.5 text-[0.72rem] text-ink-50");
+const FIELD_IN_ROW = cn(field, "m-0 flex min-w-0 flex-col gap-[7px]");
 
 export function UserDetailPage() {
   const reduce = useReducedMotion();
@@ -159,25 +191,23 @@ export function UserDetailPage() {
       ) : (
         <MotionConfig reducedMotion="user">
           <motion.div
-            className="users-page"
+            className="min-w-0"
             initial={reduce ? false : "hidden"}
             animate="show"
             variants={reduce ? undefined : staggerContainer}
           >
             <motion.header
-              className="page-head row-between"
+              className={cn(pageHead, rowBetween)}
               variants={reduce ? undefined : fadeUpSoft}
             >
               <div>
-                <p className="eyebrow">
-                  <Link href="/users" className="auth-inline-link">
+                <p className={cn(eyebrow, "mb-2")}>
+                  <Link href="/users" className={inlineLink}>
                     Users
                   </Link>
                 </p>
                 <h1>{person?.name ?? "User"}</h1>
-                <p className="lede" style={{ marginTop: 10 }}>
-                  {person?.email}
-                </p>
+                <p className={cn(lede, "mt-2.5")}>{person?.email}</p>
               </div>
               {person ? (
                 <span className={accountStatusChip(person.status)}>
@@ -189,21 +219,21 @@ export function UserDetailPage() {
             <QueryError error={detailQuery.error} fallback="Could not load this user" />
 
             {!person ? (
-              <p className="hint">User not found.</p>
+              <p className={hint}>User not found.</p>
             ) : (
               <>
                 <motion.section
-                  className="card"
+                  className={card}
                   variants={reduce ? undefined : fadeUpSoft}
                 >
-                  <div className="panel-head">
-                    <div className="users-person">
-                      <div className="avatar" aria-hidden>
+                  <div className={panelHead}>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className={avatar} aria-hidden>
                         {initialFromName(person.name)}
                       </div>
                       <div>
-                        <h2 className="section-title">Account</h2>
-                        <p className="hint" style={{ marginTop: 4 }}>
+                        <h2 className={sectionTitle}>Account</h2>
+                        <p className={cn(hint, "mt-1")}>
                           Last active {formatLastActive(person.lastActiveAt)} ·
                           joined {formatPrettyIso(person.createdAt)}
                         </p>
@@ -211,11 +241,11 @@ export function UserDetailPage() {
                     </div>
                   </div>
 
-                  <div className="field-row" style={{ marginTop: 8 }}>
-                    <label className="field">
-                      <span className="label">Name</span>
+                  <div className={cn(fieldRow, "mt-2")}>
+                    <label className={FIELD_IN_ROW}>
+                      <span className={label}>Name</span>
                       <input
-                        className="input"
+                        className={input}
                         value={name}
                         onChange={(e) =>
                           person
@@ -224,10 +254,10 @@ export function UserDetailPage() {
                         }
                       />
                     </label>
-                    <label className="field">
-                      <span className="label">Role</span>
+                    <label className={FIELD_IN_ROW}>
+                      <span className={label}>Role</span>
                       <select
-                        className="select"
+                        className={select}
                         value={role}
                         onChange={(e) =>
                           person
@@ -245,16 +275,16 @@ export function UserDetailPage() {
                     </label>
                   </div>
 
-                  <p className="hint" style={{ marginTop: 12 }}>
+                  <p className={cn(hint, "mt-3")}>
                     {person.timezone} · {person.habitCount} habits ·{" "}
                     {person.emailVerified ? "Email verified" : "Email unverified"}
                     {person.bannedReason ? ` · ${person.bannedReason}` : ""}
                   </p>
 
-                  <div className="settings-actions" style={{ marginTop: 18 }}>
+                  <div className={cn(settingsActions, "mt-[18px]")}>
                     <button
                       type="button"
-                      className="btn btn-primary"
+                      className={cn(btn, btnPrimary)}
                       disabled={busy || !name.trim()}
                       onClick={() => void saveProfile()}
                     >
@@ -263,7 +293,7 @@ export function UserDetailPage() {
                     {person.status === "active" ? (
                       <button
                         type="button"
-                        className="btn btn-danger"
+                        className={cn(btn, btnDanger)}
                         disabled={busy}
                         onClick={() => setConfirm("ban")}
                       >
@@ -273,7 +303,7 @@ export function UserDetailPage() {
                     {person.status === "banned" ? (
                       <button
                         type="button"
-                        className="btn"
+                        className={btn}
                         disabled={busy}
                         onClick={() => setConfirm("unban")}
                       >
@@ -283,7 +313,7 @@ export function UserDetailPage() {
                     {person.status !== "trashed" ? (
                       <button
                         type="button"
-                        className="btn btn-ghost"
+                        className={cn(btn, btnGhost)}
                         disabled={busy}
                         onClick={() => setConfirm("trash")}
                       >
@@ -293,7 +323,7 @@ export function UserDetailPage() {
                       <>
                         <button
                           type="button"
-                          className="btn"
+                          className={btn}
                           disabled={busy}
                           onClick={() => setConfirm("restore")}
                         >
@@ -301,7 +331,7 @@ export function UserDetailPage() {
                         </button>
                         <button
                           type="button"
-                          className="btn btn-danger"
+                          className={cn(btn, btnDanger)}
                           disabled={busy}
                           onClick={() => setConfirm("delete")}
                         >
@@ -314,18 +344,17 @@ export function UserDetailPage() {
 
                 {person.role === "customer" && person.status === "active" ? (
                   <motion.section
-                    className="card"
-                    style={{ marginTop: 18 }}
+                    className={cn(card, "mt-[18px]")}
                     variants={reduce ? undefined : fadeUpSoft}
                   >
-                    <div className="panel-head">
-                      <h2 className="section-title">Grant Pro access</h2>
+                    <div className={panelHead}>
+                      <h2 className={sectionTitle}>Grant Pro access</h2>
                     </div>
-                    <div className="field-row" style={{ marginTop: 8 }}>
-                      <label className="field">
-                        <span className="label">Plan</span>
+                    <div className={cn(fieldRow, "mt-2")}>
+                      <label className={FIELD_IN_ROW}>
+                        <span className={label}>Plan</span>
                         <select
-                          className="input"
+                          className={select}
                           value={grantForm.planSlug}
                           onChange={(e) =>
                             setGrantForm((current) => ({
@@ -338,10 +367,10 @@ export function UserDetailPage() {
                           <option value="pro-lifetime">Pro — Lifetime</option>
                         </select>
                       </label>
-                      <label className="field">
-                        <span className="label">Access type</span>
+                      <label className={FIELD_IN_ROW}>
+                        <span className={label}>Access type</span>
                         <select
-                          className="input"
+                          className={select}
                           value={grantForm.accessType}
                           onChange={(e) =>
                             setGrantForm((current) => ({
@@ -355,10 +384,10 @@ export function UserDetailPage() {
                         </select>
                       </label>
                       {grantForm.accessType === "timed" ? (
-                        <label className="field">
-                          <span className="label">Days</span>
+                        <label className={FIELD_IN_ROW}>
+                          <span className={label}>Days</span>
                           <input
-                            className="input"
+                            className={input}
                             type="number"
                             min={1}
                             max={3650}
@@ -373,10 +402,10 @@ export function UserDetailPage() {
                         </label>
                       ) : null}
                     </div>
-                    <label className="field" style={{ marginTop: 12 }}>
-                      <span className="label">Notes</span>
+                    <label className={cn(field, "mt-3")}>
+                      <span className={label}>Notes</span>
                       <input
-                        className="input"
+                        className={input}
                         value={grantForm.notes ?? ""}
                         onChange={(e) =>
                           setGrantForm((current) => ({
@@ -387,10 +416,10 @@ export function UserDetailPage() {
                         placeholder="Optional internal note"
                       />
                     </label>
-                    <div className="settings-actions" style={{ marginTop: 16 }}>
+                    <div className={cn(settingsActions, "mt-4")}>
                       <button
                         type="button"
-                        className="btn btn-primary"
+                        className={cn(btn, btnPrimary)}
                         disabled={busy}
                         onClick={() => void grantProAccess()}
                       >
@@ -401,25 +430,24 @@ export function UserDetailPage() {
                 ) : null}
 
                 <motion.section
-                  className="card"
-                  style={{ marginTop: 18 }}
+                  className={cn(card, "mt-[18px]")}
                   variants={reduce ? undefined : fadeUpSoft}
                 >
-                  <div className="panel-head">
-                    <h2 className="section-title">Subscriptions</h2>
-                    <Link href="/subscriptions" className="auth-inline-link mono">
+                  <div className={panelHead}>
+                    <h2 className={sectionTitle}>Subscriptions</h2>
+                    <Link href="/subscriptions" className={cn(inlineLink, mono)}>
                       All →
                     </Link>
                   </div>
                   {detail.subscriptions.length === 0 ? (
-                    <p className="hint">No subscriptions yet.</p>
+                    <p className={hint}>No subscriptions yet.</p>
                   ) : (
-                    <ul className="admin-feed">
+                    <ul className={FEED}>
                       {detail.subscriptions.map((item) => (
-                        <li key={item.id} className="admin-feed-item">
-                          <div className="admin-feed-copy">
-                            <div className="users-name">{item.plan.name}</div>
-                            <div className="users-email mono">
+                        <li key={item.id} className={FEED_ITEM}>
+                          <div className={FEED_COPY}>
+                            <div className={PERSON_NAME}>{item.plan.name}</div>
+                            <div className={PERSON_META}>
                               {formatCents(item.plan.priceCents, item.plan.currency)} ·{" "}
                               {item.currentPeriodEnd
                                 ? `until ${formatPrettyIso(item.currentPeriodEnd)}`
@@ -436,27 +464,26 @@ export function UserDetailPage() {
                 </motion.section>
 
                 <motion.section
-                  className="card"
-                  style={{ marginTop: 18 }}
+                  className={cn(card, "mt-[18px]")}
                   variants={reduce ? undefined : fadeUpSoft}
                 >
-                  <div className="panel-head">
-                    <h2 className="section-title">Payments</h2>
-                    <Link href="/payments" className="auth-inline-link mono">
+                  <div className={panelHead}>
+                    <h2 className={sectionTitle}>Payments</h2>
+                    <Link href="/payments" className={cn(inlineLink, mono)}>
                       All →
                     </Link>
                   </div>
                   {detail.payments.length === 0 ? (
-                    <p className="hint">No payments yet.</p>
+                    <p className={hint}>No payments yet.</p>
                   ) : (
-                    <ul className="admin-feed">
+                    <ul className={FEED}>
                       {detail.payments.map((item) => (
-                        <li key={item.id} className="admin-feed-item">
-                          <div className="admin-feed-copy">
-                            <div className="users-name">
+                        <li key={item.id} className={FEED_ITEM}>
+                          <div className={FEED_COPY}>
+                            <div className={PERSON_NAME}>
                               {formatCents(item.amountCents, item.currency)}
                             </div>
-                            <div className="users-email mono">
+                            <div className={PERSON_META}>
                               {item.plan?.name ?? "No plan"} ·{" "}
                               {formatPrettyIso(item.paidAt)}
                             </div>
@@ -488,7 +515,7 @@ export function UserDetailPage() {
                       : `Delete ${person?.name}?`
             }
           >
-            <p className="hint" style={{ marginTop: 10, lineHeight: 1.55 }}>
+            <p className={cn(hint, "mt-2.5 leading-[1.55]")}>
               {confirm === "ban"
                 ? "They lose access immediately. Sessions are revoked."
                 : confirm === "delete"
@@ -498,31 +525,32 @@ export function UserDetailPage() {
                     : "This updates their account status."}
             </p>
             {confirm === "ban" ? (
-              <label className="field" style={{ marginTop: 16 }}>
-                <span className="label">Reason</span>
+              <label className={cn(field, "mt-4")}>
+                <span className={label}>Reason</span>
                 <input
-                  className="input"
+                  className={input}
                   value={banReason}
                   onChange={(e) => setBanReason(e.target.value)}
                   placeholder="Optional"
                 />
               </label>
             ) : null}
-            <div className="settings-actions" style={{ marginTop: 22 }}>
+            <div className={cn(settingsActions, "mt-[22px]")}>
               <button
                 type="button"
-                className="btn btn-ghost"
+                className={cn(btn, btnGhost)}
                 onClick={() => setConfirm(null)}
               >
                 Cancel
               </button>
               <button
                 type="button"
-                className={
+                className={cn(
+                  btn,
                   confirm === "unban" || confirm === "restore"
-                    ? "btn btn-primary"
-                    : "btn btn-danger"
-                }
+                    ? btnPrimary
+                    : btnDanger,
+                )}
                 disabled={busy}
                 onClick={() => void runConfirm()}
               >

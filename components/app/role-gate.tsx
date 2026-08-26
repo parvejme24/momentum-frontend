@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 
 import { PageHeadSkeleton } from "@/components/ui/page-skeletons";
 import { useAuth } from "@/lib/auth/context";
+import { btn, btnPrimary, eyebrow, lede, pageHead } from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 export function RoleGate({
   allowed,
@@ -25,16 +27,14 @@ export function RoleGate({
 
   if (!allowed) {
     return (
-      <div className="page-head">
-        <p className="eyebrow">Restricted</p>
+      <div className={pageHead}>
+        <p className={cn(eyebrow, "mb-2")}>Restricted</p>
         <h1>{title}</h1>
-        <p className="lede" style={{ marginTop: 12, maxWidth: "42ch" }}>
-          {message}
-        </p>
-        <p style={{ marginTop: 24 }}>
+        <p className={cn(lede, "mt-3 max-w-[42ch]")}>{message}</p>
+        <p className="mt-6">
           <button
             type="button"
-            className="btn btn-primary"
+            className={cn(btn, btnPrimary)}
             onClick={() => router.push("/dashboard")}
           >
             Back to dashboard

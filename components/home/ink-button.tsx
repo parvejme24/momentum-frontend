@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
+import { buttons } from "@/lib/ui";
 
 type InkButtonProps = {
   href: string;
@@ -18,18 +19,7 @@ export function InkButton({
   size = "md",
 }: InkButtonProps) {
   return (
-    <Link
-      href={href}
-      className={cn(
-        "btn",
-        variant === "primary" && "btn-primary",
-        variant === "flame" && "btn-flame",
-        variant === "ghost" && "btn-ghost",
-        size === "lg" && "btn-lg",
-        size === "sm" && "btn-sm",
-        className,
-      )}
-    >
+    <Link href={href} className={cn(buttons(variant, size), className)}>
       {children}
     </Link>
   );

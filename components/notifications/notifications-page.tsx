@@ -17,6 +17,22 @@ import {
   useMarkNotificationRead,
   useNotifications,
 } from "@/lib/notifications/hooks";
+import {
+  btn,
+  btnGhost,
+  btnIcon,
+  btnSm,
+  card,
+  eyebrow,
+  hint,
+  lede,
+  mono,
+  pageHead,
+  rowBetween,
+  tabBar,
+  tabs,
+} from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 export function NotificationsPage() {
   const reduce = useReducedMotion();
@@ -62,7 +78,7 @@ export function NotificationsPage() {
   return (
     <MotionConfig reducedMotion="user">
       <motion.div
-        className="users-page"
+        className="min-w-0"
         initial={reduce ? false : "hidden"}
         animate="show"
         variants={reduce ? undefined : staggerContainer}
@@ -71,39 +87,42 @@ export function NotificationsPage() {
           <AdminListPageSkeleton rows={8} tabs={2} withSearch={false} withAction />
         ) : (
           <>
-        <motion.header
-          className="page-head row-between"
-          variants={reduce ? undefined : fadeUpSoft}
-        >
-          <div>
-            <p className="eyebrow">
-              {listQuery.data?.unreadCount ?? 0} unread
-            </p>
-            <h1>Notifications</h1>
-            <p className="lede" style={{ marginTop: 10, maxWidth: "46ch" }}>
-              Payments, account changes, and plan events — in one quiet list.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            disabled={markAll.isPending || (listQuery.data?.unreadCount ?? 0) === 0}
-            onClick={() => void readAll()}
-          >
-            <CheckCheck size={16} strokeWidth={2.2} aria-hidden />
-            Mark all read
-          </button>
-        </motion.header>
+            <motion.header
+              className={cn(pageHead, rowBetween)}
+              variants={reduce ? undefined : fadeUpSoft}
+            >
+              <div>
+                <p className={cn(eyebrow, "mb-2")}>
+                  {listQuery.data?.unreadCount ?? 0} unread
+                </p>
+                <h1>Notifications</h1>
+                <p className={cn(lede, "mt-2.5 max-w-[46ch]")}>
+                  Payments, account changes, and plan events — in one quiet list.
+                </p>
+              </div>
+              <button
+                type="button"
+                className={cn(btn, btnGhost, btnSm)}
+                disabled={markAll.isPending || (listQuery.data?.unreadCount ?? 0) === 0}
+                onClick={() => void readAll()}
+              >
+                <CheckCheck size={16} strokeWidth={2.2} aria-hidden />
+                Mark all read
+              </button>
+            </motion.header>
 
             <QueryError error={listQuery.error} />
 
-            <motion.div className="users-toolbar" variants={reduce ? undefined : fadeUpSoft}>
-              <div className="tab-bar" role="tablist" aria-label="Notification filters">
+            <motion.div
+              className="mb-[18px] flex flex-wrap items-end justify-between gap-4"
+              variants={reduce ? undefined : fadeUpSoft}
+            >
+              <div className={tabBar} role="tablist" aria-label="Notification filters">
                 <button
                   type="button"
                   role="tab"
                   aria-selected={!unreadOnly}
-                  className={!unreadOnly ? "tab active" : "tab"}
+                  className={tabs(!unreadOnly)}
                   onClick={() => {
                     setUnreadOnly(false);
                     setPage(1);
@@ -115,7 +134,7 @@ export function NotificationsPage() {
                   type="button"
                   role="tab"
                   aria-selected={unreadOnly}
-                  className={unreadOnly ? "tab active" : "tab"}
+                  className={tabs(unreadOnly)}
                   onClick={() => {
                     setUnreadOnly(true);
                     setPage(1);
@@ -126,33 +145,41 @@ export function NotificationsPage() {
               </div>
             </motion.div>
 
-            <motion.section className="card" variants={reduce ? undefined : fadeUpSoft}>
+            <motion.section className={card} variants={reduce ? undefined : fadeUpSoft}>
               {rows.length === 0 ? (
-                <p className="hint">Nothing in this inbox.</p>
+                <p className={hint}>Nothing in this inbox.</p>
               ) : (
-                <ul className="notice-list">
+                <ul className="m-0 list-none p-0">
                   {rows.map((item) => (
                     <li
                       key={item.id}
-                      className={item.readAt ? "notice-row" : "notice-row is-unread"}
+                      className="flex items-start gap-3 border-b border-ink/8 py-3.5 last:border-b-0 last:pb-0 dark:border-[rgba(221,216,207,0.08)]"
                     >
-                      <div className="notice-icon" aria-hidden>
+                      <div
+                        className="grid size-9 shrink-0 place-items-center rounded-md border border-[var(--stroke)] bg-paper dark:bg-paper-white"
+                        aria-hidden
+                      >
                         <Bell size={16} strokeWidth={2.2} />
                       </div>
-                      <div className="admin-feed-copy">
-                        <div className="users-name">{item.title}</div>
-                        <p className="hint" style={{ marginTop: 4 }}>
-                          {item.body}
-                        </p>
-                        <div className="users-email mono">
+                      <div className="min-w-0 flex-1">
+                        <div
+                          className={cn(
+                            "font-bold tracking-[-0.01em]",
+                            !item.readAt && "text-ink",
+                          )}
+                        >
+                          {item.title}
+                        </div>
+                        <p className={cn(hint, "mt-1")}>{item.body}</p>
+                        <div className={cn(mono, "mt-0.5 text-[0.72rem] text-ink-50")}>
                           {formatDateTime(item.createdAt)}
                         </div>
                       </div>
-                      <div className="users-actions">
+                      <div className="flex items-center justify-end gap-2">
                         {item.readAt ? null : (
                           <button
                             type="button"
-                            className="btn btn-ghost btn-sm"
+                            className={cn(btn, btnGhost, btnSm)}
                             onClick={() => void read(item.id)}
                           >
                             Read
@@ -160,7 +187,7 @@ export function NotificationsPage() {
                         )}
                         <button
                           type="button"
-                          className="btn-icon users-delete"
+                          className={cn(btnIcon, "size-9")}
                           aria-label="Delete notification"
                           onClick={() => void trash(item.id)}
                         >

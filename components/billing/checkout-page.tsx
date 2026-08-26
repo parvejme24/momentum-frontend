@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, CreditCard, Landmark, ShieldCheck, X } from "lucide-react";
 import { motion } from "framer-motion";
+import { Check, CreditCard, Landmark, ShieldCheck, X } from "lucide-react";
+import { easeOut } from "@/components/home/motion";
 
 import { CheckoutShell } from "@/components/billing/checkout-shell";
 import { PlanFeatureList } from "@/components/billing/plan-feature-list";
@@ -25,6 +26,21 @@ import {
 import { useAuth } from "@/lib/auth/context";
 import { formatCents, intervalLabel } from "@/lib/money";
 import { planFeaturesForDisplay } from "@/lib/pricing/features";
+import {
+  btn,
+  btnBlock,
+  btnIcon,
+  btnPrimary,
+  card,
+  cardFlat,
+  hint,
+  inlineLink,
+  label,
+  mono,
+  sectionTitle,
+  skeleton,
+} from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 function originUrl() {
   if (typeof window === "undefined") return "";
@@ -41,18 +57,24 @@ function closeCheckout(router: ReturnType<typeof useRouter>) {
 
 function CheckoutLoading() {
   return (
-    <div className="checkout-desk checkout-desk-loading" aria-busy="true">
-      <aside className="checkout-art" aria-hidden>
-        <div className="skeleton skeleton-brand" />
-        <div className="skeleton skeleton-section-title" />
-        <div className="skeleton skeleton-lede" />
+    <div
+      className="pointer-events-none relative grid min-h-screen grid-cols-1 bg-paper wide:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]"
+      aria-busy="true"
+    >
+      <aside
+        className="flex flex-col justify-between gap-7 border-r border-[var(--stroke)] bg-[linear-gradient(165deg,color-mix(in_srgb,var(--blue-soft)_88%,var(--paper))_0%,var(--paper-raised)_55%,var(--paper)_100%)] p-[clamp(24px,4vw,48px)] max-wide:border-r-0 max-wide:border-b"
+        aria-hidden
+      >
+        <div className={cn(skeleton, "h-[1.4rem] w-[8.5rem]")} />
+        <div className={cn(skeleton, "mb-3.5 h-4 w-36")} />
+        <div className={cn(skeleton, "mt-3 h-[0.88rem] w-[min(28rem,92%)]")} />
       </aside>
-      <main className="checkout-main">
-        <div className="checkout-main-inner">
-          <div className="skeleton skeleton-section-title" />
-          <div className="checkout-pay-stack">
-            <div className="card checkout-pay-option page-skeleton-detail-card" />
-            <div className="card checkout-pay-option page-skeleton-detail-card" />
+      <main className="flex items-center justify-center p-[clamp(20px,4vw,40px)] max-wide:items-start">
+        <div className="w-[min(100%,520px)]">
+          <div className={cn(skeleton, "mb-3.5 h-4 w-36")} />
+          <div className="grid gap-3.5">
+            <div className={cn(card, "mt-6 min-h-32")} />
+            <div className={cn(card, "mt-6 min-h-32")} />
           </div>
         </div>
       </main>
@@ -136,7 +158,7 @@ function CheckoutBody() {
           period: "",
         }}
       >
-        <Link href="/subscription" className="btn btn-primary">
+        <Link href="/subscription" className={cn(btn, btnPrimary)}>
           Back to subscription
         </Link>
       </CheckoutShell>
@@ -154,7 +176,7 @@ function CheckoutBody() {
           period: "forever",
         }}
       >
-        <Link href="/subscription" className="btn btn-primary">
+        <Link href="/subscription" className={cn(btn, btnPrimary)}>
           Back to subscription
         </Link>
       </CheckoutShell>
@@ -172,7 +194,7 @@ function CheckoutBody() {
         price: formatCents(plan.priceCents, plan.currency),
         period: intervalLabel(plan.interval, plan.intervalCount),
         footer: (
-          <ul className="checkout-trust-list">
+          <ul className="m-0 grid list-none gap-2.5 p-0 text-[0.88rem] text-ink-70 [&_li]:flex [&_li]:items-center [&_li]:gap-2 [&_svg]:shrink-0 [&_svg]:text-blue">
             <li>
               <ShieldCheck size={15} strokeWidth={2.2} aria-hidden />
               Secure payment on Stripe or SSLCommerz
@@ -188,20 +210,24 @@ function CheckoutBody() {
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
+        transition={{ duration: 0.48, ease: easeOut }}
       >
-        <div className="checkout-main-head">
+        <div className="mb-[18px] flex items-start justify-between gap-3">
           <div>
-            <p className="checkout-main-eyebrow">Payment</p>
-            <h2 className="checkout-main-title">Choose how to pay</h2>
-            <p className="hint checkout-main-lede">
+            <p className="m-0 font-mono text-[0.68rem] tracking-[0.12em] uppercase text-blue">
+              Payment
+            </p>
+            <h2 className="mt-2 mb-0 font-heading text-[clamp(1.45rem,3vw,1.85rem)] font-extrabold tracking-[-0.03em]">
+              Choose how to pay
+            </h2>
+            <p className={cn(hint, "mt-2 max-w-[42ch] leading-[1.55]")}>
               You&apos;ll finish on a secure gateway page. When payment succeeds,
               your subscription tab updates automatically.
             </p>
           </div>
           <button
             type="button"
-            className="btn-icon checkout-close"
+            className={cn(btnIcon, "shrink-0")}
             aria-label="Close checkout"
             onClick={() => closeCheckout(router)}
           >
@@ -215,36 +241,47 @@ function CheckoutBody() {
           }
         />
 
-        <section className="checkout-features card card-flat" aria-label="Included">
-          <p className="label">Included in {plan.name}</p>
+        <section
+          className={cn(card, cardFlat, "mb-4 bg-paper-white px-[18px] py-4")}
+          aria-label="Included"
+        >
+          <p className={label}>Included in {plan.name}</p>
           <PlanFeatureList features={features.slice(0, 5)} />
         </section>
 
         {!paidCheckoutReady ? (
-          <p className="hint">Paid checkout is not configured yet.</p>
+          <p className={hint}>Paid checkout is not configured yet.</p>
         ) : (
-          <div className="checkout-pay-stack">
+          <div className="grid gap-3.5">
             {stripeReady ? (
-              <article className="card checkout-pay-option checkout-pay-option-stripe">
-                <div className="checkout-pay-option-head">
-                  <div className="checkout-pay-icon checkout-pay-icon-stripe" aria-hidden>
+              <article
+                className={cn(
+                  card,
+                  "flex flex-col gap-3 border-blue p-[18px] shadow-[var(--shadow-lift),var(--focus-ring)] dark:bg-paper-raised dark:hover:-translate-y-[3px] dark:hover:border-[rgba(139,164,201,0.35)] dark:hover:shadow-[var(--shadow),var(--shadow-glow)]",
+                )}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className="grid size-[42px] shrink-0 place-items-center rounded-md border border-[var(--stroke)] bg-blue-soft text-blue-deep"
+                    aria-hidden
+                  >
                     <CreditCard size={20} strokeWidth={2.2} />
                   </div>
                   <div>
-                    <h3 className="section-title">Card · Stripe</h3>
-                    <p className="hint checkout-pay-copy">
+                    <h3 className={sectionTitle}>Card · Stripe</h3>
+                    <p className={cn(hint, "mt-1 leading-normal")}>
                       Visa, Mastercard, Amex — international cards and recurring
                       billing.
                     </p>
                   </div>
                 </div>
-                <ul className="checkout-pay-points">
+                <ul className="m-0 pl-[1.1rem] text-[0.86rem] leading-[1.45] text-ink-70 [&_li+li]:mt-1">
                   <li>Hosted Stripe Checkout</li>
                   <li>Update card from Subscription anytime</li>
                 </ul>
                 <button
                   type="button"
-                  className="btn btn-primary btn-block"
+                  className={cn(btn, btnPrimary, btnBlock)}
                   disabled={checkout.isPending || authLoading || !user}
                   onClick={() => void startPayment("stripe")}
                 >
@@ -254,31 +291,39 @@ function CheckoutBody() {
             ) : null}
 
             {sslReady ? (
-              <article className="card checkout-pay-option checkout-pay-option-ssl">
-                <div className="checkout-pay-option-head">
-                  <div className="checkout-pay-icon checkout-pay-icon-ssl" aria-hidden>
+              <article
+                className={cn(
+                  card,
+                  "flex flex-col gap-3 p-[18px] shadow-paper-sm dark:bg-paper-raised dark:hover:-translate-y-[3px] dark:hover:border-[rgba(139,164,201,0.35)] dark:hover:shadow-[var(--shadow),var(--shadow-glow)]",
+                )}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className="grid size-[42px] shrink-0 place-items-center rounded-md border border-[var(--stroke)] bg-flame-soft text-danger-ink"
+                    aria-hidden
+                  >
                     <Landmark size={20} strokeWidth={2.2} />
                   </div>
                   <div>
-                    <h3 className="section-title">SSLCommerz</h3>
-                    <p className="hint checkout-pay-copy">
+                    <h3 className={sectionTitle}>SSLCommerz</h3>
+                    <p className={cn(hint, "mt-1 leading-normal")}>
                       bKash, Nagad, local bank cards, and mobile banking in
                       Bangladesh.
                     </p>
                   </div>
                 </div>
-                <ul className="checkout-pay-points">
+                <ul className="m-0 pl-[1.1rem] text-[0.86rem] leading-[1.45] text-ink-70 [&_li+li]:mt-1">
                   <li>Local wallets and bank transfer</li>
                   <li>Instant activation after payment</li>
                 </ul>
                 {billingConfig?.sslcommerz.sandbox ? (
-                  <p className="hint checkout-pay-note">
+                  <p className={cn(hint, "m-0 text-[0.78rem]")}>
                     Sandbox — use SSLCommerz test credentials.
                   </p>
                 ) : null}
                 <button
                   type="button"
-                  className="btn btn-block"
+                  className={cn(btn, btnBlock)}
                   disabled={checkout.isPending || authLoading || !user}
                   onClick={() => void startPayment("sslcommerz")}
                 >
@@ -289,10 +334,10 @@ function CheckoutBody() {
           </div>
         )}
 
-        <p className="hint checkout-footnote mono">
+        <p className={cn(hint, mono, "mt-[18px] text-center")}>
           <button
             type="button"
-            className="auth-inline-link"
+            className={inlineLink}
             onClick={() => closeCheckout(router)}
           >
             Cancel and return to subscription

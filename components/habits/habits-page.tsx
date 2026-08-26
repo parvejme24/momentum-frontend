@@ -17,6 +17,21 @@ import { HabitCardsSkeleton } from "@/components/ui/page-skeletons";
 import { ApiError } from "@/lib/api/errors";
 import { useHabits } from "@/lib/habits/hooks";
 import { toLibraryHabit } from "@/lib/habits/map";
+import {
+  btn,
+  btnPrimary,
+  btnSm,
+  eyebrow,
+  hint,
+  hintErr,
+  mono,
+  pageHead,
+  rowBetween,
+  sectionTitle,
+  tabBar,
+  tabs,
+} from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 type FilterTab = "all" | HabitCategory;
 
@@ -59,64 +74,66 @@ export function HabitsPage() {
         variants={reduce ? undefined : staggerContainer}
       >
         <motion.header
-          className="page-head row-between"
+          className={cn(pageHead, rowBetween)}
           variants={reduce ? undefined : fadeUpSoft}
         >
           <div>
-            <p className="eyebrow">{active.length} active</p>
-            <h1>Habits</h1>
+            <p className={cn(eyebrow, "mb-2")}>{active.length} active</p>
+            <h1 className="mt-4">Habits</h1>
           </div>
-          <Link href="/habits/new" className="btn btn-primary btn-sm">
+          <Link href="/habits/new" className={cn(btn, btnPrimary, btnSm)}>
             <Plus size={15} strokeWidth={2.4} aria-hidden />
             New habit
           </Link>
         </motion.header>
 
         {activeQuery.error ? (
-          <p className="hint hint-err">{errorMessage(activeQuery.error)}</p>
+          <p className={cn(hint, hintErr)}>{errorMessage(activeQuery.error)}</p>
         ) : null}
 
         <motion.div
-          className="habits-filter row-between"
+          className={cn(rowBetween, "mb-[22px] items-end max-nav:flex-col max-nav:items-start max-nav:gap-3")}
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <div className="tab-bar" role="tablist" aria-label="Habit filters">
+          <div className={tabBar} role="tablist" aria-label="Habit filters">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 role="tab"
                 aria-selected={filter === tab.id}
-                className={filter === tab.id ? "tab active" : "tab"}
+                className={tabs(filter === tab.id)}
                 onClick={() => setFilter(tab.id)}
               >
                 {tab.label}
               </button>
             ))}
           </div>
-          <span className="mono habits-filter-hint">Last 90 days shown</span>
+          <span className={cn(mono, "text-[0.68rem] tracking-[0.04em] whitespace-nowrap text-ink-50")}>
+            Last 90 days shown
+          </span>
         </motion.div>
 
         {activeQuery.isLoading ? (
           <HabitCardsSkeleton count={4} />
         ) : active.length === 0 ? (
           <motion.div
-            className="empty"
+            className="rounded-lg border-2 border-dashed border-ink-30 px-6 py-14 text-center"
             variants={reduce ? undefined : fadeUpSoft}
           >
-            <h2 className="section-title">No habits yet</h2>
-            <p className="hint" style={{ marginTop: 8 }}>
-              Create one to start a chain.
-            </p>
+            <h2 className={sectionTitle}>No habits yet</h2>
+            <p className={cn(hint, "mt-2")}>Create one to start a chain.</p>
           </motion.div>
         ) : (
           <>
             <motion.section
-              className="habit-lib-grid"
+              className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 wide:grid-cols-4 [&>*]:m-0 [&>*]:min-w-0"
               aria-label="Active habits"
-              variants={reduce ? undefined : fadeUpSoft}
+              initial={reduce ? false : "hidden"}
+              animate="show"
+              variants={reduce ? undefined : staggerContainer}
             >
-              <AnimatePresence mode="popLayout">
+              <AnimatePresence initial={false}>
                 {filtered.map((habit) => (
                   <HabitCard key={habit.id} habit={habit} />
                 ))}
@@ -124,9 +141,7 @@ export function HabitsPage() {
             </motion.section>
 
             {filtered.length === 0 ? (
-              <p className="hint" style={{ marginTop: 8 }}>
-                No habits in this filter.
-              </p>
+              <p className={cn(hint, "mt-2")}>No habits in this filter.</p>
             ) : null}
           </>
         )}

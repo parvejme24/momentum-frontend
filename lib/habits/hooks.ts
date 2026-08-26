@@ -2,8 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { archiveHabit, createHabit, deleteHabit, getHabit, listHabits, restoreHabit } from "@/lib/api/habits";
-import type { CreateHabitRequest } from "@/lib/api/types";
+import { archiveHabit, createHabit, deleteHabit, getHabit, listHabits, restoreHabit, updateHabit } from "@/lib/api/habits";
+import type { CreateHabitRequest, Habit, UpdateHabitRequest } from "@/lib/api/types";
 import { useAuth } from "@/lib/auth/context";
 import { habitKeys } from "@/lib/habits/keys";
 import { reminderKeys } from "@/lib/reminders/keys";
@@ -51,12 +51,42 @@ export function useCreateHabit() {
   });
 }
 
-export function useArchiveHabit() {
+export function useUpdateHabit() {
   const invalidate = useInvalidateHabits();
 
   return useMutation({
-    mutationFn: (id: string) => archiveHabit(id),
+    mutationFn: ({ id, body }: { id: string; body: UpdateHabitRequest }) =>
+      updateHabit(id, body),
     onSuccess: () => invalidate(),
+  });
+}
+
+export function useArchiveHabit() {
+  const queryClient = useQueryClient();
+  const invalidate = useInvalidateHabits();
+  const activeKey = habitKeys.list(false);
+
+  return useMutation({
+    mutationFn: (id: string) => archiveHabit(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: activeKey });
+      const previous = queryClient.getQueryData<Habit[]>(activeKey);
+      if (previous) {
+        queryClient.setQueryData(
+          activeKey,
+          previous.filter((habit) => habit.id !== id),
+        );
+      }
+      return { previous };
+    },
+    onError: (_error, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(activeKey, context.previous);
+      }
+    },
+    onSettled: () => {
+      void invalidate();
+    },
   });
 }
 

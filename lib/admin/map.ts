@@ -8,6 +8,8 @@ import type {
 } from "@/lib/api/types";
 import { ApiError } from "@/lib/api/errors";
 import { formatPrettyIso } from "@/lib/dates";
+import { chip, chipBlue, chipFlame, chipQuiet } from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 export function formatLastActive(iso: string | null) {
   if (!iso) return "Never";
@@ -31,9 +33,9 @@ export function accountStatusLabel(status: AdminUserAccountStatus) {
 }
 
 export function accountStatusChip(status: AdminUserAccountStatus) {
-  if (status === "active") return "chip chip-blue";
-  if (status === "banned") return "chip chip-flame";
-  return "chip chip-quiet";
+  if (status === "active") return cn(chip, chipBlue);
+  if (status === "banned") return cn(chip, chipFlame);
+  return cn(chip, chipQuiet);
 }
 
 export function subscriptionStatusLabel(status: SubscriptionStatus) {
@@ -45,10 +47,10 @@ export function subscriptionStatusLabel(status: SubscriptionStatus) {
 }
 
 export function subscriptionStatusChip(status: SubscriptionStatus) {
-  if (status === "active") return "chip chip-blue";
-  if (status === "trialing") return "chip chip-flame";
-  if (status === "past_due") return "chip chip-flame";
-  return "chip chip-quiet";
+  if (status === "active") return cn(chip, chipBlue);
+  if (status === "trialing") return cn(chip, chipFlame);
+  if (status === "past_due") return cn(chip, chipFlame);
+  return cn(chip, chipQuiet);
 }
 
 export function paymentStatusLabel(status: PaymentStatus) {
@@ -59,10 +61,10 @@ export function paymentStatusLabel(status: PaymentStatus) {
 }
 
 export function paymentStatusChip(status: PaymentStatus) {
-  if (status === "succeeded") return "chip chip-blue";
-  if (status === "pending") return "chip chip-quiet";
-  if (status === "failed") return "chip chip-flame";
-  return "chip chip-quiet";
+  if (status === "succeeded") return cn(chip, chipBlue);
+  if (status === "pending") return cn(chip, chipQuiet);
+  if (status === "failed") return cn(chip, chipFlame);
+  return cn(chip, chipQuiet);
 }
 
 export function paymentMethodLabel(method: PaymentMethod) {

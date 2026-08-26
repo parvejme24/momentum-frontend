@@ -104,6 +104,29 @@ function networkError() {
   );
 }
 
+function configError(message: string) {
+  return NextResponse.json(
+    {
+      error: {
+        code: "INTERNAL_ERROR",
+        message,
+        details: [],
+      },
+    } satisfies ApiErrorEnvelope,
+    { status: 503 },
+  );
+}
+
+function apiOrigin(): string | NextResponse {
+  try {
+    return getApiOrigin();
+  } catch {
+    return configError(
+      "BACKEND_URL or NEXT_PUBLIC_API_URL is not configured on the server",
+    );
+  }
+}
+
 function invalidAuthPayload() {
   return NextResponse.json(
     {
@@ -125,6 +148,8 @@ async function readJson(request: Request): Promise<unknown | NextResponse> {
   }
 }
 
+type ForwardResult = { res: Response; payload: unknown };
+
 async function forward(
   path: string,
   init: {
@@ -132,7 +157,7 @@ async function forward(
     body?: unknown;
     authorization?: string | null;
   },
-): Promise<{ res: Response; payload: unknown }> {
+): Promise<ForwardResult | NextResponse> {
   const headers = new Headers();
   if (init.body !== undefined) {
     headers.set("Content-Type", "application/json");
@@ -141,7 +166,10 @@ async function forward(
     headers.set("Authorization", init.authorization);
   }
 
-  const res = await fetch(`${getApiOrigin()}${path}`, {
+  const origin = apiOrigin();
+  if (origin instanceof NextResponse) return origin;
+
+  const res = await fetch(`${origin}${path}`, {
     method: init.method,
     headers,
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
@@ -179,10 +207,12 @@ async function handleSessionAuth(
   action: "login" | "register" | "google",
   body: unknown,
 ) {
-  const { res, payload } = await forward(authPath(action), {
+  const forwarded = await forward(authPath(action), {
     method: "POST",
     body,
   });
+  if (forwarded instanceof NextResponse) return forwarded;
+  const { res, payload } = forwarded;
 
   if (!res.ok) return errorResponse(res.status, payload);
   if (!isAuthResponse(payload)) return invalidAuthPayload();
@@ -197,10 +227,12 @@ async function handleRefresh() {
     return NextResponse.json({ user: null });
   }
 
-  const { res, payload } = await forward(authPath("refresh"), {
+  const forwarded = await forward(authPath("refresh"), {
     method: "POST",
     body: { refreshToken },
   });
+  if (forwarded instanceof NextResponse) return forwarded;
+  const { res, payload } = forwarded;
 
   if (!res.ok || !isAuthResponse(payload)) {
     await clearRefreshToken();
@@ -245,11 +277,12 @@ export async function GET(
   }
 
   try {
-    const { res, payload } = await forward(authPath("me"), {
+    const forwarded = await forward(authPath("me"), {
       method: "GET",
       authorization: authorizationFrom(request),
     });
-    return passthrough(res, payload);
+    if (forwarded instanceof NextResponse) return forwarded;
+    return passthrough(forwarded.res, forwarded.payload);
   } catch {
     return networkError();
   }
@@ -268,12 +301,13 @@ export async function PATCH(
   if (body instanceof NextResponse) return body;
 
   try {
-    const { res, payload } = await forward(authPath("me"), {
+    const forwarded = await forward(authPath("me"), {
       method: "PATCH",
       body,
       authorization: authorizationFrom(request),
     });
-    return passthrough(res, payload);
+    if (forwarded instanceof NextResponse) return forwarded;
+    return passthrough(forwarded.res, forwarded.payload);
   } catch {
     return networkError();
   }
@@ -305,11 +339,14 @@ export async function POST(
     }
 
     if (action === "logout-all") {
-      const { res, payload } = await forward(authPath("logout-all"), {
+      const forwarded = await forward(authPath("logout-all"), {
         method: "POST",
         authorization: authorizationFrom(request),
       });
-      if (!res.ok) return errorResponse(res.status, payload);
+      if (forwarded instanceof NextResponse) return forwarded;
+      if (!forwarded.res.ok) {
+        return errorResponse(forwarded.res.status, forwarded.payload);
+      }
       await clearRefreshToken();
       return new NextResponse(null, { status: 200 });
     }
@@ -317,12 +354,13 @@ export async function POST(
     if (action === "change-password") {
       const body = await readJson(request);
       if (body instanceof NextResponse) return body;
-      const { res, payload } = await forward(authPath("change-password"), {
+      const forwarded = await forward(authPath("change-password"), {
         method: "POST",
         body,
         authorization: authorizationFrom(request),
       });
-      return passthrough(res, payload);
+      if (forwarded instanceof NextResponse) return forwarded;
+      return passthrough(forwarded.res, forwarded.payload);
     }
 
     if (
@@ -332,19 +370,21 @@ export async function POST(
     ) {
       const body = await readJson(request);
       if (body instanceof NextResponse) return body;
-      const { res, payload } = await forward(authPath(action), {
+      const forwarded = await forward(authPath(action), {
         method: "POST",
         body,
       });
-      return passthrough(res, payload);
+      if (forwarded instanceof NextResponse) return forwarded;
+      return passthrough(forwarded.res, forwarded.payload);
     }
 
     if (action === "resend-verification") {
-      const { res, payload } = await forward(authPath("resend-verification"), {
+      const forwarded = await forward(authPath("resend-verification"), {
         method: "POST",
         authorization: authorizationFrom(request),
       });
-      return passthrough(res, payload);
+      if (forwarded instanceof NextResponse) return forwarded;
+      return passthrough(forwarded.res, forwarded.payload);
     }
 
     return unknownAction(action);

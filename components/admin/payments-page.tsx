@@ -2,13 +2,24 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { CreditCard, User, Wallet } from "lucide-react";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
 import { RoleGate } from "@/components/app/role-gate";
 import { useToast } from "@/components/auth/toast";
 import { fadeUpSoft, staggerContainer } from "@/components/home/motion";
-import { ConfirmSheet } from "@/components/settings/confirm-sheet";
 import { AdminListPageSkeleton } from "@/components/ui/page-skeletons";
+import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { DropdownSelect } from "@/components/ui/dropdown-select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Pager } from "@/components/ui/pager";
 import { QueryError } from "@/components/ui/query-error";
 import {
@@ -23,7 +34,6 @@ import { allTimeRevenueQuery } from "@/lib/admin/live";
 import {
   mutationErrorMessage,
   paymentMethodLabel,
-  paymentStatusChip,
   paymentStatusLabel,
 } from "@/lib/admin/map";
 import type { PaymentMethod, PaymentStatus } from "@/lib/api/types";
@@ -31,6 +41,8 @@ import { isAdmin } from "@/lib/auth/role";
 import { useAuth } from "@/lib/auth/context";
 import { formatPrettyIso } from "@/lib/dates";
 import { dollarsToCents, formatCents } from "@/lib/money";
+import { btn, btnGhost, btnPrimary, btnSm, dialogBtn } from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 const STATUS_TABS: Array<{ id: PaymentStatus | "all"; label: string }> = [
   { id: "all", label: "All" },
@@ -39,6 +51,37 @@ const STATUS_TABS: Array<{ id: PaymentStatus | "all"; label: string }> = [
   { id: "failed", label: "Failed" },
   { id: "refunded", label: "Refunded" },
 ];
+
+const paymentTableGrid =
+  "grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(6.5rem,0.85fr)_minmax(0,0.95fr)_auto] items-center gap-x-4 gap-y-2 max-[900px]:grid-cols-1";
+
+const METHOD_OPTIONS: Array<{ value: PaymentMethod; label: string }> = [
+  { value: "manual", label: "Manual" },
+  { value: "card", label: "Card" },
+  { value: "bank_transfer", label: "Bank" },
+  { value: "cash", label: "Cash" },
+  { value: "other", label: "Other" },
+];
+
+function tabClass(active: boolean) {
+  return cn(
+    "cursor-pointer rounded-full border px-4 py-2 text-[0.88rem] font-semibold transition-all",
+    active
+      ? "border-ink bg-ink text-paper"
+      : "border-foreground/10 bg-muted/30 text-muted-foreground hover:-translate-y-px hover:border-foreground/20 hover:bg-card hover:text-foreground",
+  );
+}
+
+function paymentStatusChipClass(status: PaymentStatus) {
+  return cn(
+    "inline-flex w-fit max-w-full shrink-0 items-center justify-center self-center whitespace-nowrap rounded-full border px-2.5 py-1 font-mono text-[0.68rem] font-semibold uppercase tracking-[0.07em]",
+    status === "succeeded"
+      ? "border-blue bg-blue-soft text-blue-deep"
+      : status === "failed"
+        ? "border-flame bg-flame-soft text-[#a8280c]"
+        : "border-foreground/10 text-muted-foreground",
+  );
+}
 
 export function PaymentsPage() {
   const reduce = useReducedMotion();
@@ -83,6 +126,36 @@ export function PaymentsPage() {
     { key: "Payments", value: String(totals?.paymentCount ?? 0), note: "all time" },
   ];
 
+  const personOptions = useMemo(
+    () =>
+      people.map((item) => ({
+        value: item.id,
+        label: item.name,
+        hint: item.email,
+      })),
+    [people],
+  );
+
+  const planOptions = useMemo(
+    () => [
+      { value: "", label: "No plan", hint: "Optional" },
+      ...plans.map((item) => ({
+        value: item.id,
+        label: item.name,
+        hint: formatCents(item.priceCents, item.currency),
+      })),
+    ],
+    [plans],
+  );
+
+  function selectPlan(nextPlanId: string) {
+    setPlanId(nextPlanId);
+    if (!nextPlanId) return;
+    const plan = plans.find((item) => item.id === nextPlanId);
+    if (!plan) return;
+    setAmount((plan.priceCents / 100).toFixed(2));
+  }
+
   async function create() {
     if (!userId || !amount) {
       pushToast("Pick a person and an amount");
@@ -123,7 +196,7 @@ export function PaymentsPage() {
     >
       <MotionConfig reducedMotion="user">
         <motion.div
-          className="users-page"
+          className="min-w-0"
           initial={reduce ? false : "hidden"}
           animate="show"
           variants={reduce ? undefined : staggerContainer}
@@ -138,54 +211,67 @@ export function PaymentsPage() {
             />
           ) : (
             <>
-          <motion.header
-            className="page-head row-between"
-            variants={reduce ? undefined : fadeUpSoft}
-          >
-            <div>
-              <p className="eyebrow">Revenue</p>
-              <h1>Payments</h1>
-              <p className="lede" style={{ marginTop: 10, maxWidth: "46ch" }}>
-                Record a payment by hand, refund one, and watch live totals update
-                as Stripe and SSLCommerz checkouts land.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={() => setCreateOpen(true)}
-            >
-              Record payment
-            </button>
-          </motion.header>
+              <motion.header
+                className="mb-4 flex flex-wrap items-center justify-between gap-4"
+                variants={reduce ? undefined : fadeUpSoft}
+              >
+                <div>
+                  <p className="mb-2 font-mono text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-blue">
+                    Revenue
+                  </p>
+                  <h1 className="mb-1.5 font-heading text-2xl font-bold tracking-tight">
+                    Payments
+                  </h1>
+                  <p className="mt-2.5 max-w-[46ch] text-[clamp(1rem,1.6vw,1.18rem)] text-muted-foreground">
+                    Record a payment by hand, refund one, and watch live totals update
+                    as Stripe and SSLCommerz checkouts land.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className={cn(btn, btnPrimary, "min-h-12 min-w-[13.5rem] px-7")}
+                  onClick={() => setCreateOpen(true)}
+                >
+                  Record payment
+                </button>
+              </motion.header>
 
               <QueryError error={paymentsQuery.error || revenueQuery.error} />
 
               <motion.section
-                className="grid-4 users-summary"
+                className="mb-5.5 grid grid-cols-1 gap-4.5 sm:grid-cols-2 xl:grid-cols-4"
                 variants={reduce ? undefined : fadeUpSoft}
               >
                 {summary.map((tile) => (
-                  <article key={tile.key} className="stat card-hover">
-                    <div className="stat-k">{tile.key}</div>
-                    <div className="stat-v">{tile.value}</div>
-                    <div className="stat-n">{tile.note}</div>
-                  </article>
+                  <Card
+                    key={tile.key}
+                    className="gap-0 p-5 transition-[transform,box-shadow] hover:-translate-y-px hover:shadow-md"
+                  >
+                    <div className="font-mono text-[0.66rem] font-semibold uppercase tracking-[0.13em] text-muted-foreground">
+                      {tile.key}
+                    </div>
+                    <div className="mt-1.5 font-mono text-[clamp(1.7rem,4vw,2.3rem)] font-bold leading-none tracking-tight tabular-nums">
+                      {tile.value}
+                    </div>
+                    <div className="mt-1.5 text-[0.8rem] text-muted-foreground">
+                      {tile.note}
+                    </div>
+                  </Card>
                 ))}
               </motion.section>
 
               <motion.div
-                className="users-toolbar"
+                className="mb-4.5 flex flex-wrap items-end justify-between gap-4"
                 variants={reduce ? undefined : fadeUpSoft}
               >
-                <div className="tab-bar" role="tablist" aria-label="Payment filters">
+                <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Payment filters">
                   {STATUS_TABS.map((tab) => (
                     <button
                       key={tab.id}
                       type="button"
                       role="tab"
                       aria-selected={status === tab.id}
-                      className={status === tab.id ? "tab active" : "tab"}
+                      className={tabClass(status === tab.id)}
                       onClick={() => {
                         setStatus(tab.id);
                         setPage(1);
@@ -197,143 +283,156 @@ export function PaymentsPage() {
                 </div>
               </motion.div>
 
-              <motion.section
-                className="card users-table-card"
-                variants={reduce ? undefined : fadeUpSoft}
-              >
-                <div className="users-table-head admin-pay-head mono" aria-hidden>
-                  <span>Person</span>
-                  <span>Amount</span>
-                  <span>Status</span>
-                  <span>When</span>
-                  <span />
-                </div>
-                <ul className="users-list">
-                  {rows.map((item) => (
-                    <li key={item.id} className="users-row admin-pay-row">
-                      <div className="users-person-copy">
-                        <Link href={`/users/${item.user.id}`} className="users-name">
-                          {item.user.name}
-                        </Link>
-                        <div className="users-email mono">
-                          {item.plan?.name ?? "No plan"} · {paymentMethodLabel(item.method)}
-                        </div>
-                      </div>
-                      <span className="mono users-habits">
-                        {formatCents(item.amountCents, item.currency)}
-                      </span>
-                      <span className={paymentStatusChip(item.status)}>
-                        {paymentStatusLabel(item.status)}
-                      </span>
-                      <span className="mono users-active">
-                        {formatPrettyIso(item.paidAt)}
-                      </span>
-                      <div className="users-actions">
-                        {item.status === "succeeded" ? (
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            disabled={refundPayment.isPending}
-                            onClick={() => void refund(item.id)}
+              <motion.section variants={reduce ? undefined : fadeUpSoft}>
+                <Card className="gap-0 overflow-hidden p-0">
+                  <div
+                    className={cn(
+                      paymentTableGrid,
+                      "border-b border-ink/9 px-5 py-3.5 font-mono text-[0.66rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground max-[900px]:hidden",
+                    )}
+                    aria-hidden
+                  >
+                    <span>Person</span>
+                    <span>Amount</span>
+                    <span className="justify-self-center text-center">Status</span>
+                    <span>When</span>
+                    <span />
+                  </div>
+                  <ul className="m-0 list-none p-0">
+                    {rows.map((item) => (
+                      <li
+                        key={item.id}
+                        className={cn(
+                          paymentTableGrid,
+                          "border-b border-ink/9 px-5 py-4 last:border-b-0",
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <Link
+                            href={`/users/${item.user.id}`}
+                            className="font-bold tracking-tight hover:underline"
                           >
-                            Refund
-                          </button>
-                        ) : null}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                {rows.length === 0 ? (
-                  <p className="hint" style={{ marginTop: 8 }}>
-                    No payments match this filter.
-                  </p>
-                ) : null}
-                <Pager
-                  page={paymentsQuery.data?.page ?? page}
-                  pageCount={paymentsQuery.data?.pageCount ?? 0}
-                  onPage={setPage}
-                />
+                            {item.user.name}
+                          </Link>
+                          <div className="mt-0.5 font-mono text-[0.72rem] text-muted-foreground">
+                            {item.plan?.name ?? "No plan"} · {paymentMethodLabel(item.method)}
+                          </div>
+                        </div>
+                        <span className="font-mono text-[0.95rem] font-semibold tabular-nums">
+                          {formatCents(item.amountCents, item.currency)}
+                        </span>
+                        <span className={cn(paymentStatusChipClass(item.status), "justify-self-center max-[900px]:justify-self-start")}>
+                          {paymentStatusLabel(item.status)}
+                        </span>
+                        <span className="font-mono text-[0.92rem] tabular-nums text-ink-70">
+                          {formatPrettyIso(item.paidAt)}
+                        </span>
+                        <div className="flex items-center justify-end gap-2">
+                          {item.status === "succeeded" ? (
+                            <button
+                              type="button"
+                              className={cn(btn, btnGhost, btnSm, "min-h-9 px-3.5")}
+                              disabled={refundPayment.isPending}
+                              onClick={() => void refund(item.id)}
+                            >
+                              Refund
+                            </button>
+                          ) : null}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  {rows.length === 0 ? (
+                    <p className="px-5 py-4 text-[0.8rem] text-muted-foreground">
+                      No payments match this filter.
+                    </p>
+                  ) : null}
+                  <div className="px-5 pb-5">
+                    <Pager
+                      page={paymentsQuery.data?.page ?? page}
+                      pageCount={paymentsQuery.data?.pageCount ?? 0}
+                      onPage={setPage}
+                    />
+                  </div>
+                </Card>
               </motion.section>
             </>
           )}
 
-          <ConfirmSheet
-            open={createOpen}
-            onClose={() => setCreateOpen(false)}
-            title="Record a payment"
-          >
-            <label className="field" style={{ marginTop: 16 }}>
-              <span className="label">Person</span>
-              <select
-                className="select"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-              >
-                <option value="">Choose account</option>
-                {people.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name} · {item.email}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span className="label">Plan</span>
-              <select
-                className="select"
-                value={planId}
-                onChange={(e) => setPlanId(e.target.value)}
-              >
-                <option value="">Optional</option>
-                {plans.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span className="label">Amount</span>
-              <input
-                className="input"
-                inputMode="decimal"
-                placeholder="6.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
-            </label>
-            <label className="field">
-              <span className="label">Method</span>
-              <select
-                className="select"
-                value={method}
-                onChange={(e) => setMethod(e.target.value as PaymentMethod)}
-              >
-                <option value="manual">Manual</option>
-                <option value="card">Card</option>
-                <option value="bank_transfer">Bank</option>
-                <option value="cash">Cash</option>
-                <option value="other">Other</option>
-              </select>
-            </label>
-            <div className="settings-actions" style={{ marginTop: 22 }}>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setCreateOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={createPayment.isPending}
-                onClick={() => void create()}
-              >
-                Record
-              </button>
-            </div>
-          </ConfirmSheet>
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Record a payment</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="payment-person">Person</Label>
+                  <DropdownSelect
+                    id="payment-person"
+                    value={userId}
+                    onChange={setUserId}
+                    placeholder="Choose account"
+                    aria-label="Person"
+                    icon={User}
+                    options={personOptions}
+                    disabled={usersQuery.isLoading}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="payment-plan">Plan</Label>
+                  <DropdownSelect
+                    id="payment-plan"
+                    value={planId}
+                    onChange={selectPlan}
+                    placeholder="Optional"
+                    aria-label="Plan"
+                    icon={CreditCard}
+                    options={planOptions}
+                    disabled={plansQuery.isLoading}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="payment-amount">Amount</Label>
+                  <Input
+                    id="payment-amount"
+                    inputMode="decimal"
+                    placeholder="6.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="payment-method">Method</Label>
+                  <DropdownSelect
+                    id="payment-method"
+                    value={method}
+                    onChange={(value) => setMethod(value as PaymentMethod)}
+                    placeholder="Choose method"
+                    aria-label="Method"
+                    icon={Wallet}
+                    options={METHOD_OPTIONS}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <button
+                  type="button"
+                  className={cn(dialogBtn, btnGhost)}
+                  onClick={() => setCreateOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={cn(dialogBtn, btnPrimary)}
+                  disabled={createPayment.isPending}
+                  onClick={() => void create()}
+                >
+                  Record
+                </button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </motion.div>
       </MotionConfig>
     </RoleGate>

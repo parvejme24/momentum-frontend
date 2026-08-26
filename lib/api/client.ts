@@ -1,5 +1,6 @@
+"use client";
+
 import { ApiError } from "@/lib/api/errors";
-import { normalizeApiOrigin } from "@/lib/api/config";
 import type { ApiErrorEnvelope, ClientAuthResponse } from "@/lib/api/types";
 
 type JsonBody = Record<string, unknown> | unknown[] | null;
@@ -26,21 +27,10 @@ export function setOnSessionInvalid(handler: (() => void) | null): void {
   onSessionInvalid = handler;
 }
 
-function apiBaseUrl(): string {
-  const base = process.env.NEXT_PUBLIC_API_URL?.trim();
-  if (!base) {
-    throw new ApiError({
-      code: "INTERNAL_ERROR",
-      message: "NEXT_PUBLIC_API_URL is not configured",
-      status: 500,
-    });
-  }
-  return normalizeApiOrigin(base);
-}
-
+/** Same-origin `/v1/*` — proxied by `app/v1/[...path]/route.ts` (no CORS). */
 function joinUrl(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
-  return `${apiBaseUrl()}${normalized}`;
+  return normalized;
 }
 
 function isApiErrorEnvelope(value: unknown): value is ApiErrorEnvelope {

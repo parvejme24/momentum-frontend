@@ -8,6 +8,8 @@ import { mutationErrorMessage } from "@/lib/admin/map";
 import type { AiHabitIdea } from "@/lib/api/types";
 import { useAiHabitIdeas, useAiStatus } from "@/lib/ai/hooks";
 import { prefillFromAiHabitIdea, type AiHabitIdeaPrefill } from "@/lib/ai/map";
+import { buttons, card, field, hint, hintErr, input, label, mono, sectionTitle } from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 type AiHabitIdeasPanelProps = {
   onApply: (prefill: AiHabitIdeaPrefill) => void;
@@ -39,30 +41,30 @@ export function AiHabitIdeasPanel({ onApply }: AiHabitIdeasPanelProps) {
   }
 
   return (
-    <section className="card ai-panel" aria-labelledby="ai-ideas-heading">
-      <div className="ai-panel-head">
+    <section className={cn(card, "mt-[18px]")} aria-labelledby="ai-ideas-heading">
+      <div className="mb-3 flex items-center gap-2.5">
         <Sparkles size={16} strokeWidth={2.4} aria-hidden />
-        <h2 id="ai-ideas-heading" className="section-title">
+        <h2 id="ai-ideas-heading" className={cn(sectionTitle, "flex-1")}>
           AI habit ideas
         </h2>
       </div>
-      <p className="hint ai-panel-copy">
+      <p className={cn(hint, "mb-3.5 mt-0 leading-[1.55]")}>
         Tell the coach what you want to build. Pick an idea to pre-fill the form.
       </p>
 
-      <label className="field">
-        <span className="label">Goal</span>
+      <label className={field}>
+        <span className={label}>Goal</span>
         <input
-          className="input"
+          className={input}
           placeholder="Sleep better, read more, move daily…"
           value={goal}
           onChange={(event) => setGoal(event.target.value)}
         />
       </label>
-      <label className="field">
-        <span className="label">Interests</span>
+      <label className={field}>
+        <span className={label}>Interests</span>
         <input
-          className="input"
+          className={input}
           placeholder="Fitness, learning, mindfulness…"
           value={interests}
           onChange={(event) => setInterests(event.target.value)}
@@ -71,13 +73,13 @@ export function AiHabitIdeasPanel({ onApply }: AiHabitIdeasPanelProps) {
 
       <button
         type="button"
-        className="btn btn-primary btn-block"
+        className={buttons("primary", "block", "mt-4")}
         disabled={ideasMutation.isPending}
         onClick={() => void generate()}
       >
         {ideasMutation.isPending ? (
           <>
-            <LoaderCircle size={15} className="ai-spin" aria-hidden />
+            <LoaderCircle size={15} className="animate-payment-spin" aria-hidden />
             Generating…
           </>
         ) : (
@@ -86,25 +88,28 @@ export function AiHabitIdeasPanel({ onApply }: AiHabitIdeasPanelProps) {
       </button>
 
       {ideasMutation.isError ? (
-        <p className="hint hint-err" style={{ marginTop: 12 }}>
+        <p className={cn(hint, hintErr, "mt-3")}>
           {mutationErrorMessage(ideasMutation.error, "Could not generate ideas")}
         </p>
       ) : null}
 
       {ideas.length > 0 ? (
-        <ul className="ai-idea-list">
+        <ul className="mt-4 grid list-none gap-3 p-0">
           {ideas.map((idea) => (
-            <li key={idea.title} className="ai-idea-item">
-              <div className="ai-idea-copy">
-                <div className="ai-idea-title">
+            <li
+              key={idea.title}
+              className="flex items-start justify-between gap-3 border-t border-ink/8 py-3 first:border-t-0 first:pt-0"
+            >
+              <div>
+                <div className="font-bold tracking-[-0.01em]">
                   <span aria-hidden>{idea.icon}</span> {idea.title}
                 </div>
-                <p className="hint">{idea.description}</p>
-                <p className="hint mono">{idea.scheduleLabel}</p>
+                <p className={cn(hint, "mt-1")}>{idea.description}</p>
+                <p className={cn(hint, mono)}>{idea.scheduleLabel}</p>
               </div>
               <button
                 type="button"
-                className="btn btn-ghost btn-sm"
+                className={buttons("ghost", "sm")}
                 onClick={() => onApply(prefillFromAiHabitIdea(idea))}
               >
                 Use idea

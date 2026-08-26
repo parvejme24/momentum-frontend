@@ -1,6 +1,8 @@
 "use client";
 
 import { MotionItem, MotionSection } from "@/components/home/motion";
+import { cn } from "@/lib/utils";
+import { eyebrow, muted, section, wrap } from "@/lib/ui";
 
 const STEPS = [
   {
@@ -22,32 +24,27 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <MotionSection id="how" className="section">
-      <div className="wrap">
+    <MotionSection id="how" className={section}>
+      <div className={wrap}>
         <MotionItem>
-          <p className="eyebrow flame">How it works</p>
-          <h2>Three moves. Then the page fills itself.</h2>
+          <p className={cn(eyebrow, "text-flame")}>How it works</p>
+          <h2 className="mt-[var(--space-2)]">Three moves. Then the page fills itself.</h2>
         </MotionItem>
 
-        <div className="grid-3 section-stack">
+        <div className="mt-[var(--space-5)] grid grid-cols-1 gap-[var(--gap)] nav:grid-cols-3">
           {STEPS.map((step, index) => (
             <MotionItem
               key={step.code}
               as="article"
-              className="step"
+              className="relative rounded-lg border border-[var(--stroke)] bg-paper-raised p-[22px] pt-[22px] shadow-paper-sm before:absolute before:top-0 before:right-0 before:left-0 before:h-[3px] before:bg-ink before:content-['']"
               hoverLift
-              style={{
-                padding: 22,
-                background: "var(--paper-raised)",
-                border: "var(--stroke)",
-                borderRadius: "var(--radius-lg)",
-                boxShadow: "var(--shadow-sm)",
-              }}
               transition={{ delay: index * 0.04 }}
             >
-              <span className="step-n">{step.code}</span>
+              <span className="mb-2.5 block font-mono text-[0.74rem] font-bold tracking-[0.1em] text-flame">
+                {step.code}
+              </span>
               <h3>{step.title}</h3>
-              <p className="muted" style={{ marginTop: 10, fontSize: "0.95rem" }}>
+              <p className={cn(muted, "mt-2.5 text-[0.95rem]")}>
                 {step.body}
               </p>
             </MotionItem>

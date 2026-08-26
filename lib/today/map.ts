@@ -63,11 +63,18 @@ export function coachingLine(
   openTitle?: string,
   streakDays?: number,
 ) {
-  if (remaining === 0) return "Every due square is marked. The chain holds.";
-  if (openTitle && streakDays) {
-    return `${remaining} left. Keep ${openTitle.toLowerCase()} alive.`;
+  if (remaining === 0) {
+    return "You showed up for every habit today. Nice work.";
+  }
+  if (openTitle && streakDays && streakDays > 0) {
+    return `${remaining} left — keep your “${openTitle}” streak going.`;
+  }
+  if (openTitle) {
+    return remaining === 1
+      ? `One left: ${openTitle}. You’ve got this.`
+      : `${remaining} left. Start with ${openTitle}.`;
   }
   return remaining === 1
-    ? "One square left for today."
-    : `${remaining} squares still open today.`;
+    ? "One habit left for today."
+    : `${remaining} habits still open — small steps count.`;
 }

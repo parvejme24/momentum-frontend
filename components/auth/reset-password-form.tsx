@@ -5,7 +5,16 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-import { AuthFormItem, AuthShell } from "@/components/auth/auth-shell";
+import {
+  AuthFormItem,
+  AuthShell,
+  authAlert,
+  authBrandDesktop,
+  authFields,
+  authFoot,
+  authFootLink,
+  authHeading,
+} from "@/components/auth/auth-shell";
 import { PasswordInput } from "@/components/auth/password-input";
 import {
   PasswordStrengthMeter,
@@ -15,6 +24,18 @@ import { useToast } from "@/components/auth/toast";
 import { BrandLink } from "@/components/home/brand-mark";
 import { ApiError } from "@/lib/api/errors";
 import { useAuth } from "@/lib/auth/context";
+import { cn } from "@/lib/utils";
+import {
+  btn,
+  btnBlock,
+  btnLg,
+  btnPrimary,
+  field,
+  hint,
+  hintErr,
+  label,
+  muted,
+} from "@/lib/ui";
 
 export function ResetPasswordForm() {
   const { resetPassword } = useAuth();
@@ -80,33 +101,35 @@ export function ResetPasswordForm() {
         footer: <p>One new password. Back to the log.</p>,
       }}
     >
-      <AuthFormItem className="auth-form-brand-desktop">
+      <AuthFormItem className={authBrandDesktop}>
         <BrandLink size="md" />
       </AuthFormItem>
 
-      <AuthFormItem className="auth-heading">
+      <AuthFormItem className={authHeading}>
         <h1>Reset password</h1>
-        <p className="muted">Choose a new password for your account.</p>
+        <p className={cn(muted, "mt-2 dark:text-ink-70")}>
+          Choose a new password for your account.
+        </p>
       </AuthFormItem>
 
       <AuthFormItem>
-        <form className="auth-fields" onSubmit={onSubmit} noValidate>
+        <form className={authFields} onSubmit={onSubmit} noValidate>
           {formError ? (
-            <p role="alert" className="auth-alert">
+            <p role="alert" className={authAlert}>
               {formError}
             </p>
           ) : null}
 
           {!token ? (
-            <p className="auth-alert" role="alert">
+            <p className={authAlert} role="alert">
               This page needs a reset token from your email. Request a new link
               if this one is incomplete.
             </p>
           ) : null}
 
-          <div className="field">
+          <div className={field}>
             <label htmlFor="password">
-              <span className="label">New password</span>
+              <span className={label}>New password</span>
             </label>
             <PasswordInput
               id="password"
@@ -119,13 +142,13 @@ export function ResetPasswordForm() {
             />
             <PasswordStrengthMeter password={password} />
             {fieldErrors.password ? (
-              <span className="hint hint-err">{fieldErrors.password}</span>
+              <span className={cn(hint, hintErr)}>{fieldErrors.password}</span>
             ) : null}
           </div>
 
-          <div className="field">
+          <div className={field}>
             <label htmlFor="confirm">
-              <span className="label">Confirm password</span>
+              <span className={label}>Confirm password</span>
             </label>
             <PasswordInput
               id="confirm"
@@ -137,13 +160,13 @@ export function ResetPasswordForm() {
               disabled={pending || !token}
             />
             {fieldErrors.confirm ? (
-              <span className="hint hint-err">{fieldErrors.confirm}</span>
+              <span className={cn(hint, hintErr)}>{fieldErrors.confirm}</span>
             ) : null}
           </div>
 
           <button
             type="submit"
-            className="btn btn-primary btn-block btn-lg"
+            className={cn(btn, btnPrimary, btnBlock, btnLg)}
             disabled={pending || !canSubmit || !token}
           >
             {pending ? (
@@ -159,13 +182,13 @@ export function ResetPasswordForm() {
       </AuthFormItem>
 
       <AuthFormItem>
-        <p className="auth-foot mono">
+        <p className={authFoot}>
           Remembered it?{" "}
-          <Link href="/login" className="auth-foot-link">
+          <Link href="/login" className={authFootLink}>
             Sign in
           </Link>
           {" · "}
-          <Link href="/forgot-password" className="auth-foot-link">
+          <Link href="/forgot-password" className={authFootLink}>
             Request a new link
           </Link>
         </p>

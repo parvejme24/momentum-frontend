@@ -1,5 +1,8 @@
 import type { ComponentProps } from "react";
 
+import { skeleton } from "@/lib/ui";
+import { cn } from "@/lib/utils";
+
 type SkeletonProps = ComponentProps<"span"> & {
   block?: boolean;
 };
@@ -11,9 +14,7 @@ export function Skeleton({
 }: SkeletonProps) {
   return (
     <span
-      className={[block ? "skeleton skeleton-block" : "skeleton", className]
-        .filter(Boolean)
-        .join(" ")}
+      className={cn(skeleton, block && "block", className)}
       aria-hidden
       {...props}
     />

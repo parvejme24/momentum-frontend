@@ -55,6 +55,46 @@ export function tintFromApiColor(color: string | null | undefined) {
   return color;
 }
 
+export function colorIdFromApiColor(color: string | null | undefined): ColorId {
+  if (!color) return "blue";
+  const normalized = color.trim().toUpperCase();
+  const match = (Object.entries(COLOR_HEX) as [ColorId, string][]).find(
+    ([, hex]) => hex.toUpperCase() === normalized,
+  );
+  return match?.[0] ?? "blue";
+}
+
+function scheduleModeFromHabit(habit: Habit): ScheduleInput["mode"] {
+  switch (habit.scheduleType) {
+    case "SPECIFIC_DAYS":
+      return "weekdays";
+    case "TIMES_PER_WEEK":
+      return "times_per_week";
+    case "INTERVAL":
+      return "interval";
+    default:
+      return "daily";
+  }
+}
+
+export function habitToFormValues(habit: Habit) {
+  return {
+    name: habit.title,
+    note: habit.description ?? "",
+    icon: normalizeHabitIcon(habit.icon),
+    colorId: colorIdFromApiColor(habit.color),
+    habitType: (habit.type === "BREAK" ? "quitting" : "building") as HabitType,
+    scheduleMode: scheduleModeFromHabit(habit),
+    weekdays:
+      habit.scheduleDays.length > 0 ? [...habit.scheduleDays].sort((a, b) => a - b) : [1, 3, 6],
+    timesPerWeek: habit.targetPerWeek ?? 3,
+    intervalDays: habit.intervalDays ?? 3,
+    startDate: habit.startDate,
+    measureTarget: habit.targetValue != null ? String(habit.targetValue) : "",
+    measureUnit: habit.unit ?? "",
+  };
+}
+
 export function toLibraryHabit(habit: Habit): LibraryHabit {
   const quitting = habit.type === "BREAK";
   const atRisk = habit.currentStreak === 0;

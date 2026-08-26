@@ -5,9 +5,18 @@ import { motion } from "framer-motion";
 
 import { BrandLink } from "@/components/home/brand-mark";
 import { easeOut } from "@/components/home/motion";
+import { cn } from "@/lib/utils";
 
 const WEEKS = 28;
 const DAYS = 7;
+
+const CELL_LEVEL = [
+  "bg-[var(--auth-cell-0)]",
+  "bg-[var(--auth-cell-1)]",
+  "bg-[var(--auth-cell-2)]",
+  "bg-[var(--auth-cell-3)]",
+  "bg-[var(--auth-cell-4)]",
+] as const;
 
 type CellLevel = 0 | 1 | 2 | 3 | 4;
 
@@ -34,8 +43,10 @@ function buildChain(seed: number): CellLevel[] {
 }
 
 function levelClass(level: CellLevel): string {
-  if (level === 0) return "cell";
-  return `cell l${level}`;
+  return cn(
+    "relative size-[15px] rounded-[2px] border border-[var(--auth-cell-border)] transition-[transform,border-color,box-shadow] duration-fast ease-smooth hover:z-[2] hover:scale-[1.35] hover:border-[color-mix(in_srgb,var(--blue)_35%,transparent)] hover:shadow-paper-sm dark:hover:border-[#8ba4c9]/55 dark:hover:shadow-[2px_2px_0_rgba(139,164,201,0.35)]",
+    CELL_LEVEL[level],
+  );
 }
 
 export function AuthChain({ seed = 42 }: { seed?: number }) {
@@ -49,16 +60,16 @@ export function AuthChain({ seed = 42 }: { seed?: number }) {
   }, [cells]);
 
   return (
-    <div className="heat-scroll auth-chain-scroll">
+    <div className="my-2 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
       <div
-        className="chain chain-motion auth-chain"
+        className="flex w-max flex-row gap-1"
         role="img"
         aria-label="Habit chain preview"
       >
         {columns.map((col, wi) => (
           <motion.div
             key={wi}
-            className="chain-col"
+            className="flex flex-col gap-1"
             initial={false}
             animate="show"
             variants={{
@@ -108,20 +119,31 @@ export function AuthArtPanel({
   footer: React.ReactNode;
 }) {
   return (
-    <aside className="auth-art">
+    <aside
+      className={cn(
+        "flex flex-col justify-between gap-[var(--space-5)] overflow-hidden border-r-[var(--auth-split)] bg-auth-art p-[var(--space-6)] text-[var(--auth-art-fg)] transition-[background-color,color] duration-normal ease-smooth max-nav:hidden",
+        "dark:border-r-[rgba(221,216,207,0.08)] dark:bg-[linear-gradient(165deg,color-mix(in_srgb,var(--blue-soft)_50%,var(--auth-art-bg))_0%,var(--auth-art-bg)_48%,color-mix(in_srgb,var(--flame-soft)_75%,var(--auth-art-bg))_100%)]",
+      )}
+    >
       <motion.div
         initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: easeOut }}
       >
-        <BrandLink size="md" className="auth-brand" />
-        <h1 className="auth-art-title">{headline}</h1>
-        <p className="auth-art-body">{body}</p>
+        <BrandLink size="md" className="text-[var(--auth-art-fg)]" />
+        <h1 className="mt-7 font-heading text-[clamp(2rem,3.4vw,3rem)] font-extrabold leading-[1.05] tracking-[-0.04em] text-[var(--auth-art-fg)]">
+          {headline}
+        </h1>
+        <p className="mt-3.5 max-w-[34ch] text-[1.02rem] leading-[1.55] text-[var(--auth-art-muted)]">
+          {body}
+        </p>
       </motion.div>
 
       <AuthChain />
 
-      <div className="auth-art-foot mono">{footer}</div>
+      <div className="font-mono text-[0.72rem] tracking-[0.06em] text-[var(--auth-art-faint)] uppercase tabular-nums">
+        {footer}
+      </div>
     </aside>
   );
 }

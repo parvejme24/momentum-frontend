@@ -26,6 +26,38 @@ import { useAuth } from "@/lib/auth/context";
 import { formatPrettyIso } from "@/lib/dates";
 import { formatCents } from "@/lib/money";
 import { useNotifications } from "@/lib/notifications/hooks";
+import {
+  avatar,
+  btn,
+  btnGhost,
+  btnSm,
+  card,
+  cardHover,
+  chip,
+  chipFlame,
+  chipQuiet,
+  eyebrow,
+  hint,
+  inlineLink,
+  lede,
+  mono,
+  pageHead,
+  panelHead,
+  rowBetween,
+  sectionTitle,
+  stat,
+  statK,
+  statN,
+  statV,
+} from "@/lib/ui";
+import { cn } from "@/lib/utils";
+
+const FEED = "m-0 list-none p-0";
+const FEED_ITEM =
+  "flex items-center gap-3 border-b border-ink/8 py-3 last:border-b-0 last:pb-0 dark:border-[rgba(221,216,207,0.08)]";
+const FEED_COPY = "min-w-0 flex-1";
+const PERSON_NAME = "font-bold tracking-[-0.01em]";
+const PERSON_META = cn(mono, "mt-0.5 text-[0.72rem] text-ink-50");
 
 export function AdminDashboard() {
   const reduce = useReducedMotion();
@@ -91,24 +123,24 @@ export function AdminDashboard() {
   return (
     <MotionConfig reducedMotion="user">
       <motion.div
-        className="admin-dash"
+        className="min-w-0"
         initial={reduce ? false : "hidden"}
         animate="show"
         variants={reduce ? undefined : staggerContainer}
       >
         <motion.header
-          className="page-head row-between"
+          className={cn(pageHead, rowBetween)}
           variants={reduce ? undefined : fadeUpSoft}
         >
           <div>
-            <p className="eyebrow">Admin</p>
+            <p className={cn(eyebrow, "mb-2")}>Admin</p>
             <h1>Dashboard</h1>
-            <p className="lede" style={{ marginTop: 10, maxWidth: "46ch" }}>
+            <p className={cn(lede, "mt-2.5 max-w-[46ch]")}>
               Hello {firstName}. Accounts, live payments, and the people who need
               a look.
             </p>
           </div>
-          <Link href="/users" className="btn btn-sm today-new-desktop">
+          <Link href="/users" className={cn(btn, btnSm, "shrink-0 max-nav:hidden")}>
             Manage users
           </Link>
         </motion.header>
@@ -124,44 +156,43 @@ export function AdminDashboard() {
         />
 
         <motion.section
-          className="grid-4 users-summary"
+          className="mb-[22px] grid grid-cols-1 gap-6 min-[641px]:grid-cols-2 wide:grid-cols-4"
           aria-label="Account and revenue summary"
           variants={reduce ? undefined : fadeUpSoft}
         >
           {summary.map((tile) => (
-            <article key={tile.key} className="stat card-hover">
-              <div className="stat-k">{tile.key}</div>
-              <div className="stat-v">{tile.value}</div>
-              <div className="stat-n">{tile.note}</div>
+            <article key={tile.key} className={cn(stat, cardHover)}>
+              <div className={statK}>{tile.key}</div>
+              <div className={statV}>{tile.value}</div>
+              <div className={statN}>{tile.note}</div>
             </article>
           ))}
         </motion.section>
 
         <motion.section
-          className="card"
-          style={{ marginTop: 18 }}
+          className={cn(card, "mt-[18px]")}
           aria-labelledby="payments-heading"
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <div className="panel-head">
-            <h2 id="payments-heading" className="section-title">
+          <div className={panelHead}>
+            <h2 id="payments-heading" className={sectionTitle}>
               Payments
             </h2>
-            <Link href="/payments" className="auth-inline-link mono">
+            <Link href="/payments" className={cn(inlineLink, mono)}>
               All {paymentTotal > 0 ? `${paymentTotal} →` : "→"}
             </Link>
           </div>
           {payments.length === 0 ? (
-            <p className="hint">No payments yet.</p>
+            <p className={hint}>No payments yet.</p>
           ) : (
-            <ul className="admin-feed">
+            <ul className={FEED}>
               {payments.map((item) => (
-                <li key={item.id} className="admin-feed-item">
-                  <div className="admin-feed-copy">
-                    <Link href={`/users/${item.user.id}`} className="users-name">
+                <li key={item.id} className={FEED_ITEM}>
+                  <div className={FEED_COPY}>
+                    <Link href={`/users/${item.user.id}`} className={PERSON_NAME}>
                       {item.user.name}
                     </Link>
-                    <div className="users-email mono">
+                    <div className={PERSON_META}>
                       {formatCents(item.amountCents, item.currency)} ·{" "}
                       {item.plan?.name ?? "No plan"} ·{" "}
                       {paymentMethodLabel(item.method)} ·{" "}
@@ -178,32 +209,32 @@ export function AdminDashboard() {
         </motion.section>
 
         <motion.div
-          className="admin-dash-split"
+          className="mt-[18px] grid grid-cols-1 gap-6 nav:grid-cols-[minmax(0,1.25fr)_minmax(0,0.85fr)]"
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <section className="card" aria-labelledby="recent-heading">
-            <div className="panel-head">
-              <h2 id="recent-heading" className="section-title">
+          <section className={card} aria-labelledby="recent-heading">
+            <div className={panelHead}>
+              <h2 id="recent-heading" className={sectionTitle}>
                 Recent activity
               </h2>
-              <Link href="/users" className="auth-inline-link mono">
+              <Link href="/users" className={cn(inlineLink, mono)}>
                 All users →
               </Link>
             </div>
             {live.length === 0 ? (
-              <p className="hint">No accounts yet.</p>
+              <p className={hint}>No accounts yet.</p>
             ) : (
-              <ul className="admin-feed">
+              <ul className={FEED}>
                 {live.map((item) => (
-                  <li key={item.id} className="admin-feed-item">
-                    <div className="avatar" aria-hidden>
+                  <li key={item.id} className={FEED_ITEM}>
+                    <div className={avatar} aria-hidden>
                       {initialFromName(item.name)}
                     </div>
-                    <div className="admin-feed-copy">
-                      <Link href={`/users/${item.id}`} className="users-name">
+                    <div className={FEED_COPY}>
+                      <Link href={`/users/${item.id}`} className={PERSON_NAME}>
                         {item.name}
                       </Link>
-                      <div className="users-email mono">
+                      <div className={PERSON_META}>
                         {planName(item)} · {formatLastActive(item.lastActiveAt)}
                       </div>
                     </div>
@@ -216,27 +247,27 @@ export function AdminDashboard() {
             )}
           </section>
 
-          <section className="card" aria-labelledby="attention-heading">
-            <div className="panel-head">
-              <h2 id="attention-heading" className="section-title">
+          <section className={card} aria-labelledby="attention-heading">
+            <div className={panelHead}>
+              <h2 id="attention-heading" className={sectionTitle}>
                 Needs a look
               </h2>
-              <span className="chip chip-quiet">{flagged.length}</span>
+              <span className={cn(chip, chipQuiet)}>{flagged.length}</span>
             </div>
             {flagged.length === 0 ? (
-              <p className="hint">Nothing flagged right now.</p>
+              <p className={hint}>Nothing flagged right now.</p>
             ) : (
-              <ul className="admin-feed">
+              <ul className={FEED}>
                 {flagged.map((item) => (
-                  <li key={item.id} className="admin-feed-item">
-                    <div className="avatar" aria-hidden>
+                  <li key={item.id} className={FEED_ITEM}>
+                    <div className={avatar} aria-hidden>
                       {initialFromName(item.name)}
                     </div>
-                    <div className="admin-feed-copy">
-                      <Link href={`/users/${item.id}`} className="users-name">
+                    <div className={FEED_COPY}>
+                      <Link href={`/users/${item.id}`} className={PERSON_NAME}>
                         {item.name}
                       </Link>
-                      <div className="users-email mono">{item.email}</div>
+                      <div className={PERSON_META}>{item.email}</div>
                     </div>
                     <span className={accountStatusChip(item.status)}>
                       {item.plan?.status === "past_due"
@@ -247,8 +278,8 @@ export function AdminDashboard() {
                 ))}
               </ul>
             )}
-            <p style={{ marginTop: 18 }}>
-              <Link href="/payments" className="btn btn-ghost btn-sm">
+            <p className="mt-[18px]">
+              <Link href="/payments" className={cn(btn, btnGhost, btnSm)}>
                 Review payments
               </Link>
             </p>
@@ -256,31 +287,30 @@ export function AdminDashboard() {
         </motion.div>
 
         <motion.section
-          className="card"
-          style={{ marginTop: 18 }}
+          className={cn(card, "mt-[18px]")}
           aria-labelledby="notes-heading"
           variants={reduce ? undefined : fadeUpSoft}
         >
-          <div className="panel-head">
-            <h2 id="notes-heading" className="section-title">
+          <div className={panelHead}>
+            <h2 id="notes-heading" className={sectionTitle}>
               Notifications
             </h2>
-            <Link href="/notifications" className="auth-inline-link mono">
+            <Link href="/notifications" className={cn(inlineLink, mono)}>
               Inbox →
             </Link>
           </div>
           {(notesQuery.data?.notifications ?? []).length === 0 ? (
-            <p className="hint">No admin notices yet.</p>
+            <p className={hint}>No admin notices yet.</p>
           ) : (
-            <ul className="admin-feed">
+            <ul className={FEED}>
               {notesQuery.data?.notifications.map((item) => (
-                <li key={item.id} className="admin-feed-item">
-                  <div className="admin-feed-copy">
-                    <div className="users-name">{item.title}</div>
-                    <div className="users-email">{item.body}</div>
+                <li key={item.id} className={FEED_ITEM}>
+                  <div className={FEED_COPY}>
+                    <div className={PERSON_NAME}>{item.title}</div>
+                    <div className="mt-0.5 text-[0.72rem] text-ink-50">{item.body}</div>
                   </div>
                   {item.readAt ? null : (
-                    <span className="chip chip-flame">New</span>
+                    <span className={cn(chip, chipFlame)}>New</span>
                   )}
                 </li>
               ))}

@@ -7,6 +7,8 @@ import { AiUpgradePrompt } from "@/components/ai/ai-upgrade-prompt";
 import { mutationErrorMessage } from "@/lib/admin/map";
 import type { AiHabitMessageInput } from "@/lib/api/types";
 import { useAiHabitMessage, useAiStatus } from "@/lib/ai/hooks";
+import { buttons, card, hint, hintErr, sectionTitle } from "@/lib/ui";
+import { cn } from "@/lib/utils";
 
 type AiHabitCoachProps = {
   habitId: string;
@@ -40,15 +42,18 @@ export function AiHabitCoach({ habitId, context }: AiHabitCoachProps) {
   if (!enabled) return <AiUpgradePrompt compact />;
 
   return (
-    <section className="card ai-panel ai-panel-compact" aria-labelledby="ai-coach-heading">
-      <div className="ai-panel-head">
+    <section
+      className={cn(card, "mb-[18px] mt-0")}
+      aria-labelledby="ai-coach-heading"
+    >
+      <div className="mb-3 flex items-center gap-2.5">
         <Sparkles size={16} strokeWidth={2.4} aria-hidden />
-        <h2 id="ai-coach-heading" className="section-title">
+        <h2 id="ai-coach-heading" className={cn(sectionTitle, "flex-1")}>
           AI coach
         </h2>
         <button
           type="button"
-          className="btn btn-ghost btn-sm ai-panel-refresh"
+          className={buttons("ghost", "sm", "ml-auto inline-flex items-center gap-1.5")}
           disabled={isPending}
           onClick={() => {
             reset();
@@ -56,7 +61,7 @@ export function AiHabitCoach({ habitId, context }: AiHabitCoachProps) {
           }}
         >
           {isPending ? (
-            <LoaderCircle size={14} className="ai-spin" aria-hidden />
+            <LoaderCircle size={14} className="animate-payment-spin" aria-hidden />
           ) : (
             <RefreshCw size={14} aria-hidden />
           )}
@@ -65,15 +70,15 @@ export function AiHabitCoach({ habitId, context }: AiHabitCoachProps) {
       </div>
 
       {isError ? (
-        <p className="hint hint-err">
+        <p className={cn(hint, hintErr)}>
           {mutationErrorMessage(error, "Could not load coach message")}
         </p>
       ) : isPending && !message ? (
-        <p className="hint ai-panel-loading">Writing your note…</p>
+        <p className={cn(hint, "mt-2")}>Writing your note…</p>
       ) : message ? (
-        <p className="ai-coach-message">{message}</p>
+        <p className="m-0 text-base leading-[1.6] text-ink">{message}</p>
       ) : (
-        <p className="hint">No coach message yet.</p>
+        <p className={hint}>No coach message yet.</p>
       )}
     </section>
   );

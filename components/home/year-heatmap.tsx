@@ -6,6 +6,8 @@ import { Flame } from "lucide-react";
 
 import { easeOut } from "@/components/home/motion";
 import { customer } from "@/lib/data/customer";
+import { cn } from "@/lib/utils";
+import { chip, chipBlue, mono, muted, num, row, statK } from "@/lib/ui";
 
 const WEEKS = 52;
 const DAYS = 7;
@@ -16,6 +18,8 @@ const featuredDetail =
   customer.habitDetails[featuredHabit.id as keyof typeof customer.habitDetails];
 
 type CellLevel = 0 | 1 | 2 | 3 | 4;
+
+const LEVEL_BG = ["bg-l0", "bg-l1", "bg-l2", "bg-l3", "bg-l4"] as const;
 
 function mulberry32(seed: number) {
   let t = seed >>> 0;
@@ -56,9 +60,14 @@ function buildYearChain(seed: number, currentStreak: number, longestStreak: numb
 }
 
 function levelClass(level: CellLevel): string {
-  if (level === 0) return "cell";
-  return `cell l${level}`;
+  return cn(
+    "relative size-[15px] rounded-[2px] border border-[rgba(20,26,46,0.07)] transition-[transform,border-color,box-shadow] duration-fast ease-smooth hover:z-[2] hover:scale-[1.35] hover:border-[color-mix(in_srgb,var(--blue)_35%,transparent)] hover:shadow-paper-sm dark:hover:border-[#8ba4c9]/55 dark:hover:shadow-[2px_2px_0_rgba(139,164,201,0.35)]",
+    LEVEL_BG[level],
+  );
 }
+
+const legendSwatch =
+  "block size-3 rounded-[2px] border border-[rgba(20,26,46,0.07)]";
 
 export function YearHeatmap() {
   const reduce = useReducedMotion();
@@ -83,31 +92,27 @@ export function YearHeatmap() {
   return (
     <motion.div
       id="demo"
-      className="chain-frame"
+      className={cn(
+        "relative mt-0 overflow-hidden rounded-lg border border-[var(--stroke)] bg-paper-white p-[clamp(16px,2.5vw,22px)] shadow-lift scroll-mt-[90px] transition-[transform,box-shadow] duration-normal ease-smooth",
+        "after:pointer-events-none after:absolute after:right-3 after:bottom-3 after:h-0 after:w-0 after:rounded-br-md after:border-r after:border-b after:border-[rgba(20,26,46,0.14)] after:opacity-0 after:transition-[width,height,opacity] after:duration-normal after:ease-smooth after:content-['']",
+        "hover:-translate-y-[3px] hover:after:h-[calc(100%-24px)] hover:after:w-[calc(100%-24px)] hover:after:opacity-100",
+        "dark:hover:shadow-lift dark:hover:shadow-glow dark:after:border-r-[#8ba4c9]/65 dark:after:border-b-[#8ba4c9]/65",
+      )}
       initial={reduce ? false : { opacity: 0, y: 20 }}
       whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.35 }}
       transition={{ duration: 0.55, ease: easeOut }}
-      whileHover={
-        reduce
-          ? undefined
-          : {
-              y: -4,
-              boxShadow: "10px 10px 0 var(--ink)",
-              transition: { duration: 0.2, ease: easeOut },
-            }
-      }
     >
-      <div className="chain-cap">
-        <div className="chain-cap-meta">
-          <div className="chain-cap-title">
-            <h3>{featuredHabit.title}</h3>
-            <span className="chip chip-blue">{featuredHabit.schedule}</span>
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 max-[640px]:items-start">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h3 className="m-0">{featuredHabit.title}</h3>
+            <span className={cn(chip, chipBlue)}>{featuredHabit.schedule}</span>
           </div>
-          <p className="chain-cap-sub mono muted">Last 364 days</p>
+          <p className={cn(mono, muted, "m-0 text-[0.75rem]")}>Last 364 days</p>
         </div>
 
-        <div className="chain-stats">
+        <div className="flex flex-wrap items-end gap-[clamp(16px,3vw,28px)] max-[640px]:w-full max-[640px]:justify-between">
           <Stat label="Current" value={String(featuredHabit.streakDays)} flame />
           <Stat
             label="Longest"
@@ -117,16 +122,16 @@ export function YearHeatmap() {
         </div>
       </div>
 
-      <div className="heat-scroll">
+      <div className="overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
         <div
-          className="chain chain-motion"
+          className="flex w-max flex-row gap-1"
           role="img"
           aria-label={`Year heatmap for ${featuredHabit.title}, last 364 days`}
         >
           {columns.map((col, wi) => (
             <motion.div
               key={wi}
-              className="chain-col"
+              className="flex flex-col gap-1"
               initial={reduce ? false : "hidden"}
               whileInView="show"
               viewport={{ once: true, amount: 0.2 }}
@@ -157,15 +162,6 @@ export function YearHeatmap() {
                       },
                     },
                   }}
-                  whileHover={
-                    reduce
-                      ? undefined
-                      : {
-                          scale: 1.45,
-                          zIndex: 2,
-                          transition: { duration: 0.12 },
-                        }
-                  }
                 />
               ))}
             </motion.div>
@@ -173,13 +169,13 @@ export function YearHeatmap() {
         </div>
       </div>
 
-      <div className="heat-legend chain-legend">
+      <div className="mt-3.5 flex items-center justify-end gap-1.5 font-mono text-[0.68rem] text-ink-50">
         <span>Less</span>
-        <i style={{ background: "var(--l0)" }} />
-        <i style={{ background: "var(--l1)" }} />
-        <i style={{ background: "var(--l2)" }} />
-        <i style={{ background: "var(--l3)" }} />
-        <i style={{ background: "var(--l4)" }} />
+        <i className={cn(legendSwatch, "bg-l0")} />
+        <i className={cn(legendSwatch, "bg-l1")} />
+        <i className={cn(legendSwatch, "bg-l2")} />
+        <i className={cn(legendSwatch, "bg-l3")} />
+        <i className={cn(legendSwatch, "bg-l4")} />
         <span>More</span>
       </div>
     </motion.div>
@@ -199,16 +195,21 @@ function Stat({
 
   return (
     <motion.div
-      className="chain-stat"
       initial={reduce ? false : { opacity: 0, y: 8 }}
       whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.4, ease: easeOut }}
     >
-      <div className="stat-k">{label}</div>
-      <div className={flame ? "stat-v streak" : "stat-v"}>
+      <div className={statK}>{label}</div>
+      <div
+        className={cn(
+          num,
+          "mt-0.5 text-[1.5rem] leading-none",
+          flame && "inline-flex items-center gap-[5px] text-flame",
+        )}
+      >
         {flame ? (
-          <span className="row" style={{ gap: 5 }}>
+          <span className={cn(row, "gap-[5px]")}>
             {value}
             <motion.span
               animate={
@@ -221,7 +222,7 @@ function Stat({
                   ? undefined
                   : { duration: 2.4, repeat: Infinity, ease: "easeInOut" }
               }
-              style={{ display: "inline-flex" }}
+              className="inline-flex"
             >
               <Flame size={16} aria-hidden />
             </motion.span>
