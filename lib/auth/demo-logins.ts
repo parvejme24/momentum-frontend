@@ -34,9 +34,7 @@ export const DEMO_LOGINS: DemoLogin[] = [
   },
 ];
 
-/** Show quick demo logins outside production, or when explicitly enabled. */
+/** Show quick demo logins unless explicitly disabled. */
 export function showDemoLogins(): boolean {
-  if (process.env.NEXT_PUBLIC_SHOW_DEMO_LOGINS === "false") return false;
-  if (process.env.NEXT_PUBLIC_SHOW_DEMO_LOGINS === "true") return true;
-  return process.env.NODE_ENV !== "production";
+  return process.env.NEXT_PUBLIC_SHOW_DEMO_LOGINS !== "false";
 }

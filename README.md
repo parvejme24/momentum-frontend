@@ -80,7 +80,7 @@ After seeding the backend:
 | Customer | `customer@momentum.app` | `password123` |
 | Admin | `admin@momentum.app` | `password123` |
 
-On the login page (non-production), use **Quick demo access** to sign in with one click.
+On the login page, use **Quick demo access** to sign in as Customer or Admin with one click.
 
 ---
 

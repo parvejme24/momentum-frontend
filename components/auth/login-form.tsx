@@ -188,11 +188,11 @@ export function LoginForm({ nextPath = null }: { nextPath?: string | null }) {
 
       {showDemoLogins() ? (
         <AuthFormItem>
-          <div className="grid gap-[var(--space-2)]">
+          <div className="grid gap-2.5">
             <p className={cn(mono, "m-0 text-[0.72rem] tracking-[0.12em] text-ink-50 uppercase")}>
               Quick demo access
             </p>
-            <div className="grid grid-cols-2 gap-[var(--gap)] max-nav:grid-cols-1">
+            <div className="grid grid-cols-2 gap-2.5 max-nav:grid-cols-1">
               {DEMO_LOGINS.map((demo) => {
                 const isAdmin = demo.role === "admin";
                 const pending = demoPending === demo.role;
@@ -204,15 +204,16 @@ export function LoginForm({ nextPath = null }: { nextPath?: string | null }) {
                       btn,
                       btnGhost,
                       btnBlock,
-                      "grid min-h-auto justify-items-start gap-1 px-3.5 py-3 text-left text-[0.84rem]",
+                      "grid min-h-23 justify-items-stretch gap-2 px-3.5 py-3 text-left",
                       "dark:border-[rgba(221,216,207,0.12)] dark:bg-[color-mix(in_srgb,var(--paper-white)_75%,transparent)] dark:shadow-paper-sm dark:enabled:hover:border-[#8ba4c9]/32 dark:enabled:hover:bg-paper-white",
                       isAdmin &&
                         "bg-[color-mix(in_srgb,var(--blue-soft)_72%,var(--paper-white))] dark:border-[#8ba4c9]/28 dark:bg-[color-mix(in_srgb,var(--blue-soft)_85%,var(--paper-raised))]",
                     )}
+                    aria-label={demo.label}
                     disabled={isBusy}
                     onClick={() => void onDemoLogin(demo.role)}
                   >
-                    <span className="inline-flex items-center gap-2 font-bold">
+                    <span className="inline-flex items-center gap-2 text-[0.84rem] font-bold">
                       {pending ? (
                         <Loader2 className="animate-spin" size={18} />
                       ) : isAdmin ? (
@@ -220,20 +221,22 @@ export function LoginForm({ nextPath = null }: { nextPath?: string | null }) {
                       ) : (
                         <UserRound size={18} aria-hidden />
                       )}
-                      <span>{demo.label}</span>
+                      <span>{isAdmin ? "Admin" : "Customer"}</span>
                     </span>
-                    <span className={cn(mono, "text-[0.68rem] leading-[1.35] break-all text-ink-50")}>
-                      {demo.email}
-                    </span>
-                    <span className={cn(mono, "text-[0.68rem] leading-[1.35] break-all text-ink-50")}>
-                      {demo.password}
+                    <span className="grid gap-0.5">
+                      <span className={cn(mono, "text-[0.68rem] leading-[1.4] text-ink-70")}>
+                        {demo.email}
+                      </span>
+                      <span className={cn(mono, "text-[0.68rem] leading-[1.4] text-ink-50")}>
+                        {demo.password}
+                      </span>
                     </span>
                   </button>
                 );
               })}
             </div>
-            <p className={cn(mono, "m-0 text-[0.68rem] leading-[1.45] tracking-[0.04em] text-ink-50 [&_code]:text-[0.66rem]")}>
-              Run <code>npm run db:seed</code> in momentum-backend if login fails.
+            <p className={cn(mono, "m-0 text-[0.68rem] leading-[1.45] tracking-[0.04em] text-ink-50")}>
+              One click fills the account and signs you in.
             </p>
           </div>
         </AuthFormItem>
