@@ -10,6 +10,7 @@ import {
   Download,
   Globe,
   Lock,
+  LogOut,
   Mail,
   Monitor,
   Trash2,
@@ -36,6 +37,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { TimePicker } from "@/components/ui/time-picker";
 import { ApiError } from "@/lib/api/errors";
+import { downloadMomentumExport } from "@/lib/account/export";
 import { getVapidPublicKey } from "@/lib/api/devices";
 import { useAuth } from "@/lib/auth/context";
 import { isAdmin } from "@/lib/auth/role";
@@ -188,7 +190,7 @@ function SectionHead({
 export function SettingsPage() {
   const reduce = useReducedMotion();
   const { pushToast } = useToast();
-  const { user, updateMe, changePassword, logoutAll, resendVerification } =
+  const { user, updateMe, changePassword, logout, logoutAll, resendVerification } =
     useAuth();
   const admin = isAdmin(user);
 
@@ -211,7 +213,9 @@ export function SettingsPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingTime, setSavingTime] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [signingOutAll, setSigningOutAll] = useState(false);
+  const [exporting, setExporting] = useState<"JSON" | "CSV" | null>(null);
   const [resendingVerification, setResendingVerification] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -370,6 +374,18 @@ export function SettingsPage() {
     }
   }
 
+  async function signOut() {
+    setSigningOut(true);
+    try {
+      await logout();
+    } catch (err) {
+      setSigningOut(false);
+      pushToast(
+        err instanceof ApiError ? err.message : "Couldn’t sign out",
+      );
+    }
+  }
+
   async function signOutEverywhere() {
     setSigningOutAll(true);
     try {
@@ -438,9 +454,28 @@ export function SettingsPage() {
     }
   }
 
-  function exportData(format: "JSON" | "CSV") {
-    pushToast(`Export ready — check your downloads`);
-    void format;
+  async function exportData(format: "JSON" | "CSV") {
+    if (!user) {
+      pushToast("Sign in to download your data");
+      return;
+    }
+    setExporting(format);
+    try {
+      await downloadMomentumExport(user, format);
+      pushToast(
+        format === "JSON"
+          ? "JSON downloaded — check your downloads"
+          : "CSV downloaded — check your downloads",
+      );
+    } catch (err) {
+      pushToast(
+        err instanceof ApiError
+          ? err.message
+          : "Couldn’t prepare the download",
+      );
+    } finally {
+      setExporting(null);
+    }
   }
 
   function confirmDelete() {
@@ -899,18 +934,42 @@ export function SettingsPage() {
                 <button
                   type="button"
                   className={quietBtn}
-                  onClick={() => exportData("JSON")}
+                  disabled={exporting !== null}
+                  onClick={() => void exportData("JSON")}
                 >
-                  Download JSON
+                  {exporting === "JSON" ? "Preparing JSON…" : "Download JSON"}
                 </button>
                 <button
                   type="button"
                   className={quietBtn}
-                  onClick={() => exportData("CSV")}
+                  disabled={exporting !== null}
+                  onClick={() => void exportData("CSV")}
                 >
-                  Download CSV
+                  {exporting === "CSV" ? "Preparing CSV…" : "Download CSV"}
                 </button>
               </div>
+            </motion.section>
+
+            <motion.section
+              className={settingsCard}
+              aria-labelledby="session-heading"
+              variants={reduce ? undefined : fadeUpSoft}
+            >
+              <SectionHead
+                id="session-heading"
+                title="Session"
+                note="Sign out of this device"
+                icon={LogOut}
+              />
+              <button
+                type="button"
+                className={cn(quietBtn, btnBlock, "mt-4")}
+                disabled={signingOut || signingOutAll}
+                onClick={() => void signOut()}
+              >
+                <LogOut size={16} strokeWidth={2.4} aria-hidden />
+                {signingOut ? "Signing out…" : "Sign out"}
+              </button>
             </motion.section>
 
             <motion.section
