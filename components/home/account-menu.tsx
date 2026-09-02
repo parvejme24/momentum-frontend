@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   LogOut,
@@ -10,6 +11,7 @@ import {
 
 import { easeOut } from "@/components/home/motion";
 import { buildAccountMenuLinks } from "@/lib/app/navigation";
+import { navPrefetchHandlers } from "@/lib/app/prefetch";
 import { useAuth } from "@/lib/auth/context";
 import { isAdmin } from "@/lib/auth/role";
 import { cn } from "@/lib/utils";
@@ -32,6 +34,7 @@ const menuLink =
 export function AccountMenu() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const reduce = useReducedMotion();
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -146,6 +149,7 @@ export function AccountMenu() {
                   role="menuitem"
                   className={menuLink}
                   onClick={() => setOpen(false)}
+                  {...navPrefetchHandlers(queryClient, item.href)}
                 >
                   <Icon size={16} strokeWidth={2.2} aria-hidden />
                   {item.label}

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { archiveHabit, createHabit, deleteHabit, getHabit, listHabits, restoreHabit, updateHabit } from "@/lib/api/habits";
 import type { CreateHabitRequest, Habit, UpdateHabitRequest } from "@/lib/api/types";
+import { HABITS_STALE_MS } from "@/lib/app/prefetch";
 import { useAuth } from "@/lib/auth/context";
 import { habitKeys } from "@/lib/habits/keys";
 import { reminderKeys } from "@/lib/reminders/keys";
@@ -17,6 +18,7 @@ export function useHabits(archived = false) {
     queryKey: habitKeys.list(archived),
     queryFn: () => listHabits({ archived }),
     enabled: !isLoading && Boolean(user),
+    staleTime: HABITS_STALE_MS,
   });
 }
 
@@ -27,6 +29,7 @@ export function useHabit(id: string) {
     queryKey: habitKeys.detail(id),
     queryFn: () => getHabit(id),
     enabled: !isLoading && Boolean(user) && Boolean(id),
+    staleTime: HABITS_STALE_MS,
   });
 }
 

@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { Flame, Plus } from "lucide-react";
 import { motion, MotionConfig, useReducedMotion } from "framer-motion";
 
@@ -12,6 +13,7 @@ import { ProgressRing } from "@/components/today/progress-ring";
 import { WeekBars } from "@/components/today/week-bars";
 import { TodayPageSkeleton } from "@/components/ui/page-skeletons";
 import { ApiError } from "@/lib/api/errors";
+import { navPrefetchHandlers } from "@/lib/app/prefetch";
 import { asPercent, formatPrettyIso } from "@/lib/dates";
 import { useGroupedReminders } from "@/lib/reminders/hooks";
 import { useOverviewStats } from "@/lib/stats/hooks";
@@ -51,6 +53,7 @@ function formatPrettyDate(date: Date) {
 
 export function TodayPage() {
   const reduce = useReducedMotion();
+  const queryClient = useQueryClient();
   const { pushToast } = useToast();
   const todayQuery = useToday();
   const remindersQuery = useGroupedReminders();
@@ -230,6 +233,7 @@ export function TodayPage() {
                 mono,
                 "mt-[3px] shrink-0 cursor-pointer text-[0.68rem] font-semibold tracking-[0.08em] whitespace-nowrap text-blue uppercase hover:text-ink",
               )}
+              {...navPrefetchHandlers(queryClient, "/stats")}
             >
               Full stats →
             </Link>

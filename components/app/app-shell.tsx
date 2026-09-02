@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 
 import { AiChatWidget } from "@/components/ai/ai-chat-widget";
@@ -16,6 +17,7 @@ import {
   CUSTOMER_TAB_NAV,
   isNavActive,
 } from "@/lib/app/navigation";
+import { navPrefetchHandlers } from "@/lib/app/prefetch";
 import { customer } from "@/lib/data/customer";
 import { useAuth } from "@/lib/auth/context";
 import { loginRedirectPath } from "@/lib/auth/protected-routes";
@@ -54,6 +56,7 @@ function initialFromName(name: string) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const { user, isLoading, logout } = useAuth();
@@ -143,6 +146,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     className={cn(NAV_LINK, active && NAV_LINK_CURRENT)}
                     aria-current={active ? "page" : undefined}
                     onClick={markPending(item.href)}
+                    {...navPrefetchHandlers(queryClient, item.href)}
                   >
                     <Icon strokeWidth={2.2} aria-hidden />
                     {item.label}
@@ -228,6 +232,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className={cn(TAB_LINK, active && TAB_LINK_CURRENT)}
                   aria-current={active ? "page" : undefined}
                   onClick={markPending(item.href)}
+                  {...navPrefetchHandlers(queryClient, item.href)}
                 >
                   <Icon strokeWidth={2.2} aria-hidden />
                   {item.label}

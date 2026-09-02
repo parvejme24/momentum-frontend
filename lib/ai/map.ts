@@ -161,7 +161,7 @@ export const AI_PROMPT_FEATURES: Array<{
   {
     id: "chat",
     label: "Chat",
-    vars: "{{userName}} {{today}} {{habits}} {{habitTitle}} {{history}} {{message}}",
+    vars: "{{userName}} {{today}} {{habits}} {{habitTitle}} {{history}} {{progress}} {{message}}",
   },
   {
     id: "generate_habit",

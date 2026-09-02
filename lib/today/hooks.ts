@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 
 import { deleteHabitLog, upsertHabitLog } from "@/lib/api/logs";
 import { getToday } from "@/lib/api/today";
@@ -26,16 +27,18 @@ export function useToday(date?: string) {
   });
 }
 
-function useInvalidateAfterLog() {
-  const queryClient = useQueryClient();
-
-  return () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: todayKeys.all }),
-      queryClient.invalidateQueries({ queryKey: habitKeys.all }),
-      queryClient.invalidateQueries({ queryKey: logKeys.all }),
-      queryClient.invalidateQueries({ queryKey: statsKeys.all }),
-    ]);
+/** Mark list caches stale without refetching — screens pick up fresh data on visit. */
+function markListCachesStale(queryClient: QueryClient) {
+  return Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: habitKeys.lists(),
+      refetchType: "none",
+    }),
+    queryClient.invalidateQueries({
+      queryKey: statsKeys.overviewRoot(),
+      refetchType: "none",
+    }),
+  ]);
 }
 
 function applyOptimisticToggle(
@@ -91,7 +94,6 @@ function applyOptimisticToggle(
 
 export function useToggleTodayLog() {
   const queryClient = useQueryClient();
-  const invalidate = useInvalidateAfterLog();
 
   return useMutation({
     mutationFn: async ({
@@ -124,14 +126,35 @@ export function useToggleTodayLog() {
         queryClient.setQueryData(context.key, context.previous);
       }
     },
-    onSettled: () => {
-      void invalidate();
+    onSettled: (_data, _error, vars) => {
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: todayKeys.date(vars.date) }),
+        queryClient.invalidateQueries({
+          queryKey: logKeys.all,
+          refetchType: "none",
+        }),
+        markListCachesStale(queryClient),
+      ]);
     },
   });
 }
 
+function invalidateAfterHabitLog(
+  queryClient: QueryClient,
+  habitId: string,
+  localDate: string,
+) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: todayKeys.date(localDate) }),
+    queryClient.invalidateQueries({ queryKey: logKeys.habitRoot(habitId) }),
+    queryClient.invalidateQueries({ queryKey: habitKeys.detail(habitId) }),
+    queryClient.invalidateQueries({ queryKey: statsKeys.habitRoot(habitId) }),
+    markListCachesStale(queryClient),
+  ]);
+}
+
 export function useUpsertLog() {
-  const invalidate = useInvalidateAfterLog();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({
@@ -143,16 +166,18 @@ export function useUpsertLog() {
       localDate: string;
       body?: UpsertLogRequest;
     }) => upsertHabitLog(habitId, localDate, body ?? {}),
-    onSuccess: () => invalidate(),
+    onSuccess: (_data, vars) =>
+      invalidateAfterHabitLog(queryClient, vars.habitId, vars.localDate),
   });
 }
 
 export function useDeleteLog() {
-  const invalidate = useInvalidateAfterLog();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ habitId, localDate }: { habitId: string; localDate: string }) =>
       deleteHabitLog(habitId, localDate),
-    onSuccess: () => invalidate(),
+    onSuccess: (_data, vars) =>
+      invalidateAfterHabitLog(queryClient, vars.habitId, vars.localDate),
   });
 }

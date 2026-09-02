@@ -167,7 +167,7 @@ export function AiChatWidget() {
 
   const composerPlaceholder = createMode
     ? "Describe the habit you want…"
-    : "Ask anything or describe a habit to create…";
+    : "Ask in Bangla, English, or Banglish — habits only.";
 
   return (
     <div

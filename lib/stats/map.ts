@@ -103,7 +103,7 @@ export function overviewSummary(data: OverviewStatsResponse): SummaryTile[] {
     {
       key: "Active habits",
       value: String(data.totals.activeHabits),
-      note: `${data.totals.daysTracked} days tracked`,
+      note: `${data.totals.daysTracked} days in this range`,
     },
   ];
 }
