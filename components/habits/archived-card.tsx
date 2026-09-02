@@ -21,6 +21,9 @@ import { cn } from "@/lib/utils";
 const HABIT_GLYPH =
   "grid size-11 shrink-0 place-items-center overflow-hidden rounded-md border border-ink/9 text-[1.15rem]";
 
+const ACTION =
+  "h-9 min-h-9 w-full min-w-0 gap-1 overflow-hidden px-2 text-[0.78rem] hover:translate-y-0 wide:h-auto wide:min-h-0 wide:w-auto wide:overflow-visible wide:px-3.5 wide:text-[0.84rem] wide:hover:-translate-y-0.5";
+
 export function ArchivedCard({
   habit,
   onRestore,
@@ -36,7 +39,7 @@ export function ArchivedCard({
     <motion.article
       className={cn(
         card,
-        "flex h-full min-h-[17.5rem] flex-col gap-4 p-[18px] opacity-[0.88] shadow-paper-sm hover:opacity-100",
+        "box-border grid h-full min-h-[20.25rem] grid-rows-[auto_1fr_auto] gap-4 overflow-hidden p-[18px] opacity-[0.88] shadow-paper-sm hover:opacity-100",
       )}
       variants={reduce ? undefined : fadeUpSoft}
     >
@@ -75,31 +78,34 @@ export function ArchivedCard({
         weeks={13}
       />
 
-      <div className="mt-auto flex min-h-[2.75rem] flex-wrap items-center justify-between gap-3 border-t border-ink/8 pt-3.5">
+      <div className="flex min-w-0 flex-col gap-2.5 border-t border-ink/8 pt-3.5 wide:flex-row wide:items-center wide:justify-between wide:gap-3">
         <span className={cn(mono, "text-[0.78rem] font-semibold text-ink-70")}>
           {habit.bestLabel}
         </span>
-        <div className="flex flex-wrap gap-2">
-          <Link href={`/habits/${habit.id}`} className={cn(btn, btnGhost, btnSm)}>
+        <div className="grid grid-cols-3 gap-1.5 wide:flex wide:shrink-0 wide:flex-nowrap wide:justify-end wide:gap-2">
+          <Link
+            href={`/habits/${habit.id}`}
+            className={cn(btn, btnGhost, btnSm, ACTION)}
+          >
             History
           </Link>
           <button
             type="button"
-            className={cn(btn, btnPrimary, btnSm)}
+            className={cn(btn, btnPrimary, btnSm, ACTION)}
             onClick={() => onRestore(habit.id)}
           >
-            <RotateCcw size={14} strokeWidth={2.4} aria-hidden />
-            Restore
+            <RotateCcw size={14} strokeWidth={2.4} className="shrink-0" aria-hidden />
+            <span className="truncate">Restore</span>
           </button>
           <button
             type="button"
-            className={cn(btn, btnDanger, btnSm)}
+            className={cn(btn, btnDanger, btnSm, ACTION)}
             aria-label={`Delete ${habit.title}`}
             title="Delete forever"
             onClick={() => onDelete(habit.id)}
           >
-            <Trash2 size={14} strokeWidth={2.4} aria-hidden />
-            Delete
+            <Trash2 size={14} strokeWidth={2.4} className="shrink-0" aria-hidden />
+            <span className="truncate">Delete</span>
           </button>
         </div>
       </div>

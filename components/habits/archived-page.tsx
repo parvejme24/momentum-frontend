@@ -195,7 +195,7 @@ export function ArchivedPage() {
             </motion.section>
 
             <motion.aside
-              className="mt-10 flex items-end justify-between gap-6 border-t border-ink/8 pt-8"
+              className="mt-10 flex items-end justify-between gap-6 border-t border-ink/8 pt-8 max-nav:flex-col max-nav:items-stretch"
               variants={reduce ? undefined : fadeUpSoft}
             >
               <div className="min-w-0 flex-1">
@@ -212,7 +212,7 @@ export function ArchivedPage() {
                   btn,
                   btnGhost,
                   btnSm,
-                  "shrink-0 border-flame text-flame hover:border-flame hover:text-flame hover:shadow-hover",
+                  "shrink-0 border-flame text-flame hover:border-flame hover:text-flame hover:shadow-hover max-nav:w-fit",
                 )}
                 onClick={() => setDeleteTarget({ kind: "all" })}
               >
