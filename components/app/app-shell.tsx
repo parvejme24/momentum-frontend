@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 
 import { AiChatWidget } from "@/components/ai/ai-chat-widget";
+import { MobileTabNav } from "@/components/app/mobile-tab-nav";
 import { BrandLockup } from "@/components/home/brand-mark";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -38,12 +39,6 @@ const NAV_LINK =
 
 const NAV_LINK_CURRENT =
   "bg-[linear-gradient(120deg,color-mix(in_srgb,var(--blue-soft)_80%,transparent),color-mix(in_srgb,var(--flame-soft)_35%,transparent))] text-blue-deep shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--blue)_32%,transparent)] hover:translate-x-0 hover:bg-[linear-gradient(120deg,color-mix(in_srgb,var(--blue-soft)_90%,transparent),color-mix(in_srgb,var(--flame-soft)_40%,transparent))] hover:text-blue-deep dark:bg-[linear-gradient(120deg,color-mix(in_srgb,var(--blue-soft)_90%,transparent),color-mix(in_srgb,var(--flame-soft)_50%,transparent))] dark:shadow-[inset_0_0_0_1px_rgba(139,164,201,0.35)]";
-
-const TAB_LINK =
-  "grid min-h-[54px] cursor-pointer content-center justify-items-center gap-1 rounded-lg border-2 border-transparent bg-transparent px-1 py-2 text-[0.62rem] font-bold tracking-[0.02em] text-ink-50 transition-[background,border-color,color,transform] duration-normal ease-smooth focus-visible:text-blue focus-visible:shadow-[var(--focus-ring)] focus-visible:outline-none [&_svg]:size-5 [&_svg]:stroke-current";
-
-const TAB_LINK_CURRENT =
-  "bg-[linear-gradient(160deg,color-mix(in_srgb,var(--blue-soft)_85%,transparent),color-mix(in_srgb,var(--flame-soft)_40%,transparent))] text-blue-deep shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--blue)_32%,transparent)] dark:shadow-[inset_0_0_0_1px_rgba(139,164,201,0.35)]";
 
 function isModifiedClick(event: React.MouseEvent) {
   return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0;
@@ -107,7 +102,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className="sticky top-0 hidden h-screen flex-col gap-4 overflow-hidden border-r border-[var(--stroke)] bg-[linear-gradient(165deg,color-mix(in_srgb,var(--blue-soft)_55%,var(--paper-raised))_0%,var(--paper-raised)_42%,color-mix(in_srgb,var(--flame-soft)_28%,var(--paper-raised))_100%)] px-4 py-8 backdrop-blur-[8px] nav:flex dark:border-[rgba(221,216,207,0.08)] dark:bg-[linear-gradient(180deg,color-mix(in_srgb,var(--paper-raised)_95%,var(--blue-soft))_0%,var(--paper)_45%,color-mix(in_srgb,var(--paper)_92%,var(--flame-soft))_100%)] dark:backdrop-blur-[12px]"
         aria-label="App"
       >
-        <Link href="/dashboard" aria-label="Momentum today">
+        <Link href="/dashboard" prefetch={false} aria-label="Momentum today">
           <BrandLockup />
         </Link>
 
@@ -143,6 +138,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={false}
                     className={cn(NAV_LINK, active && NAV_LINK_CURRENT)}
                     aria-current={active ? "page" : undefined}
                     onClick={markPending(item.href)}
@@ -158,7 +154,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="mt-4 shrink-0">
-          <Link href="/habits/new" className={cn(btn, btnPrimary, btnBlock, btnSm)}>
+          <Link href="/habits/new" prefetch={false} className={cn(btn, btnPrimary, btnBlock, btnSm)}>
             <Plus size={16} strokeWidth={2.4} aria-hidden />
             New habit
           </Link>
@@ -217,31 +213,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <nav
-        className="fixed inset-x-0 bottom-0 z-40 hidden border-t border-[var(--stroke)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--paper-raised)_88%,transparent),var(--paper-raised))] px-2.5 pt-2.5 pb-[calc(10px+env(safe-area-inset-bottom))] backdrop-blur-[10px] max-nav:block dark:border-[rgba(221,216,207,0.08)] dark:bg-[color-mix(in_srgb,var(--paper-raised)_94%,transparent)] dark:backdrop-blur-[14px]"
-        aria-label="Mobile"
-      >
-        <ul className="m-0 grid list-none grid-cols-5 gap-1.5 p-0">
-          {tabNav.map((item) => {
-            const Icon = item.icon;
-            const active = isNavActive(currentPath, item.href, "tab");
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={cn(TAB_LINK, active && TAB_LINK_CURRENT)}
-                  aria-current={active ? "page" : undefined}
-                  onClick={markPending(item.href)}
-                  {...navPrefetchHandlers(queryClient, item.href)}
-                >
-                  <Icon strokeWidth={2.2} aria-hidden />
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+      <MobileTabNav
+        items={tabNav}
+        pathname={currentPath}
+        onNavigate={setPendingHref}
+      />
 
       <AiChatWidget />
     </div>

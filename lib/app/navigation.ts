@@ -21,6 +21,15 @@ export type NavItem = {
   icon: LucideIcon;
 };
 
+export type TabNavItem = {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  href?: string;
+  children?: NavItem[];
+  childrenLabel?: string;
+};
+
 export type NavSection = {
   label?: string;
   items: NavItem[];
@@ -54,21 +63,52 @@ export const CUSTOMER_SIDE_NAV: NavItem[] = [
   SETTINGS_NAV_ITEM,
 ];
 
-export const CUSTOMER_TAB_NAV: NavItem[] = [
-  { href: "/dashboard", label: "Today", icon: CalendarDays },
-  { href: "/habits", label: "Habits", icon: ListChecks },
-  { href: "/habits/new", label: "New", icon: Plus },
-  { href: "/stats", label: "Stats", icon: BarChart3 },
-  { href: "/settings", label: "You", icon: UserRound },
+export const CUSTOMER_TAB_NAV: TabNavItem[] = [
+  { id: "today", href: "/dashboard", label: "Today", icon: CalendarDays },
+  { id: "habits", href: "/habits", label: "Habits", icon: ListChecks },
+  { id: "new", href: "/habits/new", label: "New", icon: Plus },
+  { id: "stats", href: "/stats", label: "Stats", icon: BarChart3 },
+  { id: "you", href: "/settings", label: "You", icon: UserRound },
 ];
 
-export const ADMIN_TAB_NAV: NavItem[] = [
-  { href: "/dashboard", label: "Today", icon: CalendarDays },
+const ADMIN_PERSONAL_TAB_CHILDREN: NavItem[] = [
   { href: "/habits", label: "Habits", icon: ListChecks },
-  { href: "/admin", label: "Admin", icon: LayoutDashboard },
-  { href: "/habits/new", label: "New", icon: Plus },
-  { href: "/settings", label: "You", icon: UserRound },
+  { href: "/habits/archived", label: "Archive", icon: Archive },
+  { href: "/habits/new", label: "New habit", icon: Plus },
+  { href: "/stats", label: "Stats", icon: BarChart3 },
+  { href: "/subscription", label: "Subscription", icon: CreditCard },
 ];
+
+export const ADMIN_TAB_NAV: TabNavItem[] = [
+  { id: "today", href: "/dashboard", label: "Today", icon: CalendarDays },
+  {
+    id: "habits",
+    label: "Habits",
+    icon: ListChecks,
+    childrenLabel: "My habits",
+    children: ADMIN_PERSONAL_TAB_CHILDREN,
+  },
+  {
+    id: "admin",
+    label: "Admin",
+    icon: LayoutDashboard,
+    childrenLabel: "Admin",
+    children: ADMIN_SIDE_NAV,
+  },
+  { id: "new", href: "/habits/new", label: "New", icon: Plus },
+  { id: "you", href: "/settings", label: "You", icon: UserRound },
+];
+
+export function isTabNavActive(pathname: string, item: TabNavItem): boolean {
+  if (item.children?.length) {
+    return item.children.some((child) => {
+      if (child.href === "/habits/new") return false;
+      return isNavActive(pathname, child.href, "tab");
+    });
+  }
+  if (!item.href) return false;
+  return isNavActive(pathname, item.href, "tab");
+}
 
 export function buildSideNavSections(admin: boolean): NavSection[] {
   if (!admin) {
